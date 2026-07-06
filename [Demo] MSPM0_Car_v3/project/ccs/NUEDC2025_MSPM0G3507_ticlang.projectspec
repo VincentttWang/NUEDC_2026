@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<projectSpec>
+  <applicability>
+    <when>
+      <context deviceFamily="ARM" deviceId="MSPM0G3507" />
+    </when>
+  </applicability>
+  <project title="NUEDC2025_MSPM0" name="NUEDC2025_MSPM0G3507_nortos_ticlang" configurations="Debug" toolChain="TICLANG" connection="segger_j-link_connection.xml" device="MSPM0G3507" ignoreDefaultDeviceSettings="true" ignoreDefaultCCSSettings="true" products="MSPM0-SDK;sysconfig" compilerBuildOptions="&#xA;            -I${REPO_ROOT}&#xA;            -I${REPO_ROOT}/app&#xA;            -I${REPO_ROOT}/core&#xA;            -I${REPO_ROOT}/core/common&#xA;            -I${REPO_ROOT}/core/geometry&#xA;            -I${REPO_ROOT}/core/gimbal_tracking&#xA;            -I${REPO_ROOT}/core/kinematics&#xA;            -I${REPO_ROOT}/core/line_tracking&#xA;            -I${REPO_ROOT}/core/motion&#xA;            -I${REPO_ROOT}/core/pid&#xA;            -I${REPO_ROOT}/core/rotation&#xA;            -I${REPO_ROOT}/middleware/chassis&#xA;            -I${REPO_ROOT}/middleware/fault&#xA;            -I${REPO_ROOT}/middleware/gimbal&#xA;            -I${REPO_ROOT}/middleware/line_follow&#xA;            -I${REPO_ROOT}/middleware/ui&#xA;            -I${REPO_ROOT}/bsp/canmv&#xA;            -I${REPO_ROOT}/bsp/common&#xA;            -I${REPO_ROOT}/bsp/grayscale_sensor&#xA;            -I${REPO_ROOT}/bsp/imu&#xA;            -I${REPO_ROOT}/bsp/key&#xA;            -I${REPO_ROOT}/bsp/motor&#xA;            -I${REPO_ROOT}/bsp/oled&#xA;            -I${REPO_ROOT}/bsp/step_motor&#xA;            -I${REPO_ROOT}/bsp/time&#xA;            -I${REPO_ROOT}/board/sys_config&#xA;            -I${PROJECT_ROOT}/${ConfigName}&#xA;            -O0&#xA;            @device.opt&#xA;            -I${COM_TI_MSPM0_SDK_INSTALL_DIR}/source/third_party/CMSIS/Core/Include&#xA;            -I${COM_TI_MSPM0_SDK_INSTALL_DIR}/source&#xA;            -gdwarf-3&#xA;            -mcpu=cortex-m0plus&#xA;            -march=thumbv6m&#xA;            -mfloat-abi=soft&#xA;            -mthumb&#xA;        " linkerBuildOptions="             -ldevice.cmd.genlibs             -L${COM_TI_MSPM0_SDK_INSTALL_DIR}/source             -L${REPO_ROOT}             -L${PROJECT_BUILD_DIR}/syscfg             -Wl,--rom_model             -Wl,--warn_sections             -L${CG_TOOL_ROOT}/lib             -llibc.a             --stack_size=4096             --heap_size=1024         " sysConfigBuildOptions="             --output .             --product ${COM_TI_MSPM0_SDK_INSTALL_DIR}/.metadata/product.json             --compiler ticlang         " sourceLookupPath="${COM_TI_MSPM0_SDK_INSTALL_DIR}/source/ti/driverlib" description="Layered NUEDC2025 MSPM0 project for direct CCS import">
+    <property name="buildProfile" value="debug" />
+    <property name="isHybrid" value="true" />
+    <pathVariable name="REPO_ROOT" path="../.." scope="project" />
+    <file path="${REPO_ROOT}/board/sys_config/empty.syscfg" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/app/app_device_check.c" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/app/app_device_check.h" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/app/app_e_task.c" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/app/app_e_task.h" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/app/app_launcher.c" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/app/app_launcher.h" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/app/main.c" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/board/sys_config/ti_msp_dl_config.c" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/board/sys_config/ti_msp_dl_config.h" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/bsp/canmv/canmv_uart.c" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/bsp/canmv/canmv_uart.h" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/bsp/common/bsp_common.h" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/bsp/grayscale_sensor/grayscale_sensor.c" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/bsp/grayscale_sensor/grayscale_sensor.h" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/bsp/imu/reg.h" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/bsp/imu/wit_sdk.c" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/bsp/imu/wit_sdk.h" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/bsp/key/key.c" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/bsp/key/key.h" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/bsp/motor/hall_encoder.c" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/bsp/motor/hall_encoder.h" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/bsp/motor/tb6612fng.c" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/bsp/motor/tb6612fng.h" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/bsp/oled/oled_font.h" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/bsp/oled/oled.c" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/bsp/oled/oled.h" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/bsp/step_motor/step_motor.c" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/bsp/step_motor/step_motor.h" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/bsp/time/bsp_time.c" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/bsp/time/bsp_time.h" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/core/common/core_types.h" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/core/geometry/geometry.c" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/core/geometry/geometry.h" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/core/gimbal_tracking/gimbal_tracking.c" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/core/gimbal_tracking/gimbal_tracking.h" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/core/kinematics/kinematics.c" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/core/kinematics/kinematics.h" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/core/line_tracking/line_tracking.c" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/core/line_tracking/line_tracking.h" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/core/motion/motion.c" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/core/motion/motion.h" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/core/pid/pid.c" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/core/pid/pid.h" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/core/rotation/rotation.c" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/core/rotation/rotation.h" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/middleware/chassis/chassis.c" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/middleware/chassis/chassis.h" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/middleware/fault/system_fault.c" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/middleware/fault/system_fault.h" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/middleware/gimbal/gimbal.c" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/middleware/gimbal/gimbal.h" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/middleware/line_follow/line_follow.c" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/middleware/line_follow/line_follow.h" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/middleware/ui/ui.c" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/middleware/ui/ui.h" openOnCreation="false" excludeFromBuild="false" action="link" />
+  </project>
+</projectSpec>

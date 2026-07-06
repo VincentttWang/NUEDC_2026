@@ -1,0 +1,102 @@
+T8DE8 000:102.375   SEGGER J-Link V7.92k Log File
+T8DE8 000:102.504   DLL Compiled: Oct 18 2023 14:58:31
+T8DE8 000:102.523   Logging started @ 2025-07-29 05:33
+T8DE8 000:102.573   Process: D:\Application\Keil5\UV4\UV4.exe
+T8DE8 000:102.596 - 102.592ms
+T8DE8 000:102.618 JLINK_SetWarnOutHandler(...)
+T8DE8 000:102.637 - 0.020ms
+T8DE8 000:102.656 JLINK_OpenEx(...)
+T8DE8 000:103.849   Firmware: J-Link ARM-OB STM32 compiled Aug 22 2012 19:52:04
+T8DE8 000:104.125   Firmware: J-Link ARM-OB STM32 compiled Aug 22 2012 19:52:04
+T8DE8 000:105.673   Hardware: V7.00
+T8DE8 000:105.707   S/N: 20090928
+T8DE8 000:105.735   OEM: SEGGER
+T8DE8 000:105.762   Feature(s): RDI,FlashDL,FlashBP,JFlash,GDB
+T8DE8 000:106.014   Bootloader: (Could not read)
+T8DE8 000:106.594   TELNET listener socket opened on port 19021
+T8DE8 000:106.825   WEBSRV WEBSRV_Init(): Starting webserver thread(s)
+T8DE8 000:107.093   WEBSRV Webserver running on local port 19080
+T8DE8 000:107.303   Looking for J-Link GUI Server exe at: D:\Application\Keil5\ARM\Segger\JLinkGUIServer.exe
+T8DE8 000:107.442   Looking for J-Link GUI Server exe at: C:\Program Files\SEGGER\JLink_V852\JLinkGUIServer.exe
+T8DE8 000:107.538   Forking J-Link GUI Server: C:\Program Files\SEGGER\JLink_V852\JLinkGUIServer.exe
+T8DE8 000:171.581   J-Link GUI Server info: "J-Link GUI server V8.52 "
+T8DE8 000:172.016 - 69.344ms returns "O.K."
+T8DE8 000:172.068 JLINK_GetEmuCaps()
+T8DE8 000:172.089 - 0.019ms returns 0x88EA5833
+T8DE8 000:172.110 JLINK_TIF_GetAvailable(...)
+T8DE8 000:172.269 - 0.158ms
+T8DE8 000:172.305 JLINK_SetErrorOutHandler(...)
+T8DE8 000:172.324 - 0.019ms
+T8DE8 000:172.372 JLINK_ExecCommand("ProjectFile = "C:\Users\14437\Desktop\EDC_HUST_2025\2021F\T1\1_Car\MDK-ARM\JLinkSettings.ini"", ...). 
+T8DE8 000:182.471 - 10.099ms returns 0x00
+T8DE8 000:185.654 JLINK_ExecCommand("Device = STM32H743VITx", ...). 
+T8DE8 000:186.385   Flash bank @ 0x90000000: SFL: Parsing sectorization info from ELF file
+T8DE8 000:186.421     FlashDevice.SectorInfo[0]: .SectorSize = 0x00010000, .SectorStartAddr = 0x00000000
+T8DE8 000:197.803   Device "STM32H743VI" selected.
+T8DE8 000:198.259 - 12.563ms returns 0x00
+T8DE8 000:198.291 JLINK_ExecCommand("DisableConnectionTimeout", ...). 
+T8DE8 000:198.315 - 0.001ms returns 0x01
+T8DE8 000:198.336 JLINK_GetHardwareVersion()
+T8DE8 000:198.355 - 0.018ms returns 70000
+T8DE8 000:198.412 JLINK_GetDLLVersion()
+T8DE8 000:198.430 - 0.018ms returns 79211
+T8DE8 000:198.449 JLINK_GetOEMString(...)
+T8DE8 000:198.469 JLINK_GetFirmwareString(...)
+T8DE8 000:198.487 - 0.018ms
+T8DE8 000:203.505 JLINK_GetDLLVersion()
+T8DE8 000:203.540 - 0.034ms returns 79211
+T8DE8 000:203.559 JLINK_GetCompileDateTime()
+T8DE8 000:203.577 - 0.018ms
+T8DE8 000:204.932 JLINK_GetFirmwareString(...)
+T8DE8 000:204.959 - 0.027ms
+T8DE8 000:206.329 JLINK_GetHardwareVersion()
+T8DE8 000:206.356 - 0.026ms returns 70000
+T8DE8 000:207.733 JLINK_GetSN()
+T8DE8 000:207.762 - 0.028ms returns 20090928
+T8DE8 000:209.138 JLINK_GetOEMString(...)
+T8DE8 000:212.940 JLINK_TIF_Select(JLINKARM_TIF_SWD)
+T8DE8 000:213.465 - 0.525ms returns 0x00
+T8DE8 000:213.496 JLINK_HasError()
+T8DE8 000:213.551 JLINK_SetSpeed(5000)
+T8DE8 000:213.660 - 0.112ms
+T8DE8 000:213.684 JLINK_GetId()
+T8DE8 000:215.351   ConfigTargetSettings() start
+T8DE8 000:215.391    J-Link Script File: Executing ConfigTargetSettings()
+T8DE8 000:218.154   ConfigTargetSettings() end - Took 64us
+T8DE8 000:219.995   InitTarget() start
+T8DE8 000:220.038    J-Link Script File: Executing InitTarget()
+T8DE8 000:221.715   SWD selected. Executing JTAG -> SWD switching sequence.
+T8DE8 000:226.216   DAP initialized successfully.
+T8DE8 000:246.783   InitTarget() end - Took 23.8ms
+T8DE8 000:249.328   Found SW-DP with ID 0x6BA02477
+T8DE8 000:252.400   Old FW that does not support reading DPIDR via DAP jobs
+T8DE8 000:256.852   DPv0 detected
+T8DE8 000:258.345   CoreSight SoC-400 or earlier
+T8DE8 000:259.775   Scanning AP map to find all available APs
+T8DE8 000:265.529   AP[3]: Stopped AP scan as end of AP map has been reached
+T8DE8 000:267.284   AP[0]: AHB-AP (IDR: 0x84770001)
+T8DE8 000:268.882   AP[1]: AHB-AP (IDR: 0x84770001)
+T8DE8 000:270.408   AP[2]: APB-AP (IDR: 0x54770002)
+T8DE8 000:271.956   Iterating through AP map to find AHB-AP to use
+T8DE8 000:276.708   AP[0]: Core found
+T8DE8 000:279.959   AP[0]: AHB-AP ROM base: 0xE00FE000
+T8DE8 000:283.537   CPUID register: 0x411FC271. Implementer code: 0x41 (ARM)
+T8DE8 000:286.825   Cache: L1 I/D-cache present
+T8DE8 000:288.355   Found Cortex-M7 r1p1, Little endian.
+T8DE8 000:288.703   -- Max. mem block: 0x00002C18
+T8DE8 023:355.409   
+  ***** Error: 
+T8DE8 023:355.523   Specific core setup failed.
+T8DE8 023:355.553 - 23141.868ms returns 0x00000000
+T8DE8 024:687.249 JLINK_Close()
+T8DE8 024:692.983   OnDisconnectTarget() start
+T8DE8 024:693.043    J-Link Script File: Executing OnDisconnectTarget()
+T8DE8 024:693.090   CPU_WriteMem(4 bytes @ 0x5C001004)
+T8DE8 024:693.581   CPU_WriteMem(4 bytes @ 0x5C001034)
+T8DE8 024:694.052   CPU_WriteMem(4 bytes @ 0x5C001054)
+T8DE8 024:696.606   OnDisconnectTarget() end - Took 1.53ms
+T8DE8 024:696.661   CPU_ReadMem(4 bytes @ 0xE0001000)
+T8DE8 024:697.107   CPU_WriteMem(4 bytes @ 0xE0001000)
+T8DE8 024:714.298 - 27.047ms
+T8DE8 024:714.380   
+T8DE8 024:714.399   Closed
