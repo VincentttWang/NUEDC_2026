@@ -150,6 +150,20 @@ extern "C" {
 #define GPIO_OLED_IOMUX_SCL                                      (IOMUX_PINCM22)
 #define GPIO_OLED_IOMUX_SCL_FUNC                       IOMUX_PINCM22_PF_I2C1_SCL
 
+/* Defines for MPU6050_JY61P_Tracking */
+#define MPU6050_JY61P_Tracking_INST                                         I2C0
+#define MPU6050_JY61P_Tracking_INST_IRQHandler                         I2C0_IRQHandler
+#define MPU6050_JY61P_Tracking_INST_INT_IRQN                           I2C0_INT_IRQn
+#define MPU6050_JY61P_Tracking_BUS_SPEED_HZ                                  400000
+#define GPIO_MPU6050_JY61P_Tracking_SDA_PORT                                   GPIOA
+#define GPIO_MPU6050_JY61P_Tracking_SDA_PIN                           DL_GPIO_PIN_0
+#define GPIO_MPU6050_JY61P_Tracking_IOMUX_SDA                          (IOMUX_PINCM1)
+#define GPIO_MPU6050_JY61P_Tracking_IOMUX_SDA_FUNC                IOMUX_PINCM1_PF_I2C0_SDA
+#define GPIO_MPU6050_JY61P_Tracking_SCL_PORT                                   GPIOA
+#define GPIO_MPU6050_JY61P_Tracking_SCL_PIN                           DL_GPIO_PIN_1
+#define GPIO_MPU6050_JY61P_Tracking_IOMUX_SCL                          (IOMUX_PINCM2)
+#define GPIO_MPU6050_JY61P_Tracking_IOMUX_SCL_FUNC                IOMUX_PINCM2_PF_I2C0_SCL
+
 
 /* Defines for BlueTooth */
 #define BlueTooth_INST                                                     UART0
@@ -375,15 +389,6 @@ extern "C" {
 #define LED_R_PORT                                                       (GPIOB)
 #define LED_R_PIN                                               (DL_GPIO_PIN_16)
 #define LED_R_IOMUX                                              (IOMUX_PINCM33)
-/* Port definition for Pin Group IMU_I2C */
-#define IMU_I2C_PORT                                                     (GPIOA)
-
-/* Defines for SCL: GPIOA.1 with pinCMx 2 on package pin 34 */
-#define IMU_I2C_SCL_PIN                                          (DL_GPIO_PIN_1)
-#define IMU_I2C_SCL_IOMUX                                         (IOMUX_PINCM2)
-/* Defines for SDA: GPIOA.0 with pinCMx 1 on package pin 33 */
-#define IMU_I2C_SDA_PIN                                          (DL_GPIO_PIN_0)
-#define IMU_I2C_SDA_IOMUX                                         (IOMUX_PINCM1)
 
 
 
@@ -398,6 +403,7 @@ void SYSCFG_DL_Motor_init(void);
 void SYSCFG_DL_SMotor_1_init(void);
 void SYSCFG_DL_TIMER_0_init(void);
 void SYSCFG_DL_OLED_init(void);
+void SYSCFG_DL_MPU6050_JY61P_Tracking_init(void);
 void SYSCFG_DL_BlueTooth_init(void);
 void SYSCFG_DL_K230_init(void);
 void SYSCFG_DL_BLDC_init(void);

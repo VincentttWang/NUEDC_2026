@@ -129,26 +129,9 @@ void JY61P_Init(UART_Regs *uart);
 
 /* ── JY61P I2C 驱动 (替代 UART 方式) ── */
 /*
- * 软件模拟 I2C, 引脚由 SysConfig 分配: PA0=SDA, PA1=SCL
- * 参考: 立创 MSPM0G3507 JY61P 驱动 (bsp_gyro.c) — 经过实物验证
+ * 硬件 I2C, 外设 I2C0 (SysConfig 分配): PA0=SDA, PA1=SCL, 400kHz
+ * 参考: MSPM0 SDK i2c_controller_rw_multibyte_fifo_poll
  */
-
-/* ── 引脚宏 (由 SysConfig 生成, 见 ti_msp_dl_config.h) ── */
-#define JY61P_I2C_PORT          IMU_I2C_PORT
-#define JY61P_I2C_SCL_PIN       IMU_I2C_SCL_PIN
-#define JY61P_I2C_SDA_PIN       IMU_I2C_SDA_PIN
-#define JY61P_I2C_SCL_IOMUX     IMU_I2C_SCL_IOMUX
-#define JY61P_I2C_SDA_IOMUX     IMU_I2C_SDA_IOMUX
-
-/* ── GPIO 位操作宏 (与立创驱动完全一致) ── */
-#define JY61P_SCL_H()   DL_GPIO_setPins(JY61P_I2C_PORT, JY61P_I2C_SCL_PIN)
-#define JY61P_SCL_L()   DL_GPIO_clearPins(JY61P_I2C_PORT, JY61P_I2C_SCL_PIN)
-#define JY61P_SDA_H()   DL_GPIO_setPins(JY61P_I2C_PORT, JY61P_I2C_SDA_PIN)
-#define JY61P_SDA_L()   DL_GPIO_clearPins(JY61P_I2C_PORT, JY61P_I2C_SDA_PIN)
-#define JY61P_SDA_READ() ((DL_GPIO_readPins(JY61P_I2C_PORT, JY61P_I2C_SDA_PIN) & JY61P_I2C_SDA_PIN) ? 1U : 0U)
-#define JY61P_SDA_OUT() { DL_GPIO_initDigitalOutput(JY61P_I2C_SDA_IOMUX); \
-                          DL_GPIO_enableOutput(JY61P_I2C_PORT, JY61P_I2C_SDA_PIN); }
-#define JY61P_SDA_IN()  { DL_GPIO_initDigitalInput(JY61P_I2C_SDA_IOMUX); }
 
 /* ── JY61P I2C 地址与协议常量 ── */
 #define JY61P_I2C_ADDR_7BIT          0x50U
