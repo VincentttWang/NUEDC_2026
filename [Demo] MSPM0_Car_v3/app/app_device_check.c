@@ -322,7 +322,7 @@ static void AppDeviceCheck_StartYawHold(void){
     s_yaw_hold_raw_output_deg_s = 0.0f;
     s_yaw_hold_output_deg_s = 0.0f;
     PID_Reset(&s_yaw_hold_pid);
-    s_yaw_hold_last_update_count = s_imu_update_count;
+    s_yaw_hold_last_update_count = JY61P_I2C_GetPollCount();
     s_yaw_hold_active = true;
 }
 
@@ -333,7 +333,7 @@ static void AppDeviceCheck_StopYawHold(void){
     s_yaw_hold_raw_output_deg_s = 0.0f;
     s_yaw_hold_output_deg_s = 0.0f;
     PID_Reset(&s_yaw_hold_pid);
-    s_yaw_hold_last_update_count = s_imu_update_count;
+    s_yaw_hold_last_update_count = JY61P_I2C_GetPollCount();
     (void)Gimbal_SetSpeed(0.0f, 0.0f);
 }
 
@@ -398,7 +398,7 @@ static void AppDeviceCheck_UpdateYawHold(float dt_s){
 }
 
 static void AppDeviceCheck_UpdateYawHoldOnImuFrame(float dt_s){
-    uint32_t update_count = s_imu_update_count;
+    uint32_t update_count = JY61P_I2C_GetPollCount();
 
     if (!s_yaw_hold_active || (update_count == s_yaw_hold_last_update_count)){
         return;
@@ -579,25 +579,25 @@ static void AppDeviceCheck_Render(APP_DEVICE_MODULE module){
                 snprintf(line0, sizeof(line0), "Gx:%0.1f", data.gyro_deg_s.x);
                 snprintf(line1, sizeof(line1), "Gy:%0.1f", data.gyro_deg_s.y);
                 snprintf(line2, sizeof(line2), "Gz:%0.1f", data.gyro_deg_s.z);
-                snprintf(line3, sizeof(line3), "Frm:%lu", (unsigned long)s_imu_frame_count);
+                snprintf(line3, sizeof(line3), "Poll:%lu", (unsigned long)JY61P_I2C_GetPollCount());
                 Ui_RenderLines("IMU Gyro", line0, line1, line2, line3, "K3:item K1/4", NULL);
             } else if (s_imu_test == APP_DEVICE_IMU_STATUS){
-                snprintf(line0, sizeof(line0), "Rx:%lu Ok:%lu",
-                         (unsigned long)g_app_device_imu_rx_byte_count,
-                         (unsigned long)g_app_device_imu_valid_frame_count);
-                snprintf(line1, sizeof(line1), "Bad:%lu Type:%02X",
-                         (unsigned long)g_app_device_imu_invalid_frame_count,
-                         g_app_device_imu_last_type);
-                snprintf(line2, sizeof(line2), "Irq:%lu Byte:%lu",
-                         (unsigned long)g_app_debug_uart_irq_count,
+                snprintf(line0, sizeof(line0), "Poll:%lu Err:%lu",
+                         (unsigned long)JY61P_I2C_GetPollCount(),
+                         (unsigned long)JY61P_I2C_GetErrorCount());
+                snprintf(line1, sizeof(line1), "Nack:%lu Time:%lu",
+                         (unsigned long)JY61P_I2C_GetNackCount(),
+                         (unsigned long)JY61P_I2C_GetTimeoutCount());
+                snprintf(line2, sizeof(line2), "UART Irq:%lu",
+                         (unsigned long)g_app_debug_uart_irq_count);
+                snprintf(line3, sizeof(line3), "UART Byte:%lu",
                          (unsigned long)g_app_debug_uart_drained_byte_count);
-                snprintf(line3, sizeof(line3), "IIDX:%u", g_app_debug_uart_last_iidx);
                 Ui_RenderLines("IMU Status", line0, line1, line2, line3, "K3:item K1/4", NULL);
             } else{
                 snprintf(line0, sizeof(line0), "Roll:%0.1f", data.attitude_deg.roll);
                 snprintf(line1, sizeof(line1), "Pitch:%0.1f", data.attitude_deg.pitch);
                 snprintf(line2, sizeof(line2), "Yaw:%0.1f", data.attitude_deg.yaw);
-                snprintf(line3, sizeof(line3), "Frm:%lu", (unsigned long)s_imu_frame_count);
+                snprintf(line3, sizeof(line3), "Poll:%lu", (unsigned long)JY61P_I2C_GetPollCount());
                 Ui_RenderLines("IMU Att", line0, line1, line2, line3, "K3:item K1/4", NULL);
             }
             break;

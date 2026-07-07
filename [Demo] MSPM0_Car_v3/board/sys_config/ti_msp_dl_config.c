@@ -59,7 +59,6 @@ SYSCONFIG_WEAK void SYSCFG_DL_init(void)
     SYSCFG_DL_SMotor_1_init();
     SYSCFG_DL_TIMER_0_init();
     SYSCFG_DL_OLED_init();
-    SYSCFG_DL_MPU6050_JY61P_Tracking_init();
     SYSCFG_DL_BlueTooth_init();
     SYSCFG_DL_K230_init();
     SYSCFG_DL_BLDC_init();
@@ -109,7 +108,6 @@ SYSCONFIG_WEAK void SYSCFG_DL_initPower(void)
     DL_TimerG_reset(SMotor_1_INST);
     DL_TimerA_reset(TIMER_0_INST);
     DL_I2C_reset(OLED_INST);
-    DL_I2C_reset(MPU6050_JY61P_Tracking_INST);
     DL_UART_Main_reset(BlueTooth_INST);
     DL_UART_Main_reset(K230_INST);
     DL_UART_Main_reset(BLDC_INST);
@@ -122,7 +120,6 @@ SYSCONFIG_WEAK void SYSCFG_DL_initPower(void)
     DL_TimerG_enablePower(SMotor_1_INST);
     DL_TimerA_enablePower(TIMER_0_INST);
     DL_I2C_enablePower(OLED_INST);
-    DL_I2C_enablePower(MPU6050_JY61P_Tracking_INST);
     DL_UART_Main_enablePower(BlueTooth_INST);
     DL_UART_Main_enablePower(K230_INST);
     DL_UART_Main_enablePower(BLDC_INST);
@@ -157,16 +154,6 @@ SYSCONFIG_WEAK void SYSCFG_DL_GPIO_init(void)
         DL_GPIO_WAKEUP_DISABLE);
     DL_GPIO_enableHiZ(GPIO_OLED_IOMUX_SDA);
     DL_GPIO_enableHiZ(GPIO_OLED_IOMUX_SCL);
-    DL_GPIO_initPeripheralInputFunctionFeatures(GPIO_MPU6050_JY61P_Tracking_IOMUX_SDA,
-        GPIO_MPU6050_JY61P_Tracking_IOMUX_SDA_FUNC, DL_GPIO_INVERSION_DISABLE,
-        DL_GPIO_RESISTOR_NONE, DL_GPIO_HYSTERESIS_DISABLE,
-        DL_GPIO_WAKEUP_DISABLE);
-    DL_GPIO_initPeripheralInputFunctionFeatures(GPIO_MPU6050_JY61P_Tracking_IOMUX_SCL,
-        GPIO_MPU6050_JY61P_Tracking_IOMUX_SCL_FUNC, DL_GPIO_INVERSION_DISABLE,
-        DL_GPIO_RESISTOR_NONE, DL_GPIO_HYSTERESIS_DISABLE,
-        DL_GPIO_WAKEUP_DISABLE);
-    DL_GPIO_enableHiZ(GPIO_MPU6050_JY61P_Tracking_IOMUX_SDA);
-    DL_GPIO_enableHiZ(GPIO_MPU6050_JY61P_Tracking_IOMUX_SCL);
 
     DL_GPIO_initPeripheralOutputFunction(
         GPIO_BlueTooth_IOMUX_TX, GPIO_BlueTooth_IOMUX_TX_FUNC);
@@ -305,16 +292,24 @@ SYSCONFIG_WEAK void SYSCFG_DL_GPIO_init(void)
 
     DL_GPIO_initDigitalOutput(LED_R_IOMUX);
 
+    DL_GPIO_initDigitalOutput(IMU_I2C_SCL_IOMUX);
+
+    DL_GPIO_initDigitalOutput(IMU_I2C_SDA_IOMUX);
+
     DL_GPIO_clearPins(GPIOA, Servo_PIN1_PIN |
 		SMotor_IO_DIR2_PIN |
 		Motor_IO_AIN1_PIN |
 		SR04_Trig_PIN |
-		LED_G_PIN);
+		LED_G_PIN |
+		IMU_I2C_SCL_PIN |
+		IMU_I2C_SDA_PIN);
     DL_GPIO_enableOutput(GPIOA, Servo_PIN1_PIN |
 		SMotor_IO_DIR2_PIN |
 		Motor_IO_AIN1_PIN |
 		SR04_Trig_PIN |
-		LED_G_PIN);
+		LED_G_PIN |
+		IMU_I2C_SCL_PIN |
+		IMU_I2C_SDA_PIN);
     DL_GPIO_setUpperPinsPolarity(GPIOA, DL_GPIO_PIN_18_EDGE_RISE |
 		DL_GPIO_PIN_22_EDGE_RISE);
     DL_GPIO_setUpperPinsInputFilter(GPIOA, DL_GPIO_PIN_18_INPUT_FILTER_3_CYCLES |
@@ -553,23 +548,6 @@ SYSCONFIG_WEAK void SYSCFG_DL_OLED_init(void) {
 
     /* Enable module */
     DL_I2C_enableController(OLED_INST);
-
-
-}
-static const DL_I2C_ClockConfig gMPU6050_JY61P_TrackingClockConfig = {
-    .clockSel = DL_I2C_CLOCK_BUSCLK,
-    .divideRatio = DL_I2C_CLOCK_DIVIDE_1,
-};
-
-SYSCONFIG_WEAK void SYSCFG_DL_MPU6050_JY61P_Tracking_init(void) {
-
-    DL_I2C_setClockConfig(MPU6050_JY61P_Tracking_INST,
-        (DL_I2C_ClockConfig *) &gMPU6050_JY61P_TrackingClockConfig);
-    DL_I2C_setAnalogGlitchFilterPulseWidth(MPU6050_JY61P_Tracking_INST,
-        DL_I2C_ANALOG_GLITCH_FILTER_WIDTH_50NS);
-    DL_I2C_enableAnalogGlitchFilter(MPU6050_JY61P_Tracking_INST);
-
-
 
 
 }

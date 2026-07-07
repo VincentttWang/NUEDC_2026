@@ -9,6 +9,7 @@
 #include "system_fault.h"
 #include "ti_msp_dl_config.h"
 #include "ui.h"
+#include "wit_sdk.h"
 
 #include <stdint.h>
 
@@ -23,7 +24,7 @@ static void App_DrainDebugUartRxFifo(void){
     uint32_t drained = 0U;
 
     while (!DL_UART_Main_isRXFIFOEmpty(BlueTooth_INST)){
-        AppDeviceCheck_ProcessImuByte((uint8_t)DL_UART_Main_receiveData(BlueTooth_INST));
+        (void)DL_UART_Main_receiveData(BlueTooth_INST);
         drained++;
     }
 
@@ -48,6 +49,8 @@ static void App_InitSystems(void){
 
     Ui_Init();
     Key_Init();
+
+    JY61P_I2C_Init();
 
     (void)Chassis_Init();
     (void)Gimbal_Init();
@@ -97,6 +100,7 @@ void UART2_IRQHandler(void){
 
 void SysTick_Handler(void){
     static uint8_t scan_divider = 0U;
+    static uint8_t imu_poll_divider = 0U;
 
     BSP_Time_TickInc();
 
@@ -104,5 +108,11 @@ void SysTick_Handler(void){
     if (scan_divider >= 10U){
         Key_Scan();
         scan_divider = 0U;
+    }
+
+    imu_poll_divider++;
+    if (imu_poll_divider >= JY61P_I2C_POLL_PERIOD_TICK){
+        JY61P_I2C_Poll();
+        imu_poll_divider = 0U;
     }
 }
