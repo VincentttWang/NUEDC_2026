@@ -15,6 +15,7 @@ Project/Keil/*.hex
 Project/Keil/*.htm
 Project/Keil/*.dep
 Project/Keil/*.log
+Project/Keil/*.uvprojx
 Project/Keil/*.uvoptx
 Project/Keil/*.uvguix.*
 project/keil/Objects/
@@ -24,12 +25,12 @@ project/keil/*.hex
 project/keil/*.htm
 project/keil/*.dep
 project/keil/*.log
+project/keil/*.uvprojx
 project/keil/*.uvoptx
 project/keil/*.uvguix.*
 keil/
 !Project/
 !Project/Keil/
-!Project/Keil/*.uvprojx
 **/*.map
 **/*.obj
 **/*.o
