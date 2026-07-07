@@ -11,6 +11,7 @@
 #include "ui.h"
 #include "wit_sdk.h"
 #include "mpu6050.h"
+#include "hc_sr04.h"
 
 #include <stdint.h>
 

@@ -12,6 +12,7 @@
 #include "ui.h"
 #include "wit_sdk.h"
 #include "mpu6050.h"
+#include "hc_sr04.h"
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -44,6 +45,7 @@ typedef enum {
     APP_DEVICE_MODULE_LINE,
     APP_DEVICE_MODULE_IMU,
     APP_DEVICE_MODULE_K230,
+    APP_DEVICE_MODULE_ULTRASONIC,
     APP_DEVICE_MODULE_COUNT
 } APP_DEVICE_MODULE;
 
@@ -227,6 +229,7 @@ static const char *AppDeviceCheck_ModuleTitle(APP_DEVICE_MODULE module){
         "Line Sensor",
         "IMU",
         "K230",
+        "Ultrasonic",
     };
 
     return (module < APP_DEVICE_MODULE_COUNT) ? titles[module] : "Device";
@@ -570,6 +573,15 @@ static void AppDeviceCheck_Render(APP_DEVICE_MODULE module){
                          (int)CanMvUart_GetStatus(CANMV_TARGET_LASER));
             }
 
+            Ui_RenderLines(AppDeviceCheck_ModuleTitle(module), line0, line1, line2, line3, "K1/K4:module", NULL);
+            break;
+        }
+        case APP_DEVICE_MODULE_ULTRASONIC:{
+            float dist = SR04_GetDistance();
+            snprintf(line0, sizeof(line0), "Dist:%0.1f cm", (double)dist);
+            snprintf(line1, sizeof(line1), "Trig:PA27 Echo:PA26");
+            snprintf(line2, sizeof(line2), "Time:%0.1f ms", (double)(dist * 58.0f / 1000.0f));
+            snprintf(line3, sizeof(line3), "%s", (dist > 0.0f) ? "Valid" : "Timeout");
             Ui_RenderLines(AppDeviceCheck_ModuleTitle(module), line0, line1, line2, line3, "K1/K4:module", NULL);
             break;
         }
