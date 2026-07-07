@@ -10,6 +10,7 @@
 #include "ti_msp_dl_config.h"
 #include "ui.h"
 #include "wit_sdk.h"
+#include "mpu6050.h"
 
 #include <stdint.h>
 
@@ -37,6 +38,16 @@ static void App_DrainDebugUartRxFifo(void){
 static void App_InitSystems(void){
     SYSCFG_DL_init();
     BSP_Time_Init();
+
+    /*
+     * IMU 初始化必须在 __enable_irq() 之前完成:
+     *   - JY61P 和 MPU6050 共用 I2C0, SysTick ISR 会调用 JY61P_I2C_Poll
+     *   - 若在开中断后初始化, ISR 可能抢占 MPU6050_Init 的 I2C 传输, 导致竞态
+     *   - BSP_DelayMs 使用 busy-wait (DL_Common_delayCycles), 不依赖 SysTick
+     */
+    JY61P_I2C_Init();
+    (void)MPU6050_Init();
+
     __enable_irq();
 
     DL_UART_Main_setRXFIFOThreshold(BlueTooth_INST, DL_UART_RX_FIFO_LEVEL_ONE_ENTRY);
@@ -49,8 +60,6 @@ static void App_InitSystems(void){
 
     Ui_Init();
     Key_Init();
-
-    JY61P_I2C_Init();
 
     (void)Chassis_Init();
     (void)Gimbal_Init();

@@ -669,7 +669,11 @@ static bool JY61P_I2C_WaitIdle(void)
     uint32_t timeout = JY61P_I2C_TIMEOUT;
     while ((DL_I2C_getControllerStatus(JY61P_I2C_INST)
             & DL_I2C_CONTROLLER_STATUS_IDLE) == 0U){
-        if (timeout-- == 0U){ return false; }
+        if (timeout-- == 0U){
+            /* 超时: 总线可能被损坏设备拉死, 强制复位控制器并发送 STOP */
+            DL_I2C_resetControllerTransfer(JY61P_I2C_INST);
+            return false;
+        }
     }
     return true;
 }
@@ -703,6 +707,7 @@ static bool JY61P_I2C_WriteRegs(uint8_t reg, const uint8_t *data, uint8_t len)
 
     if ((DL_I2C_getControllerStatus(JY61P_I2C_INST)
          & DL_I2C_CONTROLLER_STATUS_ERROR) != 0U){
+        DL_I2C_resetControllerTransfer(JY61P_I2C_INST);
         return false;
     }
 
@@ -750,6 +755,7 @@ static bool JY61P_I2C_ReadRegs(uint8_t reg, uint8_t *data, uint8_t len)
     if ((DL_I2C_getControllerStatus(JY61P_I2C_INST)
          & DL_I2C_CONTROLLER_STATUS_ERROR) != 0U){
         s_jy61p_i2c_nack_count++;
+        DL_I2C_resetControllerTransfer(JY61P_I2C_INST);
         return false;
     }
 

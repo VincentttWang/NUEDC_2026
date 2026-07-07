@@ -11,6 +11,7 @@
 #include "step_motor.h"
 #include "ui.h"
 #include "wit_sdk.h"
+#include "mpu6050.h"
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -58,6 +59,7 @@ typedef enum {
     APP_DEVICE_IMU_ATTITUDE = 0,
     APP_DEVICE_IMU_GYRO,
     APP_DEVICE_IMU_STATUS,
+    APP_DEVICE_IMU_MPU6050,
     APP_DEVICE_IMU_COUNT
 } APP_DEVICE_IMU_TEST;
 
@@ -593,6 +595,15 @@ static void AppDeviceCheck_Render(APP_DEVICE_MODULE module){
                 snprintf(line3, sizeof(line3), "UART Byte:%lu",
                          (unsigned long)g_app_debug_uart_drained_byte_count);
                 Ui_RenderLines("IMU Status", line0, line1, line2, line3, "K3:item K1/4", NULL);
+            } else if (s_imu_test == APP_DEVICE_IMU_MPU6050){
+                short gx, gy, gz, ax, ay, az;
+                MPU6050_ReadGyro(&gx, &gy, &gz);
+                MPU6050_ReadAccel(&ax, &ay, &az);
+                snprintf(line0, sizeof(line0), "G:%d,%d,%d", (int)gx, (int)gy, (int)gz);
+                snprintf(line1, sizeof(line1), "A:%d,%d,%d", (int)ax, (int)ay, (int)az);
+                snprintf(line2, sizeof(line2), "Temp:%0.1fC", (double)MPU6050_ReadTemp());
+                snprintf(line3, sizeof(line3), "%s", MPU6050_IsPresent() ? "Detected" : "Not Found");
+                Ui_RenderLines("IMU MPU6050", line0, line1, line2, line3, "K3:item K1/4", NULL);
             } else{
                 snprintf(line0, sizeof(line0), "Roll:%0.1f", data.attitude_deg.roll);
                 snprintf(line1, sizeof(line1), "Pitch:%0.1f", data.attitude_deg.pitch);
