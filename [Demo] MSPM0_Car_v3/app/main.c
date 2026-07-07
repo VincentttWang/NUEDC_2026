@@ -22,8 +22,8 @@ volatile uint8_t g_app_debug_uart_last_iidx;
 static void App_DrainDebugUartRxFifo(void){
     uint32_t drained = 0U;
 
-    while (!DL_UART_Main_isRXFIFOEmpty(Debug_INST)){
-        AppDeviceCheck_ProcessImuByte((uint8_t)DL_UART_Main_receiveData(Debug_INST));
+    while (!DL_UART_Main_isRXFIFOEmpty(BlueTooth_INST)){
+        AppDeviceCheck_ProcessImuByte((uint8_t)DL_UART_Main_receiveData(BlueTooth_INST));
         drained++;
     }
 
@@ -38,13 +38,13 @@ static void App_InitSystems(void){
     BSP_Time_Init();
     __enable_irq();
 
-    DL_UART_Main_setRXFIFOThreshold(Debug_INST, DL_UART_RX_FIFO_LEVEL_ONE_ENTRY);
-    DL_UART_Main_setRXInterruptTimeout(Debug_INST, 1U);
-    DL_UART_Main_enableInterrupt(Debug_INST,
+    DL_UART_Main_setRXFIFOThreshold(BlueTooth_INST, DL_UART_RX_FIFO_LEVEL_ONE_ENTRY);
+    DL_UART_Main_setRXInterruptTimeout(BlueTooth_INST, 1U);
+    DL_UART_Main_enableInterrupt(BlueTooth_INST,
         DL_UART_MAIN_INTERRUPT_RX | DL_UART_MAIN_INTERRUPT_RX_TIMEOUT_ERROR);
-    NVIC_SetPriority(Debug_INST_INT_IRQN, 1);
-    NVIC_ClearPendingIRQ(Debug_INST_INT_IRQN);
-    NVIC_EnableIRQ(Debug_INST_INT_IRQN);
+    NVIC_SetPriority(BlueTooth_INST_INT_IRQN, 1);
+    NVIC_ClearPendingIRQ(BlueTooth_INST_INT_IRQN);
+    NVIC_EnableIRQ(BlueTooth_INST_INT_IRQN);
 
     Ui_Init();
     Key_Init();
@@ -67,7 +67,7 @@ int main(void){
 }
 
 void UART0_IRQHandler(void){
-    DL_UART_IIDX iidx = DL_UART_getPendingInterrupt(Debug_INST);
+    DL_UART_IIDX iidx = DL_UART_getPendingInterrupt(BlueTooth_INST);
 
     g_app_debug_uart_irq_count++;
     g_app_debug_uart_last_iidx = (uint8_t)iidx;

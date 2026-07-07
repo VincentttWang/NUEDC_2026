@@ -468,6 +468,22 @@ static void AppDeviceCheck_AdvanceTest(APP_DEVICE_MODULE module){
     }
 }
 
+static bool AppDeviceCheck_IsNextModuleEvent(void){
+    return Key_IsShortPress(KEY_ID_DOWN);
+}
+
+static bool AppDeviceCheck_IsPrevModuleEvent(void){
+    return Key_IsShortPress(KEY_ID_UP);
+}
+
+static bool AppDeviceCheck_IsActionEvent(void){
+    return Key_IsShortPress(KEY_ID_ENTER);
+}
+
+static bool AppDeviceCheck_IsBackEvent(void){
+    return Key_IsShortPress(KEY_ID_CALIB) || Key_IsLongPress(KEY_ID_CALIB);
+}
+
 static void AppDeviceCheck_Render(APP_DEVICE_MODULE module){
     char line0[24];
     char line1[24];
@@ -481,7 +497,7 @@ static void AppDeviceCheck_Render(APP_DEVICE_MODULE module){
             snprintf(line1, sizeof(line1), "Duty:%0.0f,%0.0f", duty.left_percent, duty.right_percent);
             snprintf(line2, sizeof(line2), "Cnt:%ld", (long)HallEncoder_GetCount());
             snprintf(line3, sizeof(line3), "Spd:%0.2f Dis:%0.2f", Chassis_GetSpeed(), Chassis_GetDistance());
-            Ui_RenderLines(AppDeviceCheck_ModuleTitle(module), line0, line1, line2, line3, "1:mode 2:mod", NULL);
+            Ui_RenderLines(AppDeviceCheck_ModuleTitle(module), line0, line1, line2, line3, "K3:mode K1/4:mod", NULL);
             break;
         }
         case APP_DEVICE_MODULE_YAW:{
@@ -490,7 +506,7 @@ static void AppDeviceCheck_Render(APP_DEVICE_MODULE module){
             snprintf(line1, sizeof(line1), "Speed:%0.0f", StepMotor_GetSpeed(STEP_MOTOR_CHANNEL_YAW));
             snprintf(line2, sizeof(line2), "Pos:%0.1f", StepMotor_GetEstimatedPosition(STEP_MOTOR_CHANNEL_YAW));
             snprintf(line3, sizeof(line3), "+1s then -1s");
-            Ui_RenderLines(AppDeviceCheck_ModuleTitle(module), line0, line1, line2, line3, "1:start 2:mod", NULL);
+            Ui_RenderLines(AppDeviceCheck_ModuleTitle(module), line0, line1, line2, line3, "K3:start K1/4:mod", NULL);
             break;
         }
         case APP_DEVICE_MODULE_PITCH:{
@@ -499,7 +515,7 @@ static void AppDeviceCheck_Render(APP_DEVICE_MODULE module){
             snprintf(line1, sizeof(line1), "Speed:%0.0f", StepMotor_GetSpeed(STEP_MOTOR_CHANNEL_PITCH));
             snprintf(line2, sizeof(line2), "Pos:%0.1f", StepMotor_GetEstimatedPosition(STEP_MOTOR_CHANNEL_PITCH));
             snprintf(line3, sizeof(line3), "+1s then -1s");
-            Ui_RenderLines(AppDeviceCheck_ModuleTitle(module), line0, line1, line2, line3, "1:start 2:mod", NULL);
+            Ui_RenderLines(AppDeviceCheck_ModuleTitle(module), line0, line1, line2, line3, "K3:start K1/4:mod", NULL);
             break;
         }
         case APP_DEVICE_MODULE_YAW_HOLD:{
@@ -514,7 +530,7 @@ static void AppDeviceCheck_Render(APP_DEVICE_MODULE module){
             snprintf(line3, sizeof(line3), "Gz:%0.0f Out:%0.0f",
                      s_yaw_hold_gyro_z_deg_s,
                      s_yaw_hold_output_deg_s);
-            Ui_RenderLines(AppDeviceCheck_ModuleTitle(module), line0, line1, line2, line3, "1:on/off 2:mod", NULL);
+            Ui_RenderLines(AppDeviceCheck_ModuleTitle(module), line0, line1, line2, line3, "K3:on/off K1/4", NULL);
             break;
         }
         case APP_DEVICE_MODULE_LINE:{
@@ -525,7 +541,7 @@ static void AppDeviceCheck_Render(APP_DEVICE_MODULE module){
             snprintf(line1, sizeof(line1), "HEX:0x%02X", LineFollow_GetSensorMask());
             snprintf(line2, sizeof(line2), "Active:%u", LineFollow_GetActiveCount());
             snprintf(line3, sizeof(line3), "Realtime");
-            Ui_RenderLines(AppDeviceCheck_ModuleTitle(module), line0, line1, line2, line3, "2:module", NULL);
+            Ui_RenderLines(AppDeviceCheck_ModuleTitle(module), line0, line1, line2, line3, "K1/K4:module", NULL);
             break;
         }
         case APP_DEVICE_MODULE_K230:{
@@ -552,7 +568,7 @@ static void AppDeviceCheck_Render(APP_DEVICE_MODULE module){
                          (int)CanMvUart_GetStatus(CANMV_TARGET_LASER));
             }
 
-            Ui_RenderLines(AppDeviceCheck_ModuleTitle(module), line0, line1, line2, line3, "2:module", NULL);
+            Ui_RenderLines(AppDeviceCheck_ModuleTitle(module), line0, line1, line2, line3, "K1/K4:module", NULL);
             break;
         }
         case APP_DEVICE_MODULE_IMU:
@@ -564,7 +580,7 @@ static void AppDeviceCheck_Render(APP_DEVICE_MODULE module){
                 snprintf(line1, sizeof(line1), "Gy:%0.1f", data.gyro_deg_s.y);
                 snprintf(line2, sizeof(line2), "Gz:%0.1f", data.gyro_deg_s.z);
                 snprintf(line3, sizeof(line3), "Frm:%lu", (unsigned long)s_imu_frame_count);
-                Ui_RenderLines("IMU Gyro", line0, line1, line2, line3, "1:item 2:mod", NULL);
+                Ui_RenderLines("IMU Gyro", line0, line1, line2, line3, "K3:item K1/4", NULL);
             } else if (s_imu_test == APP_DEVICE_IMU_STATUS){
                 snprintf(line0, sizeof(line0), "Rx:%lu Ok:%lu",
                          (unsigned long)g_app_device_imu_rx_byte_count,
@@ -576,13 +592,13 @@ static void AppDeviceCheck_Render(APP_DEVICE_MODULE module){
                          (unsigned long)g_app_debug_uart_irq_count,
                          (unsigned long)g_app_debug_uart_drained_byte_count);
                 snprintf(line3, sizeof(line3), "IIDX:%u", g_app_debug_uart_last_iidx);
-                Ui_RenderLines("IMU Status", line0, line1, line2, line3, "1:item 2:mod", NULL);
+                Ui_RenderLines("IMU Status", line0, line1, line2, line3, "K3:item K1/4", NULL);
             } else{
                 snprintf(line0, sizeof(line0), "Roll:%0.1f", data.attitude_deg.roll);
                 snprintf(line1, sizeof(line1), "Pitch:%0.1f", data.attitude_deg.pitch);
                 snprintf(line2, sizeof(line2), "Yaw:%0.1f", data.attitude_deg.yaw);
                 snprintf(line3, sizeof(line3), "Frm:%lu", (unsigned long)s_imu_frame_count);
-                Ui_RenderLines("IMU Att", line0, line1, line2, line3, "1:item 2:mod", NULL);
+                Ui_RenderLines("IMU Att", line0, line1, line2, line3, "K3:item K1/4", NULL);
             }
             break;
         }
@@ -599,7 +615,7 @@ void AppDeviceCheck_Run(void){
     AppDeviceCheck_Render(module);
 
     while (1){
-        if (Key_IsDoubleClick(KEY_ID_1)){
+        if (AppDeviceCheck_IsNextModuleEvent()){
             AppDeviceCheck_StopYawHold();
             module = (APP_DEVICE_MODULE)(((uint8_t)module + 1U) % (uint8_t)APP_DEVICE_MODULE_COUNT);
             AppDeviceCheck_EnterModule(module);
@@ -608,7 +624,17 @@ void AppDeviceCheck_Run(void){
             last_render_ms = BSP_Time_GetMs();
         }
 
-        if (Key_IsShortPress(KEY_ID_1)){
+        if (AppDeviceCheck_IsPrevModuleEvent()){
+            AppDeviceCheck_StopYawHold();
+            module = (APP_DEVICE_MODULE)(((uint8_t)module + (uint8_t)APP_DEVICE_MODULE_COUNT - 1U) %
+                (uint8_t)APP_DEVICE_MODULE_COUNT);
+            AppDeviceCheck_EnterModule(module);
+            Key_ClearAllEvents();
+            AppDeviceCheck_Render(module);
+            last_render_ms = BSP_Time_GetMs();
+        }
+
+        if (AppDeviceCheck_IsActionEvent()){
             if (AppDeviceCheck_TestCount(module) > 0U){
                 AppDeviceCheck_AdvanceTest(module);
             }
@@ -622,7 +648,7 @@ void AppDeviceCheck_Run(void){
         last_update_ms = now_ms;
         AppDeviceCheck_UpdateYawHoldOnImuFrame(dt_s);
 
-        if (Key_IsLongPress(KEY_ID_1)){
+        if (AppDeviceCheck_IsBackEvent()){
             Key_ClearAllEvents();
             AppDeviceCheck_StopOutputs();
             return;

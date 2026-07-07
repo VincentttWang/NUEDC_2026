@@ -2,7 +2,12 @@
 
 ## 模块职责
 
-`bsp/key` 负责板级按键读取、消抖和事件生成。当前只实现 `KEY_ID_1`，但接口、硬件配置表和状态数组按多按键方式组织，后续可以扩展 `KEY_ID_2` 等按键。
+`bsp/key` 负责板级按键读取、消抖和事件生成。当前按天猛星 v3 拓展板实现 4 个低电平有效按键：
+
+- `KEY_ID_UP`：K1 Up，PA14
+- `KEY_ID_CALIB`：K2 校准，PB22
+- `KEY_ID_ENTER`：K3 Enter，PB24
+- `KEY_ID_DOWN`：K4 Down，PB25
 
 该模块属于 BSP 层，只依赖：
 
@@ -12,11 +17,11 @@
 
 ## 硬件映射宏
 
-默认映射到 SysConfig 生成的 KEY1 引脚：
+默认映射到 SysConfig 生成的 `Key_PIN_1` 到 `Key_PIN_4` 引脚：
 
 ```c
 #ifndef KEY1_PORT
-#define KEY1_PORT Key_PORT
+#define KEY1_PORT Key_PIN_1_PORT
 #endif
 
 #ifndef KEY1_PIN
@@ -26,9 +31,21 @@
 #ifndef KEY1_ACTIVE_LOW
 #define KEY1_ACTIVE_LOW 1U
 #endif
+
+#define KEY2_PORT       Key_PIN_2_PORT
+#define KEY2_PIN        Key_PIN_2_PIN
+#define KEY2_ACTIVE_LOW 1U
+
+#define KEY3_PORT       Key_PIN_3_PORT
+#define KEY3_PIN        Key_PIN_3_PIN
+#define KEY3_ACTIVE_LOW 1U
+
+#define KEY4_PORT       Key_PIN_4_PORT
+#define KEY4_PIN        Key_PIN_4_PIN
+#define KEY4_ACTIVE_LOW 1U
 ```
 
-如果后续改板或增加按键，可以在编译配置中覆盖这些宏，或在 `key.h` 中增加 `KEY2_PORT`、`KEY2_PIN`、`KEY2_ACTIVE_LOW`，再扩展内部 `s_key_hw[]` 配置表。
+如果后续改板，可以在编译配置中覆盖这些宏，或调整 `key.h` 中的默认映射。
 
 ## 时间参数宏
 
@@ -47,8 +64,12 @@
 
 ```c
 typedef enum {
-    KEY_ID_1 = 0,
-    KEY_ID_MAX
+    KEY_ID_UP = 0,
+    KEY_ID_CALIB,
+    KEY_ID_ENTER,
+    KEY_ID_DOWN,
+    KEY_ID_MAX,
+    KEY_ID_1 = KEY_ID_ENTER
 } KEY_ID;
 ```
 
@@ -122,4 +143,4 @@ typedef enum {
 #define Key_double_click() Key_IsDoubleClick(KEY_ID_1)
 ```
 
-后续如果上层流程统一改用 `Key_GetEvent()`，可以再考虑移除这些兼容宏。
+其中 `KEY_ID_1` 兼容映射到 `KEY_ID_ENTER`。后续如果上层流程统一改用语义化 `KEY_ID_*`，可以再考虑移除这些兼容宏。

@@ -65,10 +65,14 @@ static uint32_t AppE_ElapsedMs(uint32_t start_ms){
     return BSP_Time_GetMs() - start_ms;
 }
 
+static bool AppE_IsBackEvent(void){
+    return Key_IsLongPress(KEY_ID_CALIB);
+}
+
 static void AppE_WaitBack(void){
     Key_ClearAllEvents();
 
-    while (!Key_IsLongPress(KEY_ID_1)){
+    while (!AppE_IsBackEvent()){
         BSP_DelayMs(APP_E_LOOP_DELAY_MS);
     }
 
@@ -78,7 +82,7 @@ static void AppE_WaitBack(void){
 static void AppE_PrepareTaskInput(void){
     Key_ClearAllEvents();
 
-    while (Key_IsPressed(KEY_ID_1)){
+    while (Key_IsPressed(KEY_ID_ENTER)){
         BSP_DelayMs(APP_E_LOOP_DELAY_MS);
     }
 
@@ -161,7 +165,7 @@ void AppE_RunLineFollow(uint8_t lap_count){
                    "Lap:0",
                    "Edge:0",
                    "Time:0.0",
-                   "Long:stop",
+                   "K2 long:stop",
                    NULL);
 
     while (AppE_ElapsedMs(start_ms) < task_timeout_ms){
@@ -259,7 +263,7 @@ void AppE_RunLineFollow(uint8_t lap_count){
                            "[WARN]",
                            "Line lost",
                            turn_line,
-                           "Long:back",
+                           "K2 long:back",
                            NULL,
                            NULL);
             AppE_WaitBack();
@@ -280,12 +284,12 @@ void AppE_RunLineFollow(uint8_t lap_count){
 
         if (edge_count >= target_edges){
             (void)Motion_Stop();
-            Ui_RenderStatusPage("E1 Line", UI_STATUS_OK, "Finished", "Long:back");
+            Ui_RenderStatusPage("E1 Line", UI_STATUS_OK, "Finished", "K2 long:back");
             AppE_WaitBack();
             return;
         }
 
-        if (Key_IsLongPress(KEY_ID_1)){
+        if (AppE_IsBackEvent()){
             Key_ClearAllEvents();
             break;
         }
@@ -294,7 +298,7 @@ void AppE_RunLineFollow(uint8_t lap_count){
     }
 
     (void)Motion_Stop();
-    Ui_RenderStatusPage("E1 Line", UI_STATUS_WARN, "Stopped/timeout", "Long:back");
+    Ui_RenderStatusPage("E1 Line", UI_STATUS_WARN, "Stopped/timeout", "K2 long:back");
     AppE_WaitBack();
 }
 
@@ -320,7 +324,7 @@ void AppE_RunYawSpeedTest(float yaw_deg_s){
                    "Starting...",
                    NULL,
                    NULL,
-                   "Long:stop",
+                   "K2 long:stop",
                    NULL,
                    NULL);
 
@@ -332,7 +336,7 @@ void AppE_RunYawSpeedTest(float yaw_deg_s){
         Ui_UpdateContentLine(0U, line0);
         Ui_UpdateContentLine(1U, line1);
 
-        if (Key_IsLongPress(KEY_ID_1)){
+        if (AppE_IsBackEvent()){
             Key_ClearAllEvents();
             break;
         }
@@ -341,7 +345,7 @@ void AppE_RunYawSpeedTest(float yaw_deg_s){
     }
 
     (void)Gimbal_Stop();
-    Ui_RenderStatusPage("Yaw spd test", UI_STATUS_OK, "Wait return", "Long:back");
+    Ui_RenderStatusPage("Yaw spd test", UI_STATUS_OK, "Wait return", "K2 long:back");
     AppE_WaitBack();
 }
 
@@ -360,7 +364,7 @@ static void AppE_RunAimCenter(uint32_t timeout_ms, const char *title){
                    "Laser:WAIT",
                    "Err:0,0",
                    "Time:0.0",
-                   "Long:stop",
+                   "K2 long:stop",
                    NULL);
 
     while ((timeout_ms == 0U) || (AppE_ElapsedMs(start_ms) < timeout_ms)){
@@ -388,7 +392,7 @@ static void AppE_RunAimCenter(uint32_t timeout_ms, const char *title){
         Ui_UpdateContentLine(2U, line1);
         Ui_UpdateContentLine(3U, line2);
 
-        if (Key_IsLongPress(KEY_ID_1)){
+        if (AppE_IsBackEvent()){
             Key_ClearAllEvents();
             break;
         }
@@ -397,7 +401,7 @@ static void AppE_RunAimCenter(uint32_t timeout_ms, const char *title){
     }
 
     (void)GimbalTracking_Stop();
-    Ui_RenderStatusPage(title, UI_STATUS_OK, "Aim finished", "Long:back");
+    Ui_RenderStatusPage(title, UI_STATUS_OK, "Aim finished", "K2 long:back");
     AppE_WaitBack();
 }
 
@@ -445,7 +449,7 @@ static bool AppE_ScanForRect(APP_E_RECT_SCAN_DIR scan_dir){
                    "Scanning...",
                    "Yaw:0",
                    "Rect:WAIT",
-                   "Long:stop",
+                   "K2 long:stop",
                    NULL,
                    NULL);
 
@@ -458,7 +462,7 @@ static bool AppE_ScanForRect(APP_E_RECT_SCAN_DIR scan_dir){
                            "Rect found",
                            "Stop 200ms",
                            "Then E2 aim",
-                           "Long:stop",
+                           "K2 long:stop",
                            NULL,
                            NULL);
             BSP_DelayMs(APP_E_RECT_FOUND_SETTLE_MS);
@@ -476,7 +480,7 @@ static bool AppE_ScanForRect(APP_E_RECT_SCAN_DIR scan_dir){
         Ui_UpdateContentLine(1U, line0);
         Ui_UpdateContentLine(3U, line1);
 
-        if (Key_IsLongPress(KEY_ID_1)){
+        if (AppE_IsBackEvent()){
             Key_ClearAllEvents();
             break;
         }
@@ -494,7 +498,7 @@ static void AppE_RunRectScanAim(APP_E_RECT_SCAN_DIR scan_dir){
     (void)Chassis_Brake();
 
     if (!AppE_ScanForRect(scan_dir)){
-        Ui_RenderStatusPage(title, UI_STATUS_WARN, "Rect not found", "Long:back");
+        Ui_RenderStatusPage(title, UI_STATUS_WARN, "Rect not found", "K2 long:back");
         AppE_WaitBack();
         return;
     }

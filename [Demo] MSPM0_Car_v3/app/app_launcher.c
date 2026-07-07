@@ -119,8 +119,16 @@ static void App_RenderYawSpeedMenu(APP_YAW_SPEED_ITEM selected){
     Ui_RenderListPage(&page);
 }
 
-static bool App_IsNextMenuEvent(void){
-    return Key_IsShortPress(KEY_ID_1) || Key_IsDoubleClick(KEY_ID_1);
+static bool App_IsMenuDownEvent(void){
+    return Key_IsShortPress(KEY_ID_DOWN);
+}
+
+static bool App_IsMenuUpEvent(void){
+    return Key_IsShortPress(KEY_ID_UP);
+}
+
+static bool App_IsMenuEnterEvent(void){
+    return Key_IsShortPress(KEY_ID_ENTER);
 }
 
 static void App_RunE1Menu(void){
@@ -130,13 +138,20 @@ static void App_RunE1Menu(void){
     App_RenderE1Menu(selected);
 
     while (1){
-        if (App_IsNextMenuEvent()){
+        if (App_IsMenuDownEvent()){
             selected = (APP_E1_LAPS_ITEM)(((uint8_t)selected + 1U) % (uint8_t)APP_E1_LAPS_COUNT);
             Key_ClearAllEvents();
             App_RenderE1Menu(selected);
         }
 
-        if (Key_IsLongPress(KEY_ID_1)){
+        if (App_IsMenuUpEvent()){
+            selected = (APP_E1_LAPS_ITEM)(((uint8_t)selected + (uint8_t)APP_E1_LAPS_COUNT - 1U) %
+                (uint8_t)APP_E1_LAPS_COUNT);
+            Key_ClearAllEvents();
+            App_RenderE1Menu(selected);
+        }
+
+        if (App_IsMenuEnterEvent()){
             Key_ClearAllEvents();
             AppE_RunLineFollow((uint8_t)selected + 1U);
             return;
@@ -153,13 +168,20 @@ static void App_RunYawSpeedMenu(void){
     App_RenderYawSpeedMenu(selected);
 
     while (1){
-        if (App_IsNextMenuEvent()){
+        if (App_IsMenuDownEvent()){
             selected = (APP_YAW_SPEED_ITEM)(((uint8_t)selected + 1U) % (uint8_t)APP_YAW_SPEED_COUNT);
             Key_ClearAllEvents();
             App_RenderYawSpeedMenu(selected);
         }
 
-        if (Key_IsLongPress(KEY_ID_1)){
+        if (App_IsMenuUpEvent()){
+            selected = (APP_YAW_SPEED_ITEM)(((uint8_t)selected + (uint8_t)APP_YAW_SPEED_COUNT - 1U) %
+                (uint8_t)APP_YAW_SPEED_COUNT);
+            Key_ClearAllEvents();
+            App_RenderYawSpeedMenu(selected);
+        }
+
+        if (App_IsMenuEnterEvent()){
             Key_ClearAllEvents();
             AppE_RunYawSpeedTest(s_app_yaw_speed_values[selected]);
             return;
@@ -204,18 +226,25 @@ void App_Launch(void){
     APP_MENU_ITEM selected = APP_MENU_E1_LINE;
 
     Key_ClearAllEvents();
-    Ui_RenderStatusPage("NUEDC 2025 E", UI_STATUS_NORMAL, "Short:next", "Long:enter");
+    Ui_RenderStatusPage("NUEDC 2025 E", UI_STATUS_NORMAL, "K1/K4:move", "K3:enter");
     BSP_DelayMs(800U);
     App_RenderMenu(selected);
 
     while (1){
-        if (App_IsNextMenuEvent()){
+        if (App_IsMenuDownEvent()){
             selected = (APP_MENU_ITEM)(((uint8_t)selected + 1U) % (uint8_t)APP_MENU_COUNT);
             Key_ClearAllEvents();
             App_RenderMenu(selected);
         }
 
-        if (Key_IsLongPress(KEY_ID_1)){
+        if (App_IsMenuUpEvent()){
+            selected = (APP_MENU_ITEM)(((uint8_t)selected + (uint8_t)APP_MENU_COUNT - 1U) %
+                (uint8_t)APP_MENU_COUNT);
+            Key_ClearAllEvents();
+            App_RenderMenu(selected);
+        }
+
+        if (App_IsMenuEnterEvent()){
             Key_ClearAllEvents();
             App_RunMenuItem(selected);
             App_RenderMenu(selected);
