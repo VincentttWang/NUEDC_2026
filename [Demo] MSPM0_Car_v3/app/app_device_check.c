@@ -518,9 +518,11 @@ static void AppDeviceCheck_AdvanceTest(APP_DEVICE_MODULE module){
             bool curr_is_pos = (s_bldc_test >= APP_DEVICE_BLDC_POS_90);
 
             if (curr_is_pos && !prev_is_pos){
-                /* 切换到位置模式 */
+                /* 切换到位置模式: 位置模式必须设定运动速度, 否则不动 */
                 BLDC_SetMode(BLDC_ADDR_1, MODE_MULTI_POS);
                 BLDC_SetMode(BLDC_ADDR_2, MODE_MULTI_POS);
+                BLDC_SetSpeed(BLDC_ADDR_1, BLDC_PITCH_SPEED);
+                BLDC_SetSpeed(BLDC_ADDR_2, BLDC_PITCH_SPEED);
                 BLDC_Motor1.data_ready = 0U;
                 BLDC_Motor2.data_ready = 0U;
             } else if (!curr_is_pos && prev_is_pos){

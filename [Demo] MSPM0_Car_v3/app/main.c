@@ -12,6 +12,7 @@
 #include "wit_sdk.h"
 #include "mpu6050.h"
 #include "hc_sr04.h"
+#include "f32c_bldc.h"
 
 #include <stdint.h>
 
@@ -66,6 +67,11 @@ static void App_InitSystems(void){
     (void)Gimbal_Init();
     (void)LineFollow_Init();
     (void)CanMvUart_Init();
+
+    /* 启动无刷驱动: 俯仰电机上电后正转到约 120°, 并设 [0°,180°] 限位 */
+    BLDC_Init();
+    BLDC_StartupPitch();
+
     SystemFault_Clear();
 
     DL_TimerA_startCounter(TIMER_0_INST);

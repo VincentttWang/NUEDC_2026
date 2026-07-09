@@ -42,6 +42,23 @@
 #define MODE_MULTI_POS_L    0x0003U
 #define MODE_SINGLE_POS_L   0x0004U
 
+/* ===== 俯仰(上下)电机配置 ===== */
+/* 控制上下俯仰的无刷电机地址. 若接线相反, 改为 BLDC_ADDR_2 */
+#ifndef BLDC_PITCH_ADDR
+#define BLDC_PITCH_ADDR   BLDC_ADDR_2
+#endif
+/* 位置限位与启动角, 单位 0.1° (即 *10): 起始 0°, 正向最大 180°, 启动正转 120° */
+#define BLDC_PITCH_MIN_X10    0
+#define BLDC_PITCH_MAX_X10    1800
+#define BLDC_PITCH_INIT_X10   1500
+/* 位置模式下移动到目标角的运动速度 (RPM). 位置模式必须设速度, 否则默认 0 不动.
+ * 抑制震荡的首要旋钮: 速度越低, 逼近目标越温和, 过冲/震荡越小 */
+#define BLDC_PITCH_SPEED      30
+/* 位置模式下的加速度限制 (转/s², 经 0x07 命令下发).
+ * 抑制震荡的次要旋钮: 值越小, 加减速越平滑, 到位过冲越小; 太小则响应变慢.
+ * 上电默认值未知, 此处给一个偏温和的值, 请在实机上按震荡情况微调 */
+#define BLDC_PITCH_ACC        20
+
 /* ===== 反馈类型 ===== */
 #define FB_SPEED         0x00U   /* 转速 (RPM) */
 #define FB_MULTI_ANGLE   0x01U   /* 多圈角度 (0.1deg) */
@@ -79,6 +96,11 @@ void BLDC_ClearMultiAngle(uint8_t addr);
 void BLDC_SetSingleAngleZero(uint8_t addr);
 void BLDC_FactoryReset(uint8_t addr);
 void BLDC_SetAddress(uint8_t addr, uint8_t new_addr);
+
+/* 设置某地址多圈位置软件限位 (0.1° 单位). min==max 时取消限位 */
+void BLDC_SetAngleLimit(uint8_t addr, int32_t min_x10, int32_t max_x10);
+/* 启动俯仰电机: 使能→多圈位置模式→当前位置清零(0°)→设限位→正转到约120° */
+void BLDC_StartupPitch(void);
 
 /* 由 UART ISR 调用 */
 void BLDC_ParseRxByte(uint8_t rx_byte);
