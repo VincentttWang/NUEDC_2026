@@ -285,14 +285,6 @@ SYSCONFIG_WEAK void SYSCFG_DL_GPIO_init(void)
 		 DL_GPIO_INVERSION_DISABLE, DL_GPIO_RESISTOR_PULL_DOWN,
 		 DL_GPIO_HYSTERESIS_DISABLE, DL_GPIO_WAKEUP_DISABLE);
 
-    DL_GPIO_initDigitalOutput(Motor2_IO_CIN1_IOMUX);
-
-    DL_GPIO_initDigitalOutput(Motor2_IO_CIN2_IOMUX);
-
-    DL_GPIO_initDigitalOutput(Motor2_IO_DIN1_IOMUX);
-
-    DL_GPIO_initDigitalOutput(Motor2_IO_DIN2_IOMUX);
-
     DL_GPIO_initDigitalOutput(SR04_Trig_IOMUX);
 
     DL_GPIO_initDigitalInputFeatures(SR04_Echo_IOMUX,
@@ -315,14 +307,10 @@ SYSCONFIG_WEAK void SYSCFG_DL_GPIO_init(void)
 		Motor_IO_AIN1_PIN |
 		SR04_Trig_PIN |
 		LED_G_PIN);
-    DL_GPIO_setUpperPinsPolarity(GPIOA, DL_GPIO_PIN_18_EDGE_RISE |
-		DL_GPIO_PIN_22_EDGE_RISE);
-    DL_GPIO_setUpperPinsInputFilter(GPIOA, DL_GPIO_PIN_18_INPUT_FILTER_3_CYCLES |
-		DL_GPIO_PIN_22_INPUT_FILTER_3_CYCLES);
-    DL_GPIO_clearInterruptStatus(GPIOA, Motor_IO_E1A_PIN |
-		Motor_IO_E2A_PIN);
-    DL_GPIO_enableInterrupt(GPIOA, Motor_IO_E1A_PIN |
-		Motor_IO_E2A_PIN);
+    DL_GPIO_setUpperPinsPolarity(GPIOA, DL_GPIO_PIN_22_EDGE_RISE);
+    DL_GPIO_setUpperPinsInputFilter(GPIOA, DL_GPIO_PIN_22_INPUT_FILTER_3_CYCLES);
+    DL_GPIO_clearInterruptStatus(GPIOA, Motor_IO_E2A_PIN);
+    DL_GPIO_enableInterrupt(GPIOA, Motor_IO_E2A_PIN);
     DL_GPIO_clearPins(GPIOB, Buzzer_PIN_PIN |
 		SMotor_IO_DIR1_PIN |
 		SMotor_IO_EN1_PIN |
@@ -330,10 +318,6 @@ SYSCONFIG_WEAK void SYSCFG_DL_GPIO_init(void)
 		Motor_IO_AIN2_PIN |
 		Motor_IO_BIN1_PIN |
 		Motor_IO_BIN2_PIN |
-		Motor2_IO_CIN1_PIN |
-		Motor2_IO_CIN2_PIN |
-		Motor2_IO_DIN1_PIN |
-		Motor2_IO_DIN2_PIN |
 		LED_Y_PIN |
 		LED_R_PIN);
     DL_GPIO_enableOutput(GPIOB, Buzzer_PIN_PIN |
@@ -343,12 +327,12 @@ SYSCONFIG_WEAK void SYSCFG_DL_GPIO_init(void)
 		Motor_IO_AIN2_PIN |
 		Motor_IO_BIN1_PIN |
 		Motor_IO_BIN2_PIN |
-		Motor2_IO_CIN1_PIN |
-		Motor2_IO_CIN2_PIN |
-		Motor2_IO_DIN1_PIN |
-		Motor2_IO_DIN2_PIN |
 		LED_Y_PIN |
 		LED_R_PIN);
+    DL_GPIO_setLowerPinsPolarity(GPIOB, DL_GPIO_PIN_2_EDGE_RISE);
+    DL_GPIO_setLowerPinsInputFilter(GPIOB, DL_GPIO_PIN_2_INPUT_FILTER_3_CYCLES);
+    DL_GPIO_clearInterruptStatus(GPIOB, Motor_IO_E1A_PIN);
+    DL_GPIO_enableInterrupt(GPIOB, Motor_IO_E1A_PIN);
 
 }
 

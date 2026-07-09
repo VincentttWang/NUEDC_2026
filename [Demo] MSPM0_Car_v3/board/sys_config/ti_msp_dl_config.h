@@ -284,16 +284,19 @@ extern "C" {
 #define Motor_IO_BIN2_PORT                                               (GPIOB)
 #define Motor_IO_BIN2_PIN                                       (DL_GPIO_PIN_19)
 #define Motor_IO_BIN2_IOMUX                                      (IOMUX_PINCM45)
-/* Defines for E1A: GPIOA.18 with pinCMx 40 on package pin 11 */
-#define Motor_IO_E1A_PORT                                                (GPIOA)
-// pins affected by this interrupt request:["E1A","E2A"]
-#define Motor_IO_INT_IRQN                                       (GPIOA_INT_IRQn)
-#define Motor_IO_INT_IIDX                       (DL_INTERRUPT_GROUP1_IIDX_GPIOA)
-#define Motor_IO_E1A_IIDX                                   (DL_GPIO_IIDX_DIO18)
-#define Motor_IO_E1A_PIN                                        (DL_GPIO_PIN_18)
-#define Motor_IO_E1A_IOMUX                                       (IOMUX_PINCM40)
+/* Defines for E1A: GPIOB.2 with pinCMx 15 on package pin 50 */
+#define Motor_IO_E1A_PORT                                                (GPIOB)
+// pins affected by this interrupt request:["E1A"]
+#define Motor_IO_GPIOB_INT_IRQN                                 (GPIOB_INT_IRQn)
+#define Motor_IO_GPIOB_INT_IIDX                 (DL_INTERRUPT_GROUP1_IIDX_GPIOB)
+#define Motor_IO_E1A_IIDX                                    (DL_GPIO_IIDX_DIO2)
+#define Motor_IO_E1A_PIN                                         (DL_GPIO_PIN_2)
+#define Motor_IO_E1A_IOMUX                                       (IOMUX_PINCM15)
 /* Defines for E2A: GPIOA.22 with pinCMx 47 on package pin 18 */
 #define Motor_IO_E2A_PORT                                                (GPIOA)
+// pins affected by this interrupt request:["E2A"]
+#define Motor_IO_GPIOA_INT_IRQN                                 (GPIOA_INT_IRQn)
+#define Motor_IO_GPIOA_INT_IIDX                 (DL_INTERRUPT_GROUP1_IIDX_GPIOA)
 #define Motor_IO_E2A_IIDX                                   (DL_GPIO_IIDX_DIO22)
 #define Motor_IO_E2A_PIN                                        (DL_GPIO_PIN_22)
 #define Motor_IO_E2A_IOMUX                                       (IOMUX_PINCM47)
@@ -353,21 +356,6 @@ extern "C" {
 #define Tracking_Tracking_8_PORT                                         (GPIOA)
 #define Tracking_Tracking_8_PIN                                 (DL_GPIO_PIN_13)
 #define Tracking_Tracking_8_IOMUX                                (IOMUX_PINCM35)
-/* Port definition for Pin Group Motor2_IO */
-#define Motor2_IO_PORT                                                   (GPIOB)
-
-/* Defines for CIN1: GPIOB.13 with pinCMx 30 on package pin 1 */
-#define Motor2_IO_CIN1_PIN                                      (DL_GPIO_PIN_13)
-#define Motor2_IO_CIN1_IOMUX                                     (IOMUX_PINCM30)
-/* Defines for CIN2: GPIOB.21 with pinCMx 49 on package pin 20 */
-#define Motor2_IO_CIN2_PIN                                      (DL_GPIO_PIN_21)
-#define Motor2_IO_CIN2_IOMUX                                     (IOMUX_PINCM49)
-/* Defines for DIN1: GPIOB.15 with pinCMx 32 on package pin 3 */
-#define Motor2_IO_DIN1_PIN                                      (DL_GPIO_PIN_15)
-#define Motor2_IO_DIN1_IOMUX                                     (IOMUX_PINCM32)
-/* Defines for DIN2: GPIOB.2 with pinCMx 15 on package pin 50 */
-#define Motor2_IO_DIN2_PIN                                       (DL_GPIO_PIN_2)
-#define Motor2_IO_DIN2_IOMUX                                     (IOMUX_PINCM15)
 /* Port definition for Pin Group SR04 */
 #define SR04_PORT                                                        (GPIOA)
 

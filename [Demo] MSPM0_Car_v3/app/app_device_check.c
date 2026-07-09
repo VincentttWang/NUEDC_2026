@@ -13,6 +13,7 @@
 #include "wit_sdk.h"
 #include "mpu6050.h"
 #include "hc_sr04.h"
+#include "f32c_bldc.h"
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -46,6 +47,7 @@ typedef enum {
     APP_DEVICE_MODULE_IMU,
     APP_DEVICE_MODULE_K230,
     APP_DEVICE_MODULE_ULTRASONIC,
+    APP_DEVICE_MODULE_BLDC,
     APP_DEVICE_MODULE_COUNT
 } APP_DEVICE_MODULE;
 
@@ -64,6 +66,23 @@ typedef enum {
     APP_DEVICE_IMU_MPU6050,
     APP_DEVICE_IMU_COUNT
 } APP_DEVICE_IMU_TEST;
+
+/* BLDC 测试预设: 速度(RPM) + 位置(0.1°) 合并循环 */
+typedef enum {
+    APP_DEVICE_BLDC_SPD_0 = 0,
+    APP_DEVICE_BLDC_SPD_30,
+    APP_DEVICE_BLDC_SPD_60,
+    APP_DEVICE_BLDC_SPD_90,
+    APP_DEVICE_BLDC_SPD_120,
+    APP_DEVICE_BLDC_SPD_M30,
+    APP_DEVICE_BLDC_SPD_M60,
+    APP_DEVICE_BLDC_POS_90,
+    APP_DEVICE_BLDC_POS_180,
+    APP_DEVICE_BLDC_POS_270,
+    APP_DEVICE_BLDC_POS_360,
+    APP_DEVICE_BLDC_POS_M90,
+    APP_DEVICE_BLDC_COUNT
+} APP_DEVICE_BLDC_TEST;
 
 static uint8_t s_imu_rx_buffer[APP_DEVICE_IMU_FRAME_SIZE];
 static uint8_t s_imu_rx_index;
@@ -85,6 +104,7 @@ extern volatile uint8_t g_app_debug_uart_last_iidx;
 
 static APP_DEVICE_MOTOR_TEST s_motor_test;
 static APP_DEVICE_IMU_TEST s_imu_test;
+static APP_DEVICE_BLDC_TEST s_bldc_test;
 static PID_CONTROLLER s_yaw_hold_pid;
 static float s_yaw_hold_target_deg;
 static float s_yaw_hold_error_deg;
@@ -95,6 +115,7 @@ static float s_yaw_hold_output_deg_s;
 static bool s_yaw_hold_active;
 static bool s_yaw_hold_pid_initialized;
 static uint32_t s_yaw_hold_last_update_count;
+static bool s_bldc_initialized;
 
 static float AppDeviceCheck_AbsFloat(float value){
     return (value < 0.0f) ? -value : value;
@@ -230,6 +251,7 @@ static const char *AppDeviceCheck_ModuleTitle(APP_DEVICE_MODULE module){
         "IMU",
         "K230",
         "Ultrasonic",
+        "BLDC",
     };
 
     return (module < APP_DEVICE_MODULE_COUNT) ? titles[module] : "Device";
@@ -241,6 +263,8 @@ static uint8_t AppDeviceCheck_TestCount(APP_DEVICE_MODULE module){
             return (uint8_t)APP_DEVICE_MOTOR_COUNT;
         case APP_DEVICE_MODULE_IMU:
             return (uint8_t)APP_DEVICE_IMU_COUNT;
+        case APP_DEVICE_MODULE_BLDC:
+            return (uint8_t)APP_DEVICE_BLDC_COUNT;
         case APP_DEVICE_MODULE_YAW:
         case APP_DEVICE_MODULE_PITCH:
         case APP_DEVICE_MODULE_YAW_HOLD:
@@ -279,6 +303,10 @@ static void AppDeviceCheck_StopOutputs(void){
     s_yaw_hold_active = false;
     s_yaw_hold_output_deg_s = 0.0f;
     s_yaw_hold_raw_output_deg_s = 0.0f;
+    if (s_bldc_initialized){
+        BLDC_Disable(BLDC_ADDR_1);
+        BLDC_Disable(BLDC_ADDR_2);
+    }
 }
 
 static void AppDeviceCheck_ResetMotorTest(void){
@@ -435,6 +463,19 @@ static void AppDeviceCheck_EnterModule(APP_DEVICE_MODULE module){
             }
             AppDeviceCheck_StopYawHold();
             break;
+        case APP_DEVICE_MODULE_BLDC:
+            if (!s_bldc_initialized){
+                BLDC_Init();
+                s_bldc_initialized = true;
+            }
+            s_bldc_test = APP_DEVICE_BLDC_SPD_0;
+            BLDC_Motor1.data_ready = 0U;
+            BLDC_Motor2.data_ready = 0U;
+            BLDC_Enable(BLDC_ADDR_1);
+            BLDC_Enable(BLDC_ADDR_2);
+            BLDC_SetMode(BLDC_ADDR_1, MODE_SPEED);
+            BLDC_SetMode(BLDC_ADDR_2, MODE_SPEED);
+            break;
         case APP_DEVICE_MODULE_LINE:
         case APP_DEVICE_MODULE_K230:
         default:
@@ -466,6 +507,31 @@ static void AppDeviceCheck_AdvanceTest(APP_DEVICE_MODULE module){
             s_imu_test = (APP_DEVICE_IMU_TEST)(((uint8_t)s_imu_test + 1U) %
                 (uint8_t)APP_DEVICE_IMU_COUNT);
             break;
+        case APP_DEVICE_MODULE_BLDC:{
+            APP_DEVICE_BLDC_TEST prev = s_bldc_test;
+
+            s_bldc_test = (APP_DEVICE_BLDC_TEST)(((uint8_t)s_bldc_test + 1U) %
+                (uint8_t)APP_DEVICE_BLDC_COUNT);
+
+            /* 检测速度 → 位置 或 位置 → 速度 的模式切换 */
+            bool prev_is_pos = (prev >= APP_DEVICE_BLDC_POS_90);
+            bool curr_is_pos = (s_bldc_test >= APP_DEVICE_BLDC_POS_90);
+
+            if (curr_is_pos && !prev_is_pos){
+                /* 切换到位置模式 */
+                BLDC_SetMode(BLDC_ADDR_1, MODE_MULTI_POS);
+                BLDC_SetMode(BLDC_ADDR_2, MODE_MULTI_POS);
+                BLDC_Motor1.data_ready = 0U;
+                BLDC_Motor2.data_ready = 0U;
+            } else if (!curr_is_pos && prev_is_pos){
+                /* 切换回速度模式 */
+                BLDC_SetMode(BLDC_ADDR_1, MODE_SPEED);
+                BLDC_SetMode(BLDC_ADDR_2, MODE_SPEED);
+                BLDC_Motor1.data_ready = 0U;
+                BLDC_Motor2.data_ready = 0U;
+            }
+            break;
+        }
         case APP_DEVICE_MODULE_LINE:
         case APP_DEVICE_MODULE_K230:
         default:
@@ -583,6 +649,52 @@ static void AppDeviceCheck_Render(APP_DEVICE_MODULE module){
             snprintf(line2, sizeof(line2), "Time:%0.1f ms", (double)(dist * 58.0f / 1000.0f));
             snprintf(line3, sizeof(line3), "%s", (dist > 0.0f) ? "Valid" : "Timeout");
             Ui_RenderLines(AppDeviceCheck_ModuleTitle(module), line0, line1, line2, line3, "K1/K4:module", NULL);
+            break;
+        }
+        case APP_DEVICE_MODULE_BLDC:{
+            /* 预设值查找表, 与 APP_DEVICE_BLDC_TEST 枚举一一对应 */
+            static const int16_t speed_vals[] = {0, 30, 60, 90, 120, -30, -60};
+            static const int32_t pos_vals[]  = {900, 1800, 2700, 3600, -900};
+            static const char *speed_names[] = {"0RPM","30RPM","60RPM","90RPM","120RPM","-30RPM","-60RPM"};
+            static const char *pos_names[]   = {"90deg","180deg","270deg","360deg","-90deg"};
+
+            if (s_bldc_test >= APP_DEVICE_BLDC_POS_90){
+                /* 位置模式 */
+                uint8_t idx = (uint8_t)(s_bldc_test - APP_DEVICE_BLDC_POS_90);
+                int32_t angle_x10 = pos_vals[idx];
+
+                BLDC_SetMultiAngle(BLDC_ADDR_1, angle_x10);
+                BLDC_SetMultiAngle(BLDC_ADDR_2, angle_x10);
+                BLDC_ReqFeedback(BLDC_ADDR_1, FB_MULTI_ANGLE);
+                BLDC_ReqFeedback(BLDC_ADDR_2, FB_MULTI_ANGLE);
+
+                snprintf(line0, sizeof(line0), "Mode:Position");
+                snprintf(line1, sizeof(line1), "Tgt:%s", pos_names[idx]);
+                snprintf(line2, sizeof(line2), "M1:%0.1f M2:%0.1f",
+                         (double)BLDC_Motor1.multi_angle / 10.0,
+                         (double)BLDC_Motor2.multi_angle / 10.0);
+                snprintf(line3, sizeof(line3), "V:%0.1fV %s",
+                         (double)BLDC_Motor1.voltage / 100.0,
+                         (BLDC_Motor1.data_ready != 0U) ? "OK" : "---");
+            } else{
+                /* 速度模式 */
+                int16_t rpm = speed_vals[(uint8_t)s_bldc_test];
+
+                BLDC_SetSpeed(BLDC_ADDR_1, rpm);
+                BLDC_SetSpeed(BLDC_ADDR_2, rpm);
+                BLDC_ReqFeedback(BLDC_ADDR_1, FB_SPEED);
+                BLDC_ReqFeedback(BLDC_ADDR_2, FB_SPEED);
+
+                snprintf(line0, sizeof(line0), "Mode:Speed");
+                snprintf(line1, sizeof(line1), "Tgt:%s", speed_names[(uint8_t)s_bldc_test]);
+                snprintf(line2, sizeof(line2), "M1:%d M2:%d RPM",
+                         (int)BLDC_Motor1.speed, (int)BLDC_Motor2.speed);
+                snprintf(line3, sizeof(line3), "V:%0.1fV %s",
+                         (double)BLDC_Motor1.voltage / 100.0,
+                         (BLDC_Motor1.data_ready != 0U) ? "OK" : "---");
+            }
+            Ui_RenderLines(AppDeviceCheck_ModuleTitle(module), line0, line1,
+                           line2, line3, "K3:next K1/4:mod", NULL);
             break;
         }
         case APP_DEVICE_MODULE_IMU:
