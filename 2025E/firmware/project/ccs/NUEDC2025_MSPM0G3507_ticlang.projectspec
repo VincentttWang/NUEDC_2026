@@ -12,6 +12,8 @@
     <file path="${REPO_ROOT}/board/sys_config/empty.syscfg" openOnCreation="false" excludeFromBuild="false" action="link" />
     <file path="${REPO_ROOT}/app/app_device_check.c" openOnCreation="false" excludeFromBuild="false" action="link" />
     <file path="${REPO_ROOT}/app/app_device_check.h" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/app/app_debug_cmd.c" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/app/app_debug_cmd.h" openOnCreation="false" excludeFromBuild="false" action="link" />
     <file path="${REPO_ROOT}/app/app_e_task.c" openOnCreation="false" excludeFromBuild="false" action="link" />
     <file path="${REPO_ROOT}/app/app_e_task.h" openOnCreation="false" excludeFromBuild="false" action="link" />
     <file path="${REPO_ROOT}/app/app_launcher.c" openOnCreation="false" excludeFromBuild="false" action="link" />
@@ -21,7 +23,11 @@
     <file path="${REPO_ROOT}/board/sys_config/ti_msp_dl_config.h" openOnCreation="false" excludeFromBuild="false" action="link" />
     <file path="${REPO_ROOT}/bsp/canmv/canmv_uart.c" openOnCreation="false" excludeFromBuild="false" action="link" />
     <file path="${REPO_ROOT}/bsp/canmv/canmv_uart.h" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/bsp/bldc/f32c_bldc.c" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/bsp/bldc/f32c_bldc.h" openOnCreation="false" excludeFromBuild="false" action="link" />
     <file path="${REPO_ROOT}/bsp/common/bsp_common.h" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/bsp/debug_uart/debug_uart.c" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/bsp/debug_uart/debug_uart.h" openOnCreation="false" excludeFromBuild="false" action="link" />
     <file path="${REPO_ROOT}/bsp/grayscale_sensor/grayscale_sensor.c" openOnCreation="false" excludeFromBuild="false" action="link" />
     <file path="${REPO_ROOT}/bsp/grayscale_sensor/grayscale_sensor.h" openOnCreation="false" excludeFromBuild="false" action="link" />
     <file path="${REPO_ROOT}/bsp/imu/reg.h" openOnCreation="false" excludeFromBuild="false" action="link" />
@@ -41,6 +47,8 @@
     <file path="${REPO_ROOT}/bsp/time/bsp_time.c" openOnCreation="false" excludeFromBuild="false" action="link" />
     <file path="${REPO_ROOT}/bsp/time/bsp_time.h" openOnCreation="false" excludeFromBuild="false" action="link" />
     <file path="${REPO_ROOT}/core/common/core_types.h" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/core/aim_solver/aim_solver.c" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/core/aim_solver/aim_solver.h" openOnCreation="false" excludeFromBuild="false" action="link" />
     <file path="${REPO_ROOT}/core/geometry/geometry.c" openOnCreation="false" excludeFromBuild="false" action="link" />
     <file path="${REPO_ROOT}/core/geometry/geometry.h" openOnCreation="false" excludeFromBuild="false" action="link" />
     <file path="${REPO_ROOT}/core/gimbal_tracking/gimbal_tracking.c" openOnCreation="false" excludeFromBuild="false" action="link" />
@@ -49,6 +57,8 @@
     <file path="${REPO_ROOT}/core/kinematics/kinematics.h" openOnCreation="false" excludeFromBuild="false" action="link" />
     <file path="${REPO_ROOT}/core/line_tracking/line_tracking.c" openOnCreation="false" excludeFromBuild="false" action="link" />
     <file path="${REPO_ROOT}/core/line_tracking/line_tracking.h" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/core/localization/localization.c" openOnCreation="false" excludeFromBuild="false" action="link" />
+    <file path="${REPO_ROOT}/core/localization/localization.h" openOnCreation="false" excludeFromBuild="false" action="link" />
     <file path="${REPO_ROOT}/core/motion/motion.c" openOnCreation="false" excludeFromBuild="false" action="link" />
     <file path="${REPO_ROOT}/core/motion/motion.h" openOnCreation="false" excludeFromBuild="false" action="link" />
     <file path="${REPO_ROOT}/core/pid/pid.c" openOnCreation="false" excludeFromBuild="false" action="link" />

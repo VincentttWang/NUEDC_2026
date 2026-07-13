@@ -5,7 +5,7 @@
 #include "bsp_time.h"
 #include "canmv_uart.h"
 #include "chassis.h"
-#include "debug_uart.h"
+#include "bsp/debug_uart/debug_uart.h"
 #include "gimbal.h"
 #include "gimbal_tracking/gimbal_tracking.h"
 #include "key.h"

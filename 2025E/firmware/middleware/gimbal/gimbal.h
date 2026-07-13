@@ -6,7 +6,7 @@
 #define GIMBAL_H
 
 #include "bsp_common.h"
-#include "f32c_bldc.h"
+#include "bsp/bldc/f32c_bldc.h"
 
 #ifdef __cplusplus
 extern "C" {

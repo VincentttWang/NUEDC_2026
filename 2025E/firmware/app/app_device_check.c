@@ -11,7 +11,7 @@
 #include "line_follow.h"
 #include "ui.h"
 #include "wit_sdk.h"
-#include "f32c_bldc.h"
+#include "bsp/bldc/f32c_bldc.h"
 #include "ti_msp_dl_config.h"
 
 #include <stdbool.h>
