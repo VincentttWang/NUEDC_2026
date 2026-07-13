@@ -476,6 +476,11 @@
           <GroupName>MiddleWare</GroupName>
           <Files>
             <File>
+              <FileName>auto_aim.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\middleware\auto_aim\auto_aim.c</FilePath>
+            </File>
+            <File>
               <FileName>chassis.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\middleware\chassis\chassis.c</FilePath>
