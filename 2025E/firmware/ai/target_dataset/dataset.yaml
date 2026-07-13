@@ -1,0 +1,6 @@
+path: E:/Learning/NUEDC_2026/2025E/firmware/ai/target_dataset
+train: images/train
+val: images/val
+
+names:
+  0: target
