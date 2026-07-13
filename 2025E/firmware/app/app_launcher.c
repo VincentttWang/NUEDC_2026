@@ -1,6 +1,7 @@
 #include "app_launcher.h"
 
 #include "app_device_check.h"
+#include "app_e_calibration_test.h"
 #include "app_e_task.h"
 #include "bsp_time.h"
 #include "key.h"
@@ -19,6 +20,7 @@ typedef enum {
     APP_MENU_F1_LINE_AIM,
     APP_MENU_F2_LINE_AIM,
     APP_MENU_F3_LINE_CIRCLE,
+    APP_MENU_CALIBRATION,
     APP_MENU_DEVICE_CHECK,
     APP_MENU_COUNT
 } APP_MENU_ITEM;
@@ -40,6 +42,7 @@ static const char *const s_app_menu_items[APP_MENU_COUNT] = {
     "F1 Line+aim",
     "F2 Line+aim",
     "F3 Line+circle",
+    "Calibration",
     "Device check",
 };
 
@@ -158,6 +161,11 @@ static void App_RunMenuItem(APP_MENU_ITEM selected){
 
     if (selected == APP_MENU_F3_LINE_CIRCLE){
         AppE_RunLineCircle(1U);
+        return;
+    }
+
+    if (selected == APP_MENU_CALIBRATION){
+        AppE_CalibrationTest_RunMenu();
         return;
     }
 

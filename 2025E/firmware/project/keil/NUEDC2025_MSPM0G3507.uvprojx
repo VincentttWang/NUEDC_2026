@@ -391,6 +391,11 @@
               <FilePath>..\..\app\app_e_calibration.c</FilePath>
             </File>
             <File>
+              <FileName>app_e_calibration_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\app\app_e_calibration_test.c</FilePath>
+            </File>
+            <File>
               <FileName>app_device_check.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\app\app_device_check.c</FilePath>
