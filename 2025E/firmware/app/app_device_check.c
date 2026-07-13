@@ -5,7 +5,7 @@
 #include "canmv_uart.h"
 #include "chassis.h"
 #include "gimbal.h"
-#include "gimbal_tracking/gimbal_tracking.h"
+#include "gimbal_tracking.h"
 #include "hall_encoder.h"
 #include "key.h"
 #include "line_follow.h"

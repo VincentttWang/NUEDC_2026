@@ -8,11 +8,11 @@
 #include "chassis.h"
 #include "bsp/debug_uart/debug_uart.h"
 #include "gimbal.h"
-#include "gimbal_tracking/gimbal_tracking.h"
+#include "gimbal_tracking.h"
 #include "key.h"
 #include "line_follow.h"
-#include "line_tracking/line_tracking.h"
-#include "motion/motion.h"
+#include "line_tracking.h"
+#include "motion.h"
 #include "ui.h"
 
 #include <stdbool.h>

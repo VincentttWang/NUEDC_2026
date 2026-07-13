@@ -1,13 +1,13 @@
 /**
  * @file  motion.h
- * @brief Core 层底盘运动原语执行接口。
+ * @brief Middleware 层底盘运动原语执行接口。
  */
 #ifndef MOTION_H
 #define MOTION_H
 
 #include "bsp_common.h"
 #include "chassis.h"
-#include "line_tracking/line_tracking.h"
+#include "line_tracking.h"
 
 #ifdef __cplusplus
 extern "C" {

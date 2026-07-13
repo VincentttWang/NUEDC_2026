@@ -123,4 +123,4 @@ right = forward - turn
 
 ## 迁移说明
 
-旧接口 `PID_Move()`、`runCircle()`、`Straight()` 和 `track()` 带有任务流程或控制动作语义，不再由 `kinematics` 提供。后续应分别迁移到 `core/line_tracking`、具体题目流程或更高层控制策略中。
+旧接口 `PID_Move()`、`runCircle()`、`Straight()` 和 `track()` 带有任务流程或控制动作语义，不再由 `kinematics` 提供。后续应分别迁移到 `middleware/line_tracking`、具体题目流程或更高层控制策略中。

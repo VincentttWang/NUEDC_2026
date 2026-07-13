@@ -44,8 +44,6 @@
 - `kinematics/`：角度、位姿、差速混控和二维几何计算。
 - `rotation/`：欧拉角、旋转矩阵和三维向量旋转计算。
 - `geometry/`：二维矩形插值、纸面到矩形映射和圆点计算。
-- `line_tracking/`：巡线偏差计算、PID 修正和底盘输出。
-- `gimbal_tracking/`：基于 CanMV 目标和 PID 的云台视觉跟踪控制。
 - `localization/`：车心位移、IMU 航向积分和角点重锚。
 - `aim_solver/`：靶心/圆周几何前馈和视觉 bias。
 
@@ -56,13 +54,18 @@
 `middleware` 放置多个 BSP 外设组合后的系统能力：
 
 - `chassis/`：底盘组合服务
+- `motion/`：底盘运动原语执行（组合 chassis 与 line_tracking）
 - `auto_aim/`：定位、几何前馈、视觉慢校正和云台绝对角协调
 - `gimbal/`：云台组合服务
+- `gimbal_tracking/`：基于 CanMV 目标和 PID 的云台视觉跟踪控制
 - `line_follow/`：巡线运行状态服务
+- `line_tracking/`：巡线偏差计算、PID 修正和底盘输出
 - `ui/`：轻量 OLED UI 渲染层
 - `fault/`：系统故障处理服务
 
-当前包括底盘服务、云台服务、巡线运行状态、轻量 UI 渲染和系统故障处理。旧 `runtime` 兼容头已在应用层重写后移除。
+当前包括底盘服务、运动原语、云台服务、视觉跟踪、巡线服务、UI 渲染和系统故障处理。旧 `runtime` 兼容头已在应用层重写后移除。
+
+> 注：`motion`、`gimbal_tracking`、`line_tracking` 三个模块因需直接调用 chassis/gimbal/line_follow 等下层服务并读取硬件观测，本质是"组合 core 算法 + 驱动执行器"的中间件能力，已从 `core` 迁入 `middleware`，以消除 `core ↔ middleware` 循环依赖、保持 `core` 纯计算。
 
 ## bsp
 

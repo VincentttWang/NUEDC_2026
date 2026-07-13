@@ -1,8 +1,8 @@
-# core/line_tracking 接口说明
+# middleware/line_tracking 接口说明
 
 ## 模块职责
 
-`core/line_tracking` 提供巡线控制算法。
+`middleware/line_tracking` 提供巡线控制算法。
 
 该模块从 `middleware/line_follow` 获取八路灰度状态，使用 `core/pid` 计算转向修正，通过 `core/kinematics` 做差速混控，最后调用 `middleware/chassis` 输出左右轮占空比。
 
@@ -84,7 +84,7 @@ output_limit = 60.0
 2. 调用 `LineTracking_Compute()` 计算左右轮占空比，只统计 `LINE_TRACKING_ACTIVE_SENSOR_MASK` 启用的通道。
 3. 若未丢线，则调用 `Chassis_SetDuty()` 输出到底盘。
 
-循迹输出会先限制 PID 转向修正量，使左右轮占空比差值不超过 `differential_limit`，再执行最终输出限幅。当前默认差值上限为 `10%`。该限制只影响 `LineTracking_Update()` 路径，不影响 `core/motion` 的直行、倒车或原地转向动作。
+循迹输出会先限制 PID 转向修正量，使左右轮占空比差值不超过 `differential_limit`，再执行最终输出限幅。当前默认差值上限为 `10%`。该限制只影响 `LineTracking_Update()` 路径，不影响 `middleware/motion` 的直行、倒车或原地转向动作。
 
 如果当前未检测到线，函数返回 `BSP_STATUS_NOT_READY`，不主动输出底盘占空比。题目流程可根据自身策略决定刹车、继续搜索或切换状态。
 
@@ -99,6 +99,6 @@ output_limit = 60.0
 ## 边界说明
 
 - 空线、半线、十字、边线计数等流程判断不在本模块公开，后续应在 `middleware/line_follow` 或 app 任务流程中按实际需要设计。
-- 直角弯识别和转弯动作编排不在本模块中实现；当前 E1 在 `app/app_e_task` 中通过任务状态机组合 `core/motion` 原语完成。
+- 直角弯识别和转弯动作编排不在本模块中实现；当前 E1 在 `app/app_e_task` 中通过任务状态机组合 `middleware/motion` 原语完成。
 - 旧 `sInedge` 和 `UpdateSInedge()` 不迁入本模块。
 - 旧 `Motion_Car_Control()` 的职责已经拆分为 `Kinematics_DifferentialMix()` 和 `Chassis_SetDuty()`。

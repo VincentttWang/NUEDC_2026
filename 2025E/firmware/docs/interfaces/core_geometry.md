@@ -52,6 +52,6 @@ rect_data[6..7] = top_left
 
 ## 边界说明
 
-- 灰度传感器角度、巡线偏差、空线/半线/十字判断不属于本模块，后续由 `middleware/line_follow` 和 `core/line_tracking` 处理。
-- 视觉目标选择、激光点跟踪、云台 PID 不属于本模块，后续由 `core/gimbal_tracking` 处理。
+- 灰度传感器角度、巡线偏差、空线/半线/十字判断不属于本模块，后续由 `middleware/line_follow` 和 `middleware/line_tracking` 处理。
+- 视觉目标选择、激光点跟踪、云台 PID 不属于本模块，后续由 `middleware/gimbal_tracking` 处理。
 - 三维姿态和旋转矩阵不属于本模块，由 `core/rotation` 处理。

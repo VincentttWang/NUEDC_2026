@@ -341,7 +341,7 @@
               <MiscControls></MiscControls>
               <Define>__MSPM0G3507__</Define>
               <Undefine></Undefine>
-              <IncludePath>..\..;..\..\app;..\..\core;..\..\core\aim_solver;..\..\core\common;..\..\core\geometry;..\..\core\gimbal_tracking;..\..\core\kinematics;..\..\core\line_tracking;..\..\core\localization;..\..\core\motion;..\..\core\pid;..\..\core\rotation;..\..\middleware\chassis;..\..\middleware\fault;..\..\middleware\gimbal;..\..\middleware\line_follow;..\..\middleware\ui;..\..\bsp\canmv;..\..\bsp\common;..\..\bsp\debug_uart;..\..\bsp\grayscale_sensor;..\..\bsp\imu;..\..\bsp\key;..\..\bsp\motor;..\..\bsp\oled;..\..\bsp\time;..\..\bsp\bldc;..\..\board\sys_config;C:\ti\mspm0_sdk_2_10_00_04\source;C:\ti\mspm0_sdk_2_10_00_04\source\third_party\CMSIS\Core\Include</IncludePath>
+              <IncludePath>..\..;..\..\app;..\..\core;..\..\core\aim_solver;..\..\core\common;..\..\core\geometry;..\..\core\kinematics;..\..\core\localization;..\..\core\pid;..\..\core\rotation;..\..\middleware\chassis;..\..\middleware\fault;..\..\middleware\gimbal;..\..\middleware\gimbal_tracking;..\..\middleware\line_follow;..\..\middleware\line_tracking;..\..\middleware\motion;..\..\middleware\ui;..\..\bsp\canmv;..\..\bsp\common;..\..\bsp\debug_uart;..\..\bsp\grayscale_sensor;..\..\bsp\imu;..\..\bsp\key;..\..\bsp\motor;..\..\bsp\oled;..\..\bsp\time;..\..\bsp\bldc;..\..\board\sys_config;C:\ti\mspm0_sdk_2_10_00_04\source;C:\ti\mspm0_sdk_2_10_00_04\source\third_party\CMSIS\Core\Include</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -446,29 +446,14 @@
               <FilePath>..\..\core\geometry\geometry.c</FilePath>
             </File>
             <File>
-              <FileName>gimbal_tracking.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\core\gimbal_tracking\gimbal_tracking.c</FilePath>
-            </File>
-            <File>
               <FileName>kinematics.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\core\kinematics\kinematics.c</FilePath>
             </File>
             <File>
-              <FileName>line_tracking.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\core\line_tracking\line_tracking.c</FilePath>
-            </File>
-            <File>
               <FileName>localization.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\core\localization\localization.c</FilePath>
-            </File>
-            <File>
-              <FileName>motion.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\core\motion\motion.c</FilePath>
             </File>
             <File>
               <FileName>pid.c</FileName>
@@ -506,9 +491,24 @@
               <FilePath>..\..\middleware\gimbal\gimbal.c</FilePath>
             </File>
             <File>
+              <FileName>gimbal_tracking.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\middleware\gimbal_tracking\gimbal_tracking.c</FilePath>
+            </File>
+            <File>
               <FileName>line_follow.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\middleware\line_follow\line_follow.c</FilePath>
+            </File>
+            <File>
+              <FileName>line_tracking.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\middleware\line_tracking\line_tracking.c</FilePath>
+            </File>
+            <File>
+              <FileName>motion.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\middleware\motion\motion.c</FilePath>
             </File>
             <File>
               <FileName>ui.c</FileName>

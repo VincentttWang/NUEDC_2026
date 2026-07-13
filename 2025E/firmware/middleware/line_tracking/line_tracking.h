@@ -1,6 +1,6 @@
 /**
  * @file  line_tracking.h
- * @brief Core 层巡线控制策略，将灰度传感器状态转换为底盘输出。
+ * @brief Middleware 层巡线控制策略，将灰度传感器状态转换为底盘输出。
  */
 #ifndef LINE_TRACKING_H
 #define LINE_TRACKING_H

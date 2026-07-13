@@ -15,8 +15,6 @@
 - `kinematics/kinematics.h`：角度、位姿、差速混控和二维几何计算，详细说明见 `docs/interfaces/core_kinematics.md`。
 - `rotation/rotation.h`：欧拉角、旋转矩阵和三维向量旋转计算，详细说明见 `docs/interfaces/core_rotation.md`。
 - `geometry/geometry.h`：二维矩形插值、纸面到矩形映射和圆点计算，详细说明见 `docs/interfaces/core_geometry.md`。
-- `line_tracking/line_tracking.h`：巡线偏差计算、PID 修正和底盘输出接口，详细说明见 `docs/interfaces/core_line_tracking.md`。
-- `gimbal_tracking/gimbal_tracking.h`：基于 CanMV 目标和 PID 的云台视觉跟踪控制，详细说明见 `docs/interfaces/core_gimbal_tracking.md`。
 - `localization/localization.h`：单轮车心位移修正、航位推算和角点重锚。
 - `aim_solver/aim_solver.h`：靶心/圆周几何前馈与视觉 bias 纯计算。
 
@@ -24,8 +22,11 @@
 
 - `auto_aim.h`：定位、几何前馈、视觉慢校正与云台位置控制协调层，详细说明见 `docs/interfaces/middleware_auto_aim.md`。
 - `chassis.h`：底盘组合服务，详细说明见 `docs/interfaces/middleware_chassis.md`。
+- `motion/motion.h`：底盘运动原语执行（组合 chassis 与 line_tracking），详细说明见 `docs/interfaces/middleware_motion.md`。
 - `gimbal.h`：云台组合服务，详细说明见 `docs/interfaces/middleware_gimbal.md`。
+- `gimbal_tracking/gimbal_tracking.h`：基于 CanMV 目标和 PID 的云台视觉跟踪控制，详细说明见 `docs/interfaces/middleware_gimbal_tracking.md`。
 - `line_follow.h`：巡线运行状态服务，详细说明见 `docs/interfaces/middleware_line_follow.md`。
+- `line_tracking/line_tracking.h`：巡线偏差计算、PID 修正和底盘输出接口，详细说明见 `docs/interfaces/middleware_line_tracking.md`。
 - `ui.h`：轻量 OLED UI 渲染层，详细说明见 `docs/interfaces/middleware_ui.md`。
 - `system_fault.h`：系统故障处理服务，详细说明见 `docs/interfaces/middleware_system_fault.md`。
 

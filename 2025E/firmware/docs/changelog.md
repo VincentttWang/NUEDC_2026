@@ -2,6 +2,7 @@
 
 ## 未发布
 
+- 消除 `core ↔ middleware` 循环依赖：将 `motion`、`gimbal_tracking`、`line_tracking` 三个模块从 `core/` 迁入 `middleware/`。这三者需直接调用 `Chassis_*`/`Gimbal_*`/`LineFollow_*` 并读取硬件观测，本质是中间件能力；迁移后 `core` 恢复为纯计算层（仅 `pid`/`kinematics`/`rotation`/`geometry`/`localization`/`aim_solver`/`common`），依赖方向恢复单向 `app → middleware → {core, bsp}`。同步更新 Keil/CCS 工程文件、include 路径、相关 include 语句为裸文件名，并重命名接口文档 `core_* → middleware_*`。编译验证 `0 Error(s), 0 Warning(s)`。
 - 将 E3 拆分为 `E3 Yaw+` 和 `E3 Yaw-` 两个主菜单入口；矩形扫描识别成功后先停止云台约 `200ms`，随后直接复用 E2 的靶心瞄准逻辑，不再单独执行矩形中心跟踪。
 - 收紧 E1 与 Corner test 的转弯结束条件：中心 3/4 重新检测到轨道后需要连续确认 3 次，才刹车退出转弯。
 - 新增 `k230/rect_recognition.py` 与 MSPM0 的 UART 帧通信：按 `0x12 ... 0x5B` 固定帧发送目标中心、图像中心和矩形角点；考虑摄像头倒装，发送前对目标中心和矩形角点绕图像中心做中心对称修正，并在目标中心接近图像中心时开启 GPIO2 激光笔。

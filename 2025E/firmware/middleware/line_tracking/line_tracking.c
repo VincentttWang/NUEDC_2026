@@ -93,7 +93,7 @@ BSP_STATUS LineTracking_Update(float dt_s){
 
     if (s_line_tracking_output.line_lost){
         /*
-         * 丢线时不在 core 层自行搜索或刹车。不同题目流程可能有不同恢复策略，
+         * 丢线时不在本层自行搜索或刹车。不同题目流程可能有不同恢复策略，
          * 因此只返回 NOT_READY，由 app 决定是否刹车、等待或切换状态。
          */
         return BSP_STATUS_NOT_READY;

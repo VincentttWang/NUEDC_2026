@@ -12,7 +12,7 @@
 
 ### `AppE_RunAimCenter2s()`
 
-执行 E2 任意位姿瞄准。该任务保留 `core/gimbal_tracking` 纯视觉速度闭环；误差连续 8 个新视觉帧进入 yaw/pitch ±0.8° 后触发一次激光脉冲，1.8 秒仍未锁定时强制打点兜底，2 秒结束。
+执行 E2 任意位姿瞄准。该任务保留 `middleware/gimbal_tracking` 纯视觉速度闭环；误差连续 8 个新视觉帧进入 yaw/pitch ±0.8° 后触发一次激光脉冲，1.8 秒仍未锁定时强制打点兜底，2 秒结束。
 
 ### `AppE_RunKnownPoseAim4s()`
 

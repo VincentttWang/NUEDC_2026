@@ -1,8 +1,8 @@
-# core/gimbal_tracking 接口说明
+# middleware/gimbal_tracking 接口说明
 
 ## 模块职责
 
-`core/gimbal_tracking` 提供基于 CanMV 视觉目标的云台跟踪控制。
+`middleware/gimbal_tracking` 提供基于 CanMV 视觉目标的云台跟踪控制。
 
 该模块负责：
 

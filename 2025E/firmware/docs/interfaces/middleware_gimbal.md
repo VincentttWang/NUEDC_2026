@@ -166,6 +166,6 @@ typedef struct {
 
 ## 迁移说明
 
-2025E 工程已由步进云台迁移到双 F32C 无刷云台：`middleware/gimbal` 对外 API 完全不变，底层由 `bsp/step_motor` 改为 `bsp/bldc`（`f32c_bldc.c`）。上层 `core/gimbal_tracking` 与 `app_e_task` 无需改动。
+2025E 工程已由步进云台迁移到双 F32C 无刷云台：`middleware/gimbal` 对外 API 完全不变，底层由 `bsp/step_motor` 改为 `bsp/bldc`（`f32c_bldc.c`）。上层 `middleware/gimbal_tracking` 与 `app_e_task` 无需改动。
 
 后续可选优化：将 `Gimbal_GetAngle()` 从开环积分改为读取 `BLDC_MotorX.multi_angle` 反馈以获得闭环角度。

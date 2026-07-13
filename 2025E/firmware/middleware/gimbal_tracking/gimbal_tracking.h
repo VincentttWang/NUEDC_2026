@@ -1,6 +1,6 @@
 /**
  * @file  gimbal_tracking.h
- * @brief Core 层视觉云台跟踪控制，将 CanMV 目标点转换为云台速度输出。
+ * @brief Middleware 层视觉云台跟踪控制，将 CanMV 目标点转换为云台速度输出。
  */
 #ifndef GIMBAL_TRACKING_H
 #define GIMBAL_TRACKING_H

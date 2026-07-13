@@ -5,7 +5,7 @@
 #include "app_debug_cmd.h"
 
 #include "bsp/debug_uart/debug_uart.h"
-#include "gimbal_tracking/gimbal_tracking.h"
+#include "gimbal_tracking.h"
 
 #include <stdbool.h>
 #include <stdlib.h>
