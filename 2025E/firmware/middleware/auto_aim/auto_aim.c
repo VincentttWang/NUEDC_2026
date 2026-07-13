@@ -135,6 +135,10 @@ BSP_STATUS AutoAim_Update(float dt_s){
     s_state.lap_progress = Localization_GetLapProgress();
 
     s_state.vision_valid = AutoAim_ReadNewVision(&yaw_error_deg, &pitch_error_deg);
+    if (s_state.vision_valid){
+        s_state.vision_yaw_error_deg = yaw_error_deg;
+        s_state.vision_pitch_error_deg = pitch_error_deg;
+    }
     AimVisionBias_Update(&s_state.vision_bias,
                          s_config.vision_yaw_sign * yaw_error_deg,
                          s_config.vision_pitch_sign * pitch_error_deg,

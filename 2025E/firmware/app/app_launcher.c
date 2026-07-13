@@ -18,6 +18,7 @@ typedef enum {
     APP_MENU_E3_AUTO_AIM,
     APP_MENU_F1_LINE_AIM,
     APP_MENU_F2_LINE_AIM,
+    APP_MENU_F3_LINE_CIRCLE,
     APP_MENU_DEVICE_CHECK,
     APP_MENU_COUNT
 } APP_MENU_ITEM;
@@ -35,9 +36,10 @@ static const char *const s_app_menu_items[APP_MENU_COUNT] = {
     "E1 Line",
     "Aim track",
     "E2 Aim",
-    "E3 Auto aim",
+    "E3 Geo aim",
     "F1 Line+aim",
     "F2 Line+aim",
+    "F3 Line+circle",
     "Device check",
 };
 
@@ -140,7 +142,7 @@ static void App_RunMenuItem(APP_MENU_ITEM selected){
     }
 
     if (selected == APP_MENU_E3_AUTO_AIM){
-        AppE_RunAutoScanAim();
+        AppE_RunKnownPoseAim4s();
         return;
     }
 
@@ -151,6 +153,11 @@ static void App_RunMenuItem(APP_MENU_ITEM selected){
 
     if (selected == APP_MENU_F2_LINE_AIM){
         AppE_RunLineAim(2U);
+        return;
+    }
+
+    if (selected == APP_MENU_F3_LINE_CIRCLE){
+        AppE_RunLineCircle(1U);
         return;
     }
 

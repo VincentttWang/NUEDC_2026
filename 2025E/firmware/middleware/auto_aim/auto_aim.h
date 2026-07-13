@@ -52,6 +52,8 @@ typedef struct {
     AIM_VISION_BIAS vision_bias;
     float yaw_command_deg;
     float pitch_command_deg;
+    float vision_yaw_error_deg;
+    float vision_pitch_error_deg;
     float last_wheel_delta_m;
     float last_center_delta_m;
     float lap_progress;

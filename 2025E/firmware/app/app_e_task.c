@@ -1,6 +1,7 @@
 #include "app_e_task.h"
 
 #include "app_debug_cmd.h"
+#include "middleware/auto_aim/auto_aim.h"
 #include "bsp_time.h"
 #include "canmv_uart.h"
 #include "chassis.h"
@@ -12,7 +13,6 @@
 #include "line_tracking/line_tracking.h"
 #include "motion/motion.h"
 #include "ui.h"
-#include "wit_sdk.h"
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -20,10 +20,6 @@
 #define APP_E_MAX_LAPS 5U
 #define APP_E_EDGES_PER_LAP 4U
 #define APP_E_LINE_TIMEOUT_MS 20000U
-#define APP_E_RECT_SCAN_SPEED_DEG_S 60.0f
-#define APP_E_RECT_SCAN_ANGLE_DEG 360.0f
-#define APP_E_RECT_SCAN_TIMEOUT_MS 8000U
-#define APP_E_RECT_FOUND_SETTLE_MS 200U
 #define APP_E_LINE_LOST_GRACE_MS 1000U
 #define APP_E_LINE_EDGE_MIN_DISTANCE_M 0.15f
 #define APP_E_CORNER_TURN_LEFT_DUTY_PERCENT -12.0f
@@ -33,14 +29,16 @@
 #define APP_E_CORNER_ENTER_CONFIRM_COUNT 2U
 #define APP_E_CORNER_EXIT_CONFIRM_COUNT 3U
 #define APP_E_LOOP_DELAY_MS 10U
+#define APP_E_AIM_LOCK_YAW_DEG 0.8f
+#define APP_E_AIM_LOCK_PITCH_DEG 0.8f
+#define APP_E_AIM_LOCK_CONFIRM_FRAMES 8U
+#define APP_E_AIM_FORCE_SHOT_MS 1800U
+#define APP_E_LASER_PULSE_MS 20U
+#define APP_E_TRACK_SIDE_M 1.0f
+#define APP_E_AUTO_AIM_IMU_FAIL_LIMIT 10U
 /* 更新同步遥测抽取: 每 N 次传感器更新记一条 (带 SysTick 时间戳还原真实时序)。 */
 #define APP_E_AIM_LOG_EVERY_FRAMES 1U   /* Aim: 每 N 个 CanMV 视觉帧 */
 #define APP_E_LINE_LOG_EVERY_SCANS 10U  /* E1: 每 N 次灰度扫描 */
-/* 复用设备检查页已实测的车体转向开环 Yaw Hold 参数。 */
-#define APP_E_TURN_YAW_HOLD_COMP_GAIN 1.0f
-#define APP_E_TURN_YAW_HOLD_OUTPUT_LIMIT_DEG_S 240.0f
-#define APP_E_TURN_YAW_HOLD_RATE_LIMIT_DEG_S2 1800.0f
-#define APP_E_TURN_YAW_HOLD_GYRO_DEADBAND_DEG_S 1.5f
 
 typedef enum {
     APP_E_LINE_STATE_FOLLOW = 0,
@@ -55,31 +53,21 @@ typedef enum {
 } APP_E_CORNER_DIR;
 
 typedef enum {
-    APP_E_RECT_SCAN_YAW_POSITIVE = 0,
-    APP_E_RECT_SCAN_YAW_NEGATIVE
-} APP_E_RECT_SCAN_DIR;
-
-typedef enum {
     APP_E_AIM_MODE_NONE = 0,
-    APP_E_AIM_MODE_CENTER,
+    APP_E_AIM_MODE_CENTER_FEEDFORWARD,
+    APP_E_AIM_MODE_CIRCLE_FEEDFORWARD,
 } APP_E_AIM_MODE;
 
-static float s_app_e_turn_yaw_hold_deg_s;
-static uint32_t s_app_e_turn_yaw_hold_last_poll_count;
-static uint32_t s_app_e_turn_yaw_hold_last_update_ms;
+/* 默认从 A 点出发并始终左转：A -> C -> D -> B -> A。 */
+static const LOCALIZATION_CORNER s_app_e_corner_sequence[APP_E_EDGES_PER_LAP] = {
+    LOCALIZATION_CORNER_C,
+    LOCALIZATION_CORNER_D,
+    LOCALIZATION_CORNER_B,
+    LOCALIZATION_CORNER_A,
+};
 
 static float AppE_AbsFloat(float value){
     return (value < 0.0f) ? -value : value;
-}
-
-static float AppE_LimitFloat(float value, float limit){
-    if (value > limit){
-        return limit;
-    }
-    if (value < -limit){
-        return -limit;
-    }
-    return value;
 }
 
 /* K230 UART1 接收此命令后直接控制激光 GPIO；命令只从 MSPM0 发往 K230。 */
@@ -87,55 +75,17 @@ static void AppE_SetLaserEnabled(bool enabled){
     (void)CanMvUart_SendString(enabled ? "LASER=1\n" : "LASER=0\n");
 }
 
-/*
- * 车体转弯时，IMU 的 gyro_z 表示车体相对世界的角速度；云台以反向速度补偿。
- * 视觉控制仍是主控制量，Yaw Hold 仅叠加在 yaw 指令上，因而不会中断靶心追踪。
- */
-static void AppE_ApplyTurnYawHold(bool turning,
-                                  float tracking_yaw_deg_s,
-                                  float tracking_pitch_deg_s){
-    WIT_IMU_DATA imu = {0};
-    uint32_t poll_count;
-    uint32_t now_ms;
-    float dt_s;
-    float gyro_z_deg_s;
-    float target_hold_deg_s;
-    float max_delta_deg_s;
-    float combined_yaw_deg_s;
+static void AppE_PulseLaser(void){
+    AppE_SetLaserEnabled(true);
+    BSP_DelayMs(APP_E_LASER_PULSE_MS);
+    AppE_SetLaserEnabled(false);
+}
 
-    if (!turning){
-        s_app_e_turn_yaw_hold_deg_s = 0.0f;
-        return;
+static void AppE_StopLineAim(APP_E_AIM_MODE aim_mode){
+    AppE_SetLaserEnabled(false);
+    if (aim_mode != APP_E_AIM_MODE_NONE){
+        (void)AutoAim_Stop();
     }
-
-    poll_count = JY61P_I2C_GetPollCount();
-    if (poll_count != s_app_e_turn_yaw_hold_last_poll_count){
-        now_ms = BSP_Time_GetMs();
-        dt_s = (float)(now_ms - s_app_e_turn_yaw_hold_last_update_ms) / 1000.0f;
-        if (dt_s <= 0.0f){
-            dt_s = 0.001f;
-        }
-        s_app_e_turn_yaw_hold_last_poll_count = poll_count;
-        s_app_e_turn_yaw_hold_last_update_ms = now_ms;
-
-        (void)WitGetData(&imu);
-        gyro_z_deg_s = imu.gyro_deg_s.z;
-        if (AppE_AbsFloat(gyro_z_deg_s) <= APP_E_TURN_YAW_HOLD_GYRO_DEADBAND_DEG_S){
-            gyro_z_deg_s = 0.0f;
-        }
-
-        target_hold_deg_s = AppE_LimitFloat(-APP_E_TURN_YAW_HOLD_COMP_GAIN * gyro_z_deg_s,
-                                             APP_E_TURN_YAW_HOLD_OUTPUT_LIMIT_DEG_S);
-        max_delta_deg_s = APP_E_TURN_YAW_HOLD_RATE_LIMIT_DEG_S2 * dt_s;
-        s_app_e_turn_yaw_hold_deg_s += AppE_LimitFloat(target_hold_deg_s - s_app_e_turn_yaw_hold_deg_s,
-                                                        max_delta_deg_s);
-        s_app_e_turn_yaw_hold_deg_s = AppE_LimitFloat(s_app_e_turn_yaw_hold_deg_s,
-                                                       APP_E_TURN_YAW_HOLD_OUTPUT_LIMIT_DEG_S);
-    }
-
-    combined_yaw_deg_s = AppE_LimitFloat(tracking_yaw_deg_s + s_app_e_turn_yaw_hold_deg_s,
-                                         APP_E_TURN_YAW_HOLD_OUTPUT_LIMIT_DEG_S);
-    (void)Gimbal_SetSpeed(combined_yaw_deg_s, tracking_pitch_deg_s);
 }
 
 static BSP_STATUS AppE_ApplyCornerTurn(APP_E_CORNER_DIR corner_dir){
@@ -241,29 +191,34 @@ static void AppE_RunLineTask(uint8_t lap_count, APP_E_AIM_MODE aim_mode){
     APP_E_LINE_STATE line_state = APP_E_LINE_STATE_FOLLOW;
     APP_E_CORNER_DIR corner_dir = APP_E_CORNER_NONE;
     uint8_t corner_enter_count = 0U;
+    uint8_t auto_aim_imu_fail_count = 0U;
     MOTION_COMMAND line_follow_command = Motion_CommandLineFollow();
-
-    s_app_e_turn_yaw_hold_deg_s = 0.0f;
-    s_app_e_turn_yaw_hold_last_poll_count = JY61P_I2C_GetPollCount();
-    s_app_e_turn_yaw_hold_last_update_ms = BSP_Time_GetMs();
 
     /*
      * 基本要求(1)只使用底盘巡线；发挥任务在同一主循环中并行运行云台视觉控制。
      * 圈数换算为边线数：当前场地按每圈 4 条边线估计。
      */
+    Chassis_ResetDistance();
     if (aim_mode == APP_E_AIM_MODE_NONE){
         AppE_SetLaserEnabled(false);
-        (void)GimbalTracking_Stop();
     } else{
-        AppE_SetLaserEnabled(true);
         Gimbal_EnsurePitchReady();
-        GimbalTracking_Init(NULL);
-        GimbalTracking_Reset();
+        AutoAim_Init(NULL);
+        if (AutoAim_Start(aim_mode == APP_E_AIM_MODE_CIRCLE_FEEDFORWARD
+                              ? AUTO_AIM_MODE_CIRCLE
+                              : AUTO_AIM_MODE_CENTER) != BSP_STATUS_OK){
+            (void)Motion_Stop();
+            AppE_SetLaserEnabled(false);
+            Ui_RenderStatusPage("Line aim", UI_STATUS_WARN, "IMU not ready", "K2 long:back");
+            AppE_WaitBack();
+            return;
+        }
+        /* 发挥任务要求运动期间连续照射：前馈就绪后先开激光，再启动底盘。 */
+        AppE_SetLaserEnabled(true);
     }
     LineFollow_Reset();
     LineTracking_Init(NULL);
     Motion_Init();
-    Chassis_ResetDistance();
     Ui_RenderLines("E1 Line",
                    "Running...",
                    "Lap:0",
@@ -284,14 +239,15 @@ static void AppE_RunLineTask(uint8_t lap_count, APP_E_AIM_MODE aim_mode){
 
         last_ms = now_ms;
 
-        if (aim_mode == APP_E_AIM_MODE_CENTER){
-            (void)GimbalTracking_UpdateLaserCenter(dt_s);
-            {
-                GIMBAL_TRACKING_STATE tracking = GimbalTracking_GetState();
-
-                AppE_ApplyTurnYawHold(line_state == APP_E_LINE_STATE_CORNER_ARC,
-                                      tracking.yaw_speed,
-                                      tracking.pitch_speed);
+        if (aim_mode != APP_E_AIM_MODE_NONE){
+            if (AutoAim_Update(dt_s) == BSP_STATUS_OK){
+                auto_aim_imu_fail_count = 0U;
+            } else if (++auto_aim_imu_fail_count >= APP_E_AUTO_AIM_IMU_FAIL_LIMIT){
+                (void)Motion_Stop();
+                AppE_StopLineAim(aim_mode);
+                Ui_RenderStatusPage("Line aim", UI_STATUS_WARN, "IMU lost", "K2 long:back");
+                AppE_WaitBack();
+                return;
             }
         }
 
@@ -359,6 +315,11 @@ static void AppE_RunLineTask(uint8_t lap_count, APP_E_AIM_MODE aim_mode){
                 LineFollow_IncrementEdge();
                 {
                     int32_t ec = LineFollow_GetEdgeCount();
+                    if ((aim_mode != APP_E_AIM_MODE_NONE) && (ec > 0)){
+                        uint32_t edge_index = (uint32_t)(ec - 1) % APP_E_EDGES_PER_LAP;
+                        AutoAim_AnchorCorner(s_app_e_corner_sequence[edge_index],
+                                             (float)ec * APP_E_TRACK_SIDE_M);
+                    }
                     DebugUart_Printf("[E1] edge=%ld lap=%u t=%lu\r\n",
                                      (long)ec, (unsigned)(ec / APP_E_EDGES_PER_LAP),
                                      (unsigned long)AppE_ElapsedMs(start_ms));
@@ -395,9 +356,8 @@ static void AppE_RunLineTask(uint8_t lap_count, APP_E_AIM_MODE aim_mode){
                            "K2 long:back",
                            NULL,
                            NULL);
+            AppE_StopLineAim(aim_mode);
             AppE_WaitBack();
-            AppE_SetLaserEnabled(false);
-            (void)GimbalTracking_Stop();
             return;
         }
 
@@ -432,10 +392,9 @@ static void AppE_RunLineTask(uint8_t lap_count, APP_E_AIM_MODE aim_mode){
             DebugUart_Printf("[E1] FINISH laps=%u t=%lu\r\n",
                              (unsigned)completed_laps,
                              (unsigned long)AppE_ElapsedMs(start_ms));
+            AppE_StopLineAim(aim_mode);
             Ui_RenderStatusPage("E1 Line", UI_STATUS_OK, "Finished", "K2 long:back");
             AppE_WaitBack();
-            AppE_SetLaserEnabled(false);
-            (void)GimbalTracking_Stop();
             return;
         }
 
@@ -448,8 +407,7 @@ static void AppE_RunLineTask(uint8_t lap_count, APP_E_AIM_MODE aim_mode){
     }
 
     (void)Motion_Stop();
-    AppE_SetLaserEnabled(false);
-    (void)GimbalTracking_Stop();
+    AppE_StopLineAim(aim_mode);
     Ui_RenderStatusPage("E1 Line", UI_STATUS_WARN, "Stopped/timeout", "K2 long:back");
     AppE_WaitBack();
 }
@@ -459,7 +417,11 @@ void AppE_RunLineFollow(uint8_t lap_count){
 }
 
 void AppE_RunLineAim(uint8_t lap_count){
-    AppE_RunLineTask(lap_count, APP_E_AIM_MODE_CENTER);
+    AppE_RunLineTask(lap_count, APP_E_AIM_MODE_CENTER_FEEDFORWARD);
+}
+
+void AppE_RunLineCircle(uint8_t lap_count){
+    AppE_RunLineTask(lap_count, APP_E_AIM_MODE_CIRCLE_FEEDFORWARD);
 }
 
 void AppE_RunContinuousAim(void){
@@ -561,22 +523,27 @@ void AppE_RunContinuousAim(void){
     AppE_WaitBack();
 }
 
-static void AppE_RunAimCenter(uint32_t aim_duration_ms,
-                              const char *title,
-                              bool enable_laser_after_aim){
+static bool AppE_IsAimLocked(float yaw_error_deg, float pitch_error_deg){
+    return (AppE_AbsFloat(yaw_error_deg) <= APP_E_AIM_LOCK_YAW_DEG) &&
+           (AppE_AbsFloat(pitch_error_deg) <= APP_E_AIM_LOCK_PITCH_DEG);
+}
+
+static void AppE_RunVisualAim2s(void){
     char line0[24];
     char line1[24];
     char line2[24];
     uint32_t start_ms = BSP_Time_GetMs();
     uint32_t last_ms = start_ms;
+    uint8_t lock_frames = 0U;
+    bool shot = false;
 
     AppE_PrepareTaskInput();
     (void)Chassis_Brake();
     AppE_SetLaserEnabled(false);
-    /* 瞄准前确保 pitch 已抬升到位并处于速度模式 (开机为非阻塞抬升)。 */
     Gimbal_EnsurePitchReady();
     GimbalTracking_Init(NULL);
-    Ui_RenderLines(title,
+    GimbalTracking_Reset();
+    Ui_RenderLines("E2 Aim",
                    "Aiming center",
                    "Laser:WAIT",
                    "Err:0,0",
@@ -584,7 +551,7 @@ static void AppE_RunAimCenter(uint32_t aim_duration_ms,
                    "K2 long:stop",
                    NULL);
 
-    while ((aim_duration_ms == 0U) || (AppE_ElapsedMs(start_ms) < aim_duration_ms)){
+    while (AppE_ElapsedMs(start_ms) < 2000U){
         uint32_t now_ms = BSP_Time_GetMs();
         float dt_s = (float)(now_ms - last_ms) / 1000.0f;
 
@@ -596,7 +563,22 @@ static void AppE_RunAimCenter(uint32_t aim_duration_ms,
         BSP_STATUS status = GimbalTracking_UpdateLaserCenter(dt_s);
         GIMBAL_TRACKING_STATE state = GimbalTracking_GetState();
 
-        snprintf(line0, sizeof(line0), "Laser:%s", status == BSP_STATUS_OK ? "OK" : "WAIT");
+        if ((status == BSP_STATUS_OK) &&
+            AppE_IsAimLocked(state.error.x, state.error.y)){
+            if (lock_frames < APP_E_AIM_LOCK_CONFIRM_FRAMES){
+                lock_frames++;
+            }
+        } else{
+            lock_frames = 0U;
+        }
+
+        if (!shot && ((lock_frames >= APP_E_AIM_LOCK_CONFIRM_FRAMES) ||
+                      (AppE_ElapsedMs(start_ms) >= APP_E_AIM_FORCE_SHOT_MS))){
+            AppE_PulseLaser();
+            shot = true;
+        }
+
+        snprintf(line0, sizeof(line0), "Laser:%s", shot ? "SHOT" : "WAIT");
         snprintf(line1, sizeof(line1), "Err:%0.0f,%0.0f", state.error.x, state.error.y);
         snprintf(line2, sizeof(line2), "Time:%lu.%01lu",
                  (unsigned long)(AppE_ElapsedMs(start_ms) / 1000U),
@@ -613,93 +595,88 @@ static void AppE_RunAimCenter(uint32_t aim_duration_ms,
         BSP_DelayMs(APP_E_LOOP_DELAY_MS);
     }
 
-    if ((aim_duration_ms != 0U) &&
-        (AppE_ElapsedMs(start_ms) >= aim_duration_ms) &&
-        enable_laser_after_aim){
-        AppE_SetLaserEnabled(true);
-    } else{
-        AppE_SetLaserEnabled(false);
-    }
-    (void)GimbalTracking_Stop();
-    Ui_RenderStatusPage(title, UI_STATUS_OK, "Aim finished", "K2 long:back");
-    AppE_WaitBack();
     AppE_SetLaserEnabled(false);
+    (void)GimbalTracking_Stop();
+    Ui_RenderStatusPage("E2 Aim", shot ? UI_STATUS_OK : UI_STATUS_WARN,
+                        shot ? "Shot finished" : "Stopped", "K2 long:back");
+    AppE_WaitBack();
 }
 
 void AppE_RunAimCenter2s(void){
-    AppE_RunAimCenter(2000U, "E2 Aim", true);
+    AppE_RunVisualAim2s();
 }
 
-static float AppE_GetRectScanSpeed(APP_E_RECT_SCAN_DIR scan_dir){
-    if (scan_dir == APP_E_RECT_SCAN_YAW_NEGATIVE){
-        return -APP_E_RECT_SCAN_SPEED_DEG_S;
-    }
-
-    return APP_E_RECT_SCAN_SPEED_DEG_S;
-}
-
-static const char *AppE_GetRectScanTitle(APP_E_RECT_SCAN_DIR scan_dir){
-    if (scan_dir == APP_E_RECT_SCAN_YAW_NEGATIVE){
-        return "E3 Yaw-";
-    }
-
-    return "E3 Yaw+";
-}
-
-static bool AppE_IsRectScanAngleReached(APP_E_RECT_SCAN_DIR scan_dir){
-    float yaw_deg = Gimbal_GetAngle().yaw_deg;
-
-    if (scan_dir == APP_E_RECT_SCAN_YAW_NEGATIVE){
-        return yaw_deg <= -APP_E_RECT_SCAN_ANGLE_DEG;
-    }
-
-    return yaw_deg >= APP_E_RECT_SCAN_ANGLE_DEG;
-}
-
-static bool AppE_ScanForRect(APP_E_RECT_SCAN_DIR scan_dir){
+void AppE_RunKnownPoseAim4s(void){
     char line0[24];
     char line1[24];
+    char line2[24];
     uint32_t start_ms = BSP_Time_GetMs();
-    const char *title = AppE_GetRectScanTitle(scan_dir);
+    uint32_t last_ms = start_ms;
+    uint8_t lock_frames = 0U;
+    bool shot = false;
 
     AppE_PrepareTaskInput();
-    GimbalTracking_Init(NULL);
-    Gimbal_ResetAxisPosition(GIMBAL_AXIS_YAW);
-    (void)Gimbal_SetSpeed(AppE_GetRectScanSpeed(scan_dir), 0.0f);
-    Ui_RenderLines(title,
-                   "Scanning...",
-                   "Yaw:0",
-                   "Rect:WAIT",
+    (void)Chassis_Brake();
+    AppE_SetLaserEnabled(false);
+    Gimbal_EnsurePitchReady();
+    AutoAim_Init(NULL);
+    if (AutoAim_Start(AUTO_AIM_MODE_CENTER) != BSP_STATUS_OK){
+        Ui_RenderStatusPage("E3 Geo aim", UI_STATUS_WARN, "IMU not ready", "K2 long:back");
+        AppE_WaitBack();
+        return;
+    }
+    Ui_RenderLines("E3 Geo aim",
+                   "Feedforward",
+                   "Laser:WAIT",
+                   "Err:0.0,0.0",
+                   "Time:0.0",
                    "K2 long:stop",
-                   NULL,
                    NULL);
 
-    while (AppE_ElapsedMs(start_ms) < APP_E_RECT_SCAN_TIMEOUT_MS){
-        (void)Gimbal_Update();
-
-        if (GimbalTracking_IsRectValid()){
-            (void)Gimbal_Stop();
-            Ui_RenderLines(title,
-                           "Rect found",
-                           "Stop 200ms",
-                           "Then E2 aim",
-                           "K2 long:stop",
-                           NULL,
-                           NULL);
-            BSP_DelayMs(APP_E_RECT_FOUND_SETTLE_MS);
-            return true;
+    while (AppE_ElapsedMs(start_ms) < 4000U){
+        uint32_t now_ms = BSP_Time_GetMs();
+        float dt_s = (float)(now_ms - last_ms) / 1000.0f;
+        last_ms = now_ms;
+        if (dt_s <= 0.0f){
+            dt_s = 0.001f;
         }
 
-        if (AppE_IsRectScanAngleReached(scan_dir)){
-            break;
+        if (AutoAim_Update(dt_s) != BSP_STATUS_OK){
+            (void)AutoAim_Stop();
+            AppE_SetLaserEnabled(false);
+            Ui_RenderStatusPage("E3 Geo aim", UI_STATUS_WARN, "IMU lost", "K2 long:back");
+            AppE_WaitBack();
+            return;
+        }
+        AUTO_AIM_STATE state = AutoAim_GetState();
+
+        if (state.vision_valid &&
+            AppE_IsAimLocked(state.vision_yaw_error_deg,
+                             state.vision_pitch_error_deg)){
+            if (lock_frames < APP_E_AIM_LOCK_CONFIRM_FRAMES){
+                lock_frames++;
+            }
+        } else if (!state.vision_valid){
+            /* 没有新视觉帧时保留连续帧计数；明确收到偏差超限才清零。 */
+        } else{
+            lock_frames = 0U;
         }
 
-        snprintf(line0, sizeof(line0), "Yaw:%0.0f", Gimbal_GetAngle().yaw_deg);
-        snprintf(line1, sizeof(line1), "Time:%lu.%01lu",
+        if (!shot && ((lock_frames >= APP_E_AIM_LOCK_CONFIRM_FRAMES) ||
+                      (AppE_ElapsedMs(start_ms) >= 3800U))){
+            AppE_PulseLaser();
+            shot = true;
+        }
+
+        snprintf(line0, sizeof(line0), "Laser:%s", shot ? "SHOT" : "WAIT");
+        snprintf(line1, sizeof(line1), "Err:%0.1f,%0.1f",
+                 state.vision_yaw_error_deg, state.vision_pitch_error_deg);
+        snprintf(line2, sizeof(line2), "Time:%lu.%01lu",
                  (unsigned long)(AppE_ElapsedMs(start_ms) / 1000U),
                  (unsigned long)((AppE_ElapsedMs(start_ms) / 100U) % 10U));
         Ui_UpdateContentLine(1U, line0);
-        Ui_UpdateContentLine(3U, line1);
+        Ui_UpdateContentLine(2U, line1);
+        Ui_UpdateContentLine(3U, line2);
 
         if (AppE_IsBackEvent()){
             Key_ClearAllEvents();
@@ -709,47 +686,9 @@ static bool AppE_ScanForRect(APP_E_RECT_SCAN_DIR scan_dir){
         BSP_DelayMs(APP_E_LOOP_DELAY_MS);
     }
 
-    (void)Gimbal_Stop();
-    return false;
-}
-
-static void AppE_RunRectScanAim(APP_E_RECT_SCAN_DIR scan_dir){
-    const char *title = AppE_GetRectScanTitle(scan_dir);
-
-    (void)Chassis_Brake();
-
-    if (!AppE_ScanForRect(scan_dir)){
-        Ui_RenderStatusPage(title, UI_STATUS_WARN, "Rect not found", "K2 long:back");
-        AppE_WaitBack();
-        return;
-    }
-
-    /*
-     * E3 只负责按指定方向扫描并确认矩形；确认后停 200ms，
-     * 随后的云台闭环直接复用 E2 的激光点瞄准逻辑。
-     */
-    AppE_RunAimCenter(4000U, title, true);
-}
-
-void AppE_RunRectScanYawPositive(void){
-    AppE_RunRectScanAim(APP_E_RECT_SCAN_YAW_POSITIVE);
-}
-
-void AppE_RunRectScanYawNegative(void){
-    AppE_RunRectScanAim(APP_E_RECT_SCAN_YAW_NEGATIVE);
-}
-
-void AppE_RunAutoScanAim(void){
-    (void)Chassis_Brake();
     AppE_SetLaserEnabled(false);
-
-    /* 不要求操作者预判初始朝向：完整扫描一个方向失败后回到原方向并反向搜索。 */
-    if (!AppE_ScanForRect(APP_E_RECT_SCAN_YAW_POSITIVE) &&
-        !AppE_ScanForRect(APP_E_RECT_SCAN_YAW_NEGATIVE)){
-        Ui_RenderStatusPage("E3 Auto", UI_STATUS_WARN, "Rect not found", "K2 long:back");
-        AppE_WaitBack();
-        return;
-    }
-
-    AppE_RunAimCenter(4000U, "E3 Auto", true);
+    (void)AutoAim_Stop();
+    Ui_RenderStatusPage("E3 Geo aim", shot ? UI_STATUS_OK : UI_STATUS_WARN,
+                        shot ? "Shot finished" : "Stopped", "K2 long:back");
+    AppE_WaitBack();
 }

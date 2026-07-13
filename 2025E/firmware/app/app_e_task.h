@@ -20,6 +20,11 @@ void AppE_RunLineFollow(uint8_t lap_count);
 void AppE_RunLineAim(uint8_t lap_count);
 
 /**
+ * @brief 发挥部分：巡线一圈期间按里程相位在靶面画圆。
+ */
+void AppE_RunLineCircle(uint8_t lap_count);
+
+/**
  * @brief 持续视觉瞄准：一直把 K230 目标中心闭环驱到图像中心，直到长按返回。
  * @note 不设超时，丢失目标自动停云台、目标重现自动恢复。
  */
@@ -31,18 +36,8 @@ void AppE_RunContinuousAim(void);
 void AppE_RunAimCenter2s(void);
 
 /**
- * @brief 执行 E3 Yaw+ 扫描和瞄准任务。
+ * @brief 基本要求(3)：从规定起点用几何前馈瞄准靶心，视觉慢校正。
  */
-void AppE_RunRectScanYawPositive(void);
-
-/**
- * @brief 执行 E3 Yaw- 扫描和瞄准任务。
- */
-void AppE_RunRectScanYawNegative(void);
-
-/**
- * @brief 基本要求(3)：先向一个方向扫描，未找到靶纸则反向扫描，然后瞄准靶心。
- */
-void AppE_RunAutoScanAim(void);
+void AppE_RunKnownPoseAim4s(void);
 
 #endif /* APP_E_TASK_H */
