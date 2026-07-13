@@ -46,7 +46,7 @@ K230 视觉只用低增益积分修最后约 0.8° 残差。加速度计不测�
 
 - `[x]` **S1 几何瞄准解算器**：车位姿 + 靶心（2D 世界 + 标量 Δz）→ 云台 yaw/pitch/range；发挥(3) 圆点解算。纯函数。竖直坍缩为 `height_diff_m`，位姿与靶心 2D 化。主机单测 27/27，固件 0 error。**已验收**。
 - `[x]` **S2 位姿估计器**：单轮里程 + 陀螺重构车心速度 → 航位推算；角点 snap 重锚 x/y 与弧长；圈进度/相位。纯函数。核对现有实现符合设计，加 `Localization_UpdateFromWheel` 组合入口 + `last_center_delta_m` 字段，补 34 处断言主机单测。固件 0 error。**已验收**。
-- `[ ]` **S3 融合层**：静态角前馈 + 速率前馈 `ẏaw=−v⊥/R−ωz` + 视觉慢校正 bias（丢失冻结、限幅）→ 最终角指令。纯函数。
+- `[x]` **S3 融合层**：新建 `core/aim_fusion`。静态角前馈 + 速率前馈 `ẏaw=v·sinΔβ/Rh−ω`（+pitch_rate）+ 视觉慢校正 bias（自 aim_solver 迁入，丢失冻结、限幅）→ `AimFusion_Combine` 最终指令。纯函数。aim_solver 回归纯几何。主机单测 21/21，固件 0 error。**已验收**。
 
 ### Phase B — 硬件执行与接入（放 `middleware/`、`app/`）
 

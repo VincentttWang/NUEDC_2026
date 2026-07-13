@@ -4,7 +4,7 @@
  *
  * 设计目标: 把"车在哪里 + 靶心在哪里"这两个【已知量】直接解算成云台
  * yaw/pitch 绝对角, 作为前馈量下发给云台位置模式。视觉只作低增益 bias
- * 校正 (见 AIM_VISION_BIAS), 因此:
+ * 校正 (见 aim_fusion 的 AIM_VISION_BIAS), 因此:
  *   - 运动中激光始终指向 (前馈连续、零滞后), 不依赖同时识别激光光斑;
  *   - 视觉丢失时纯前馈继续, 激光不断 (满足发挥部分"连续发光"硬约束);
  *   - E3 画圆相位由里程直接参数化, 车 1 圈 = 画 1 圈, 天然同步。
@@ -27,8 +27,6 @@
 #define AIM_SOLVER_H
 
 #include "kinematics/kinematics.h"
-
-#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -100,23 +98,6 @@ typedef struct {
 } AIM_SOLVER_RESULT;
 
 /**
- * @brief 视觉低增益 bias 校正器。
- *
- * 把 K230 回传的"靶心相对图像中心的角度误差"积分成一个缓变 bias, 叠加到前馈
- * 角上, 消除里程漂移与机械标定误差。视觉无效时 bias 保持不动 (前馈照常)。
- */
-typedef struct {
-    /** yaw bias, 单位 deg。 */
-    float yaw_bias_deg;
-    /** pitch bias, 单位 deg。 */
-    float pitch_bias_deg;
-    /** 校正积分增益, 单位 (deg bias) / (deg error · s)。宜取小值 (慢校正)。 */
-    float ki;
-    /** bias 绝对值限幅, 单位 deg。 */
-    float bias_limit_deg;
-} AIM_VISION_BIAS;
-
-/**
  * @brief 获取默认解算配置 (按赛题名义尺寸)。
  */
 AIM_SOLVER_CONFIG AimSolver_DefaultConfig(void);
@@ -173,27 +154,6 @@ AIM_SOLVER_RESULT AimSolver_SolveCircle(KINEMATICS_POSE pose, float phase_deg);
  * @return 圆周相位, 单位 deg。
  */
 float AimSolver_ProgressToPhaseDeg(float lap_progress, float phase0_deg);
-
-/**
- * @brief 初始化视觉 bias 校正器。
- * @param ki 校正积分增益 (宜取小值)。
- * @param limit bias 绝对值限幅, 单位 deg。
- */
-void AimVisionBias_Init(AIM_VISION_BIAS *bias, float ki, float limit);
-
-/**
- * @brief 更新视觉 bias。
- * @param bias 校正器。
- * @param yaw_err_deg 靶心相对图像中心的水平角误差, 单位 deg。
- * @param pitch_err_deg 靶心相对图像中心的竖直角误差, 单位 deg。
- * @param valid 本帧视觉是否有效; false 时 bias 保持不动。
- * @param dt_s 控制周期, 单位 s。
- */
-void AimVisionBias_Update(AIM_VISION_BIAS *bias,
-                          float yaw_err_deg,
-                          float pitch_err_deg,
-                          bool valid,
-                          float dt_s);
 
 #ifdef __cplusplus
 }

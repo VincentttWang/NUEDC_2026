@@ -34,14 +34,18 @@ $tests = @(
        src  = @("core/kinematics/kinematics.c", "core/localization/localization.c",
                 "tests/test_localization.c");
        inc  = @("core") },
+    @{ name = "test_aim_fusion";
+       src  = @("core/kinematics/kinematics.c", "core/aim_solver/aim_solver.c",
+                "core/aim_fusion/aim_fusion.c", "tests/test_aim_fusion.c");
+       inc  = @("core") },
     @{ name = "test_aim_localization";
        src  = @("core/kinematics/kinematics.c", "core/aim_solver/aim_solver.c",
                 "core/localization/localization.c", "tests/test_aim_localization.c");
        inc  = @("core") },
     @{ name = "test_auto_aim";
        src  = @("core/kinematics/kinematics.c", "core/aim_solver/aim_solver.c",
-                "core/localization/localization.c", "middleware/auto_aim/auto_aim.c",
-                "tests/test_auto_aim.c");
+                "core/aim_fusion/aim_fusion.c", "core/localization/localization.c",
+                "middleware/auto_aim/auto_aim.c", "tests/test_auto_aim.c");
        inc  = @("tests/stubs", ".", "core", "bsp/common") }
 )
 

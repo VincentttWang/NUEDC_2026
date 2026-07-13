@@ -341,7 +341,7 @@
               <MiscControls></MiscControls>
               <Define>__MSPM0G3507__</Define>
               <Undefine></Undefine>
-              <IncludePath>..\..;..\..\app;..\..\core;..\..\core\aim_solver;..\..\core\common;..\..\core\geometry;..\..\core\kinematics;..\..\core\localization;..\..\core\pid;..\..\core\rotation;..\..\middleware\chassis;..\..\middleware\fault;..\..\middleware\gimbal;..\..\middleware\gimbal_tracking;..\..\middleware\line_follow;..\..\middleware\line_tracking;..\..\middleware\motion;..\..\middleware\ui;..\..\bsp\canmv;..\..\bsp\common;..\..\bsp\debug_uart;..\..\bsp\grayscale_sensor;..\..\bsp\imu;..\..\bsp\key;..\..\bsp\motor;..\..\bsp\oled;..\..\bsp\time;..\..\bsp\bldc;..\..\board\sys_config;C:\ti\mspm0_sdk_2_10_00_04\source;C:\ti\mspm0_sdk_2_10_00_04\source\third_party\CMSIS\Core\Include</IncludePath>
+              <IncludePath>..\..;..\..\app;..\..\core;..\..\core\aim_fusion;..\..\core\aim_solver;..\..\core\common;..\..\core\geometry;..\..\core\kinematics;..\..\core\localization;..\..\core\pid;..\..\core\rotation;..\..\middleware\chassis;..\..\middleware\fault;..\..\middleware\gimbal;..\..\middleware\gimbal_tracking;..\..\middleware\line_follow;..\..\middleware\line_tracking;..\..\middleware\motion;..\..\middleware\ui;..\..\bsp\canmv;..\..\bsp\common;..\..\bsp\debug_uart;..\..\bsp\grayscale_sensor;..\..\bsp\imu;..\..\bsp\key;..\..\bsp\motor;..\..\bsp\oled;..\..\bsp\time;..\..\bsp\bldc;..\..\board\sys_config;C:\ti\mspm0_sdk_2_10_00_04\source;C:\ti\mspm0_sdk_2_10_00_04\source\third_party\CMSIS\Core\Include</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -435,6 +435,11 @@
         <Group>
           <GroupName>Core</GroupName>
           <Files>
+            <File>
+              <FileName>aim_fusion.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\core\aim_fusion\aim_fusion.c</FilePath>
+            </File>
             <File>
               <FileName>aim_solver.c</FileName>
               <FileType>1</FileType>

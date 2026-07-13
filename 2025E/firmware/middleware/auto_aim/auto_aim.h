@@ -5,6 +5,7 @@
 #ifndef AUTO_AIM_H
 #define AUTO_AIM_H
 
+#include "aim_fusion/aim_fusion.h"
 #include "aim_solver/aim_solver.h"
 #include "bsp_common.h"
 #include "localization/localization.h"

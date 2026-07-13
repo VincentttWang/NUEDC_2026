@@ -1,6 +1,7 @@
 #include "aim_solver.h"
 
 #include <math.h>
+#include <stdbool.h>
 #include <stddef.h>
 
 static AIM_SOLVER_CONFIG s_aim_config;
@@ -125,36 +126,4 @@ AIM_SOLVER_RESULT AimSolver_SolveCircle(KINEMATICS_POSE pose, float phase_deg){
 
 float AimSolver_ProgressToPhaseDeg(float lap_progress, float phase0_deg){
     return Kinematics_NormalizeAngleDeg(lap_progress * 360.0f + phase0_deg);
-}
-
-void AimVisionBias_Init(AIM_VISION_BIAS *bias, float ki, float limit){
-    if (bias == NULL){
-        return;
-    }
-    bias->yaw_bias_deg = 0.0f;
-    bias->pitch_bias_deg = 0.0f;
-    bias->ki = ki;
-    bias->bias_limit_deg = limit;
-}
-
-void AimVisionBias_Update(AIM_VISION_BIAS *bias,
-                          float yaw_err_deg,
-                          float pitch_err_deg,
-                          bool valid,
-                          float dt_s){
-    if (bias == NULL){
-        return;
-    }
-    /* 视觉无效: bias 保持不动, 前馈照常输出, 保证激光连续。 */
-    if (!valid || (dt_s <= 0.0f)){
-        return;
-    }
-
-    bias->yaw_bias_deg += bias->ki * yaw_err_deg * dt_s;
-    bias->pitch_bias_deg += bias->ki * pitch_err_deg * dt_s;
-
-    bias->yaw_bias_deg = Kinematics_Clamp(bias->yaw_bias_deg,
-                                          -bias->bias_limit_deg, bias->bias_limit_deg);
-    bias->pitch_bias_deg = Kinematics_Clamp(bias->pitch_bias_deg,
-                                            -bias->bias_limit_deg, bias->bias_limit_deg);
 }
