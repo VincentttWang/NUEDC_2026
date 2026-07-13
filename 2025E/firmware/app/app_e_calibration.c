@@ -14,15 +14,16 @@ APP_E_CALIBRATION_CONFIG AppE_GetCalibrationConfig(void){
     /* 2. 单轮编码器：编码轮在车体左侧为正、右侧为负。 */
     aim.encoder_lateral_offset_m = 0.000f;
 
-    /* 3. 靶心世界坐标与云台转轴相对车体定位原点的安装位置。 */
-    aim.solver.target_center = (AIM_VEC3F){
+    /* 3. 靶心世界水平坐标与云台转轴相对车体定位原点的安装位置。 */
+    aim.solver.target_center = (AIM_POINT2F){
         .x_m = 0.000f,
         .y_m = 0.500f,
-        .z_m = 0.250f,
     };
+    /* 竖直高差 = 靶心离地高 - 云台出光点离地高 (机械上尽量趋 0)。
+     * 名义: 靶心 0.25m - 出光点 0.15m = 0.10m。 */
+    aim.solver.height_diff_m = 0.100f;
     aim.solver.mount_x_m = 0.000f; /* 车体前方为正。 */
     aim.solver.mount_y_m = 0.000f; /* 车体左侧为正。 */
-    aim.solver.mount_z_m = 0.150f;
 
     /* 4. 云台机械零位：增大 yaw offset 会减小 yaw 指令；pitch 反之。 */
     aim.solver.yaw_zero_offset_deg = 0.000f;

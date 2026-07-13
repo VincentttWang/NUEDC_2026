@@ -1,6 +1,6 @@
 /**
  * @file  aim_solver.h
- * @brief Core 层激光瞄准几何前馈解算器。
+ * @brief Core 层激光瞄准几何前馈解算器 (2D 世界 + 标量高差)。
  *
  * 设计目标: 把"车在哪里 + 靶心在哪里"这两个【已知量】直接解算成云台
  * yaw/pitch 绝对角, 作为前馈量下发给云台位置模式。视觉只作低增益 bias
@@ -12,10 +12,14 @@
  * 坐标系 (世界系, 单位 m, 右手系):
  *   - 原点 O: AB 边中点 (贴近靶的那条边);
  *   - +X: 沿 AB, 由 A 指向 B;
- *   - +Y: 由 AB 指向靶面外侧 (靶在 +Y, 正方形赛道在 -Y);
- *   - +Z: 竖直向上。
+ *   - +Y: 由 AB 指向靶面外侧 (靶在 +Y, 正方形赛道在 -Y)。
  * 车位姿用 KINEMATICS_POSE 表示 (x_m, y_m, heading_deg), heading 为车体 +X
  * (前向) 相对世界 +X 的夹角, 由 IMU 融合航向提供。
+ *
+ * 竖直方向 (2D 简化): 整车 pitch 摆幅小且慢, 无需把竖直坐标建成三维世界系。
+ * 竖直依赖坍缩为单一标量 height_diff_m = (靶心离地高 - 云台出光点离地高)。
+ * pitch 由"水平距离 + 该高差"直接给出: pitch = atan2(height_diff, horizontal)。
+ * 位姿与靶心均为 2D 水平量。
  *
  * 本模块为纯计算, 不依赖任何硬件/中间层, 可单独单元测试。
  */
@@ -33,18 +37,16 @@ extern "C" {
 /* ===== 世界布局默认值 (依赖实机标定, 下面为按赛题名义尺寸给的起调值) ===== */
 /** 正方形赛道边长, 单位 m (赛题 100cm)。 */
 #define AIM_SOLVER_DEFAULT_TRACK_SIDE_M 1.00f
-/** 靶面到 AB 边的外沿距离, 单位 m (赛题 50cm)。 */
+/** 靶面到 AB 边的外沿距离, 单位 m (赛题 50cm); 派生靶心 Y。 */
 #define AIM_SOLVER_DEFAULT_TARGET_OFFSET_M 0.50f
 /** 靶心沿 AB (世界 X) 的水平位置, 单位 m。默认对准 AB 中点 (0)。 */
 #define AIM_SOLVER_DEFAULT_TARGET_X_M 0.00f
-/** 靶心离地高度 (世界 Z), 单位 m。靶高 <=50cm, 取中部为起调值。 */
-#define AIM_SOLVER_DEFAULT_TARGET_Z_M 0.25f
+/** 竖直高差 = 靶心离地高 - 云台出光点离地高, 单位 m。机械上尽量趋 0。 */
+#define AIM_SOLVER_DEFAULT_HEIGHT_DIFF_M 0.10f
 /** 云台 yaw 轴支点相对车体原点的前向偏移 (车体 +X), 单位 m。 */
 #define AIM_SOLVER_DEFAULT_MOUNT_X_M 0.00f
 /** 云台 yaw 轴支点相对车体原点的左向偏移 (车体 +Y), 单位 m。 */
 #define AIM_SOLVER_DEFAULT_MOUNT_Y_M 0.00f
-/** 云台 yaw 轴支点离地高度, 单位 m。 */
-#define AIM_SOLVER_DEFAULT_MOUNT_Z_M 0.15f
 /** yaw 机械零位补偿: yaw_cmd=0 时激光相对车体 +X 前向的夹角, 单位 deg。 */
 #define AIM_SOLVER_DEFAULT_YAW_ZERO_OFFSET_DEG 0.0f
 /** pitch 机械零位补偿: 加到解算 pitch 上, 单位 deg。 */
@@ -52,27 +54,29 @@ extern "C" {
 /** E3 画圆半径, 单位 m (赛题 6cm 红色圆弧)。 */
 #define AIM_SOLVER_DEFAULT_CIRCLE_RADIUS_M 0.06f
 
+/** 水平距离退化保护下限, 单位 m (防 atan2/除零病态)。 */
+#define AIM_SOLVER_HORIZONTAL_EPS 1.0e-4f
+
 /**
- * @brief 世界系三维向量/点, 单位 m。
+ * @brief 世界系水平点, 单位 m (竖直方向由 height_diff 标量承接, 不在此结构中)。
  */
 typedef struct {
     float x_m;
     float y_m;
-    float z_m;
-} AIM_VEC3F;
+} AIM_POINT2F;
 
 /**
  * @brief 瞄准解算配置 (世界布局 + 云台机械安装参数)。
  */
 typedef struct {
-    /** 靶心世界坐标。 */
-    AIM_VEC3F target_center;
+    /** 靶心水平位置 (世界系 x/y)。 */
+    AIM_POINT2F target_center;
+    /** 竖直高差 = 靶心离地高 - 云台出光点离地高, 单位 m。 */
+    float height_diff_m;
     /** 云台 yaw 轴支点相对车体原点的前向偏移 (车体 +X), 单位 m。 */
     float mount_x_m;
     /** 云台 yaw 轴支点相对车体原点的左向偏移 (车体 +Y), 单位 m。 */
     float mount_y_m;
-    /** 云台 yaw 轴支点离地高度, 单位 m。 */
-    float mount_z_m;
     /** yaw 机械零位补偿, 单位 deg。 */
     float yaw_zero_offset_deg;
     /** pitch 机械零位补偿, 单位 deg。 */
@@ -85,11 +89,11 @@ typedef struct {
  * @brief 瞄准解算结果。
  */
 typedef struct {
-    /** 云台 yaw 目标角 (车体系, 供位置模式), 归一化到 [-180,180], 单位 deg。 */
+    /** 云台 yaw 目标角 (车体系, 供位置模式), 归一化到 [-180,180), 单位 deg。 */
     float yaw_cmd_deg;
     /** 云台 pitch 目标角 (供位置模式), 单位 deg。 */
     float pitch_cmd_deg;
-    /** 云台支点到目标点的直线距离, 单位 m。 */
+    /** 云台支点到目标点的直线距离 (含高差), 单位 m。 */
     float range_m;
     /** 云台支点到目标点的水平投影距离, 单位 m。 */
     float horizontal_m;
@@ -129,17 +133,20 @@ void AimSolver_Init(const AIM_SOLVER_CONFIG *config);
 AIM_SOLVER_CONFIG AimSolver_GetConfig(void);
 
 /**
- * @brief 运行时设置靶心世界坐标 (供上位机/标定流程写入)。
+ * @brief 运行时设置靶心水平坐标 (供上位机/标定流程写入)。
  */
-void AimSolver_SetTargetCenter(AIM_VEC3F target_center);
+void AimSolver_SetTargetCenter(AIM_POINT2F target_center);
 
 /**
- * @brief 由车位姿 + 世界目标点解算云台角度 (前馈核心)。
+ * @brief 由车位姿 + 世界目标水平点 + 竖直高差解算云台角 (前馈核心)。
  * @param pose 车在世界系的位姿。
- * @param target_world 世界系目标点。
+ * @param target_xy 世界系目标水平点。
+ * @param dz_m 目标相对云台出光点的竖直高差, 单位 m。
  * @return 解算结果。
  */
-AIM_SOLVER_RESULT AimSolver_Solve(KINEMATICS_POSE pose, AIM_VEC3F target_world);
+AIM_SOLVER_RESULT AimSolver_Solve(KINEMATICS_POSE pose,
+                                  AIM_POINT2F target_xy,
+                                  float dz_m);
 
 /**
  * @brief 直接瞄准靶心 (基本要求 (2)(3) 与发挥 (1)(2))。
@@ -148,10 +155,11 @@ AIM_SOLVER_RESULT AimSolver_SolveCenter(KINEMATICS_POSE pose);
 
 /**
  * @brief 计算靶面 (Y = 靶心 Y 的竖直平面) 上, 相位 phase_deg 处的圆点。
- * @param phase_deg 圆周相位, 0° 取靶心正右方 (世界 +X), 逆时针为正。
- * @return 世界系圆点坐标。
+ * @param phase_deg 圆周相位, 0° 取靶心正右方 (世界 +X), 90° 取正上方, 逆时针为正。
+ * @param out_xy    输出圆点水平坐标 (世界系)。
+ * @param out_dz    输出圆点相对云台出光点的竖直高差, 单位 m。
  */
-AIM_VEC3F AimSolver_CircleTarget(float phase_deg);
+void AimSolver_CirclePoint(float phase_deg, AIM_POINT2F *out_xy, float *out_dz);
 
 /**
  * @brief 瞄准靶面 6cm 圆上相位 phase_deg 的点 (发挥 (3) 画圆)。
