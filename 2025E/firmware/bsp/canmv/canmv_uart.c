@@ -285,9 +285,21 @@ void CanMvUart_ProcessRx(void){
     }
 }
 
+#ifndef CANMV_UART_TX_TIMEOUT
+#define CANMV_UART_TX_TIMEOUT 100000U
+#endif
+
 BSP_STATUS CanMvUart_SendByte(uint8_t byte){
-    while (DL_UART_isBusy(CANMV_UART_INST)){
-        ;
+    /*
+     * 只等 TX FIFO 有空位, 不能等 DL_UART_isBusy: BUSY 位在 K230 持续串流(UART2 RX
+     * 活动)时长期为忙, 会使本函数无限阻塞 —— 标定各页入口发 "LASER=x" 指令时全部卡死。
+     * 加超时兜底, 防止 TX 异常时挂死。
+     */
+    uint32_t timeout = CANMV_UART_TX_TIMEOUT;
+    while (DL_UART_isTXFIFOFull(CANMV_UART_INST)){
+        if (timeout-- == 0U){
+            return BSP_STATUS_TIMEOUT;
+        }
     }
 
     DL_UART_Main_transmitData(CANMV_UART_INST, byte);

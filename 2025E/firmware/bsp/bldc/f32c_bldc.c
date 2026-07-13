@@ -100,10 +100,18 @@ static uint8_t Calc_BCC(uint8_t *data, uint8_t len)
 }
 
 /* ===== UART 发送（阻塞式，单字节） ===== */
+#ifndef BLDC_UART_TX_TIMEOUT
+#define BLDC_UART_TX_TIMEOUT 100000U
+#endif
+
 static void BLDC_UartSendByte(uint8_t data)
 {
+    /* 等 TX FIFO 有空位; 加超时兜底, 避免 TX 异常时无限阻塞 (best-effort, 超时丢字节)。 */
+    uint32_t timeout = BLDC_UART_TX_TIMEOUT;
     while (DL_UART_isTXFIFOFull(BLDC_INST)) {
-        /* 等待 TX FIFO 有空位 */
+        if (timeout-- == 0U) {
+            return;
+        }
     }
     DL_UART_Main_transmitData(BLDC_INST, data);
 }

@@ -691,7 +691,10 @@ static bool JY61P_I2C_WriteRegs(uint8_t reg, const uint8_t *data, uint8_t len)
     DL_I2C_flushControllerTXFIFO(JY61P_I2C_INST);
     DL_I2C_transmitControllerData(JY61P_I2C_INST, reg);
     for (i = 0U; i < len; i++){
-        while (DL_I2C_isControllerTXFIFOFull(JY61P_I2C_INST)){}
+        uint32_t tx_timeout = JY61P_I2C_TIMEOUT;
+        while (DL_I2C_isControllerTXFIFOFull(JY61P_I2C_INST)){
+            if (tx_timeout-- == 0U){ return false; }
+        }
         DL_I2C_transmitControllerData(JY61P_I2C_INST, data[i]);
     }
 
