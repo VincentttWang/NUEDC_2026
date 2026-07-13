@@ -27,4 +27,5 @@
 
 - I2C 驱动 JY61P；不可同时使用无线调试器的虚拟串口和 Ex Uart。
 - 云台两轴为 F32C 无刷驱动；纯视觉调试使用速度接口，几何前馈任务使用绝对位置接口。
+- MCU 实机参数统一在 `AppE_GetCalibrationConfig()` 中修改，详见 `docs/calibration.md`。
 - 详见 `docs/architecture.md` 与 `docs/interfaces/`。

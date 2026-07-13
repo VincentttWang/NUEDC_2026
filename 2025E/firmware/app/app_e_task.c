@@ -1,6 +1,7 @@
 #include "app_e_task.h"
 
 #include "app_debug_cmd.h"
+#include "app_e_calibration.h"
 #include "middleware/auto_aim/auto_aim.h"
 #include "bsp_time.h"
 #include "canmv_uart.h"
@@ -29,13 +30,6 @@
 #define APP_E_CORNER_ENTER_CONFIRM_COUNT 2U
 #define APP_E_CORNER_EXIT_CONFIRM_COUNT 3U
 #define APP_E_LOOP_DELAY_MS 10U
-#define APP_E_AIM_LOCK_YAW_DEG 0.8f
-#define APP_E_AIM_LOCK_PITCH_DEG 0.8f
-#define APP_E_AIM_LOCK_CONFIRM_FRAMES 8U
-#define APP_E_AIM_FORCE_SHOT_MS 1800U
-#define APP_E_LASER_PULSE_MS 20U
-#define APP_E_TRACK_SIDE_M 1.0f
-#define APP_E_AUTO_AIM_IMU_FAIL_LIMIT 10U
 /* 更新同步遥测抽取: 每 N 次传感器更新记一条 (带 SysTick 时间戳还原真实时序)。 */
 #define APP_E_AIM_LOG_EVERY_FRAMES 1U   /* Aim: 每 N 个 CanMV 视觉帧 */
 #define APP_E_LINE_LOG_EVERY_SCANS 10U  /* E1: 每 N 次灰度扫描 */
@@ -75,9 +69,9 @@ static void AppE_SetLaserEnabled(bool enabled){
     (void)CanMvUart_SendString(enabled ? "LASER=1\n" : "LASER=0\n");
 }
 
-static void AppE_PulseLaser(void){
+static void AppE_PulseLaser(uint32_t pulse_ms){
     AppE_SetLaserEnabled(true);
-    BSP_DelayMs(APP_E_LASER_PULSE_MS);
+    BSP_DelayMs(pulse_ms);
     AppE_SetLaserEnabled(false);
 }
 
@@ -192,6 +186,7 @@ static void AppE_RunLineTask(uint8_t lap_count, APP_E_AIM_MODE aim_mode){
     APP_E_CORNER_DIR corner_dir = APP_E_CORNER_NONE;
     uint8_t corner_enter_count = 0U;
     uint8_t auto_aim_imu_fail_count = 0U;
+    APP_E_CALIBRATION_CONFIG calibration = AppE_GetCalibrationConfig();
     MOTION_COMMAND line_follow_command = Motion_CommandLineFollow();
 
     /*
@@ -203,7 +198,7 @@ static void AppE_RunLineTask(uint8_t lap_count, APP_E_AIM_MODE aim_mode){
         AppE_SetLaserEnabled(false);
     } else{
         Gimbal_EnsurePitchReady();
-        AutoAim_Init(NULL);
+        AutoAim_Init(&calibration.auto_aim);
         if (AutoAim_Start(aim_mode == APP_E_AIM_MODE_CIRCLE_FEEDFORWARD
                               ? AUTO_AIM_MODE_CIRCLE
                               : AUTO_AIM_MODE_CENTER) != BSP_STATUS_OK){
@@ -242,7 +237,7 @@ static void AppE_RunLineTask(uint8_t lap_count, APP_E_AIM_MODE aim_mode){
         if (aim_mode != APP_E_AIM_MODE_NONE){
             if (AutoAim_Update(dt_s) == BSP_STATUS_OK){
                 auto_aim_imu_fail_count = 0U;
-            } else if (++auto_aim_imu_fail_count >= APP_E_AUTO_AIM_IMU_FAIL_LIMIT){
+            } else if (++auto_aim_imu_fail_count >= calibration.imu_fail_limit){
                 (void)Motion_Stop();
                 AppE_StopLineAim(aim_mode);
                 Ui_RenderStatusPage("Line aim", UI_STATUS_WARN, "IMU lost", "K2 long:back");
@@ -318,7 +313,7 @@ static void AppE_RunLineTask(uint8_t lap_count, APP_E_AIM_MODE aim_mode){
                     if ((aim_mode != APP_E_AIM_MODE_NONE) && (ec > 0)){
                         uint32_t edge_index = (uint32_t)(ec - 1) % APP_E_EDGES_PER_LAP;
                         AutoAim_AnchorCorner(s_app_e_corner_sequence[edge_index],
-                                             (float)ec * APP_E_TRACK_SIDE_M);
+                                             (float)ec * calibration.auto_aim.track_side_m);
                     }
                     DebugUart_Printf("[E1] edge=%ld lap=%u t=%lu\r\n",
                                      (long)ec, (unsigned)(ec / APP_E_EDGES_PER_LAP),
@@ -523,9 +518,11 @@ void AppE_RunContinuousAim(void){
     AppE_WaitBack();
 }
 
-static bool AppE_IsAimLocked(float yaw_error_deg, float pitch_error_deg){
-    return (AppE_AbsFloat(yaw_error_deg) <= APP_E_AIM_LOCK_YAW_DEG) &&
-           (AppE_AbsFloat(pitch_error_deg) <= APP_E_AIM_LOCK_PITCH_DEG);
+static bool AppE_IsAimLocked(float yaw_error_deg,
+                             float pitch_error_deg,
+                             const APP_E_CALIBRATION_CONFIG *calibration){
+    return (AppE_AbsFloat(yaw_error_deg) <= calibration->aim_lock_yaw_deg) &&
+           (AppE_AbsFloat(pitch_error_deg) <= calibration->aim_lock_pitch_deg);
 }
 
 static void AppE_RunVisualAim2s(void){
@@ -536,6 +533,7 @@ static void AppE_RunVisualAim2s(void){
     uint32_t last_ms = start_ms;
     uint8_t lock_frames = 0U;
     bool shot = false;
+    APP_E_CALIBRATION_CONFIG calibration = AppE_GetCalibrationConfig();
 
     AppE_PrepareTaskInput();
     (void)Chassis_Brake();
@@ -564,17 +562,17 @@ static void AppE_RunVisualAim2s(void){
         GIMBAL_TRACKING_STATE state = GimbalTracking_GetState();
 
         if ((status == BSP_STATUS_OK) &&
-            AppE_IsAimLocked(state.error.x, state.error.y)){
-            if (lock_frames < APP_E_AIM_LOCK_CONFIRM_FRAMES){
+            AppE_IsAimLocked(state.error.x, state.error.y, &calibration)){
+            if (lock_frames < calibration.aim_lock_confirm_frames){
                 lock_frames++;
             }
         } else{
             lock_frames = 0U;
         }
 
-        if (!shot && ((lock_frames >= APP_E_AIM_LOCK_CONFIRM_FRAMES) ||
-                      (AppE_ElapsedMs(start_ms) >= APP_E_AIM_FORCE_SHOT_MS))){
-            AppE_PulseLaser();
+        if (!shot && ((lock_frames >= calibration.aim_lock_confirm_frames) ||
+                      (AppE_ElapsedMs(start_ms) >= calibration.e2_force_shot_ms))){
+            AppE_PulseLaser(calibration.laser_pulse_ms);
             shot = true;
         }
 
@@ -614,12 +612,13 @@ void AppE_RunKnownPoseAim4s(void){
     uint32_t last_ms = start_ms;
     uint8_t lock_frames = 0U;
     bool shot = false;
+    APP_E_CALIBRATION_CONFIG calibration = AppE_GetCalibrationConfig();
 
     AppE_PrepareTaskInput();
     (void)Chassis_Brake();
     AppE_SetLaserEnabled(false);
     Gimbal_EnsurePitchReady();
-    AutoAim_Init(NULL);
+    AutoAim_Init(&calibration.auto_aim);
     if (AutoAim_Start(AUTO_AIM_MODE_CENTER) != BSP_STATUS_OK){
         Ui_RenderStatusPage("E3 Geo aim", UI_STATUS_WARN, "IMU not ready", "K2 long:back");
         AppE_WaitBack();
@@ -652,8 +651,9 @@ void AppE_RunKnownPoseAim4s(void){
 
         if (state.vision_valid &&
             AppE_IsAimLocked(state.vision_yaw_error_deg,
-                             state.vision_pitch_error_deg)){
-            if (lock_frames < APP_E_AIM_LOCK_CONFIRM_FRAMES){
+                             state.vision_pitch_error_deg,
+                             &calibration)){
+            if (lock_frames < calibration.aim_lock_confirm_frames){
                 lock_frames++;
             }
         } else if (!state.vision_valid){
@@ -662,9 +662,9 @@ void AppE_RunKnownPoseAim4s(void){
             lock_frames = 0U;
         }
 
-        if (!shot && ((lock_frames >= APP_E_AIM_LOCK_CONFIRM_FRAMES) ||
-                      (AppE_ElapsedMs(start_ms) >= 3800U))){
-            AppE_PulseLaser();
+        if (!shot && ((lock_frames >= calibration.aim_lock_confirm_frames) ||
+                      (AppE_ElapsedMs(start_ms) >= calibration.e3_force_shot_ms))){
+            AppE_PulseLaser(calibration.laser_pulse_ms);
             shot = true;
         }
 

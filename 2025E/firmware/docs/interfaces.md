@@ -5,6 +5,7 @@
 - `main.c`：完成 SysConfig、BSP、middleware 初始化和中断分发，然后进入 `App_Launch()`。
 - `app_launcher.h`：提供 E 题前三项任务和设备检查的顶层菜单入口，详细说明见 `docs/interfaces/app_launcher.md`。
 - `app_e_task.h`：提供 E 题基本要求 1、2、3 的任务流程入口，详细说明见 `docs/interfaces/app_e_task.md`。
+- `app_e_calibration.h`：提供 MCU 侧比赛标定参数集中配置函数，详见 `docs/calibration.md`。
 - `app_device_check.h`：提供设备检查页面和 IMU 调试 UART 字节处理入口，详细说明见 `docs/interfaces/app_device_check.md`。
 
 ## core
