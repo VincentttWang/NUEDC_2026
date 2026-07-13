@@ -97,6 +97,14 @@ void Gimbal_EnsurePitchReady(void);
 BSP_STATUS Gimbal_SetSpeed(float yaw_deg_s, float pitch_deg_s);
 
 /**
+ * @brief 设置 yaw/pitch 绝对目标角 (deg): 两轴均走位置模式 (前馈瞄准)。
+ * @note 与 Gimbal_SetSpeed 互斥使用: 同一任务内应固定用其一, 需切换时先 Gimbal_Stop。
+ *       yaw 走多圈位置模式且不设角度限位 (可连续多圈); pitch 受软件角度限位约束。
+ *       目标角由 aim_solver 依据车位姿 + 已知靶心几何解算得到。
+ */
+BSP_STATUS Gimbal_SetAngle(float yaw_deg, float pitch_deg);
+
+/**
  * @brief 停止云台两轴输出。
  */
 BSP_STATUS Gimbal_Stop(void);

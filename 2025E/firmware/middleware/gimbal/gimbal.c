@@ -42,6 +42,18 @@
 #define GIMBAL_DEG_S_TO_RPM(deg_s) ((deg_s) * GIMBAL_GEAR_RATIO / 6.0f)
 
 /*
+ * yaw 位置模式参数 (供前馈瞄准 Gimbal_SetAngle 使用):
+ *   位置模式必须先设运动速度, 否则目标角不生效。yaw 惯量小, 可给较快的运动速度。
+ *   yaw 不设角度限位 (min==max 取消限位), 允许连续多圈旋转。
+ */
+#ifndef GIMBAL_YAW_POS_SPEED
+#define GIMBAL_YAW_POS_SPEED 80      /* yaw 位置模式运动速度 (RPM) */
+#endif
+#ifndef GIMBAL_YAW_POS_ACC
+#define GIMBAL_YAW_POS_ACC   60      /* yaw 位置模式加速度 (转/s²) */
+#endif
+
+/*
  * pitch 开机抬升: 目标工作角复用无刷驱动的启动角常量 (0.1° 单位, 默认 150°)。
  * 位置模式定位到位后切回速度模式。到位判定容差与阻塞超时如下。
  */
@@ -79,9 +91,11 @@ typedef struct {
     int16_t last_pitch_rpm;
     int16_t last_yaw_rpm;
     int32_t last_pitch_angle_x10;  /* 上次下发的 pitch 位置(0.1°), 用于去重 */
+    int32_t last_yaw_angle_x10;    /* 上次下发的 yaw 位置(0.1°), 用于去重 (位置模式) */
     uint32_t last_update_ms;
     uint32_t pitch_ctrl_ms;        /* pitch 设定点积分的上次时间戳 */
     bool yaw_enabled;      /* yaw 惰性使能标志 */
+    bool yaw_pos_mode;     /* yaw 当前处于多圈位置模式 (前馈瞄准); false=速度模式 */
     bool initialized;
 } GIMBAL_CONTEXT;
 
@@ -198,9 +212,11 @@ BSP_STATUS Gimbal_Init(void){
     s_gimbal.last_pitch_rpm = 0;
     s_gimbal.last_yaw_rpm = 0;
     s_gimbal.last_pitch_angle_x10 = (int32_t)(s_gimbal.pitch_deg * 10.0f);
+    s_gimbal.last_yaw_angle_x10 = 0;
     s_gimbal.last_update_ms = BSP_Time_GetMs();
     s_gimbal.pitch_ctrl_ms = s_gimbal.last_update_ms;
     s_gimbal.yaw_enabled = false;
+    s_gimbal.yaw_pos_mode = false;
     s_gimbal.initialized = true;
 
     /*
@@ -237,11 +253,41 @@ static void Gimbal_DriveYaw(float yaw_deg_s){
         BLDC_Enable(GIMBAL_YAW_ADDR);
         BLDC_SetMode(GIMBAL_YAW_ADDR, MODE_SPEED);
         s_gimbal.yaw_enabled = true;
+        s_gimbal.yaw_pos_mode = false;
+    } else if (s_gimbal.yaw_enabled && s_gimbal.yaw_pos_mode && (yaw_deg_s != 0.0f)){
+        /* 之前用过前馈位置模式, 现在回到速度指令: 切回速度模式。 */
+        BLDC_SetMode(GIMBAL_YAW_ADDR, MODE_SPEED);
+        s_gimbal.yaw_pos_mode = false;
+        s_gimbal.last_yaw_rpm = 0;   /* 失效缓存, 强制重发 */
     }
-    if (s_gimbal.yaw_enabled){
+    if (s_gimbal.yaw_enabled && !s_gimbal.yaw_pos_mode){
         Gimbal_SendAxisRpm(GIMBAL_YAW_ADDR, (int16_t)GIMBAL_DEG_S_TO_RPM(yaw_deg_s),
                            &s_gimbal.last_yaw_rpm);
     }
+}
+
+/* yaw: 确保处于多圈位置模式 (前馈瞄准使用), 首次进入时使能并配置运动速度/加速度。 */
+static void Gimbal_EnsureYawPositionMode(void){
+    if (!s_gimbal.yaw_enabled){
+        BLDC_Enable(GIMBAL_YAW_ADDR);
+        s_gimbal.yaw_enabled = true;
+    }
+    if (!s_gimbal.yaw_pos_mode){
+        BLDC_SetMode(GIMBAL_YAW_ADDR, MODE_MULTI_POS);
+        BLDC_SetSpeed(GIMBAL_YAW_ADDR, GIMBAL_YAW_POS_SPEED);
+        BLDC_SetAcc(GIMBAL_YAW_ADDR, GIMBAL_YAW_POS_ACC);
+        BLDC_SetAngleLimit(GIMBAL_YAW_ADDR, 0, 0);   /* min==max: 取消限位, 允许多圈 */
+        s_gimbal.yaw_pos_mode = true;
+    }
+}
+
+/* yaw 位置指令去重下发: 仅目标角变化时发送多圈位置。 */
+static void Gimbal_SendYawAngle(int32_t angle_x10){
+    if (angle_x10 == s_gimbal.last_yaw_angle_x10){
+        return;
+    }
+    s_gimbal.last_yaw_angle_x10 = angle_x10;
+    BLDC_SetMultiAngle(GIMBAL_YAW_ADDR, angle_x10);
 }
 
 /* pitch 位置指令去重下发: 仅目标角变化时发送多圈位置, 降低 UART3 负载。 */
@@ -297,6 +343,35 @@ BSP_STATUS Gimbal_SetSpeed(float yaw_deg_s, float pitch_deg_s){
     (void)Gimbal_Update();
     Gimbal_DriveYaw(yaw_deg_s);
     Gimbal_DrivePitchTrack(pitch_deg_s);
+    return BSP_STATUS_OK;
+}
+
+/* pitch 绝对位置指令: 直接把设定点置为目标角 (钳位后下发), 供前馈瞄准使用。 */
+static void Gimbal_DrivePitchAbsolute(float pitch_deg){
+    if (!Gimbal_PitchReady()){
+        return;
+    }
+    s_gimbal.pitch_deg_s = 0.0f;
+    s_gimbal.pitch_target_deg = Gimbal_ClampPitch(pitch_deg);
+    s_gimbal.pitch_deg = s_gimbal.pitch_target_deg;
+    s_gimbal.pitch_ctrl_ms = BSP_Time_GetMs();   /* 重置积分基准, 避免混用时跳变 */
+    Gimbal_SendPitchAngle((int32_t)(s_gimbal.pitch_target_deg * 10.0f));
+}
+
+BSP_STATUS Gimbal_SetAngle(float yaw_deg, float pitch_deg){
+    /*
+     * 前馈瞄准接口: 两轴均按【绝对目标角】走位置模式。
+     *   - yaw: 多圈位置模式, 目标角来自 aim_solver 的几何解算 (车体系);
+     *   - pitch: 位置模式, 直接置设定点。
+     * 与 Gimbal_SetSpeed 互斥使用: 一个任务内应固定用其一, 需切换时先 Stop。
+     * 用于运动中连续瞄准与画圆: 前馈连续、零滞后、不依赖视觉识别激光光斑。
+     */
+    Gimbal_EnsureYawPositionMode();
+    Gimbal_SendYawAngle((int32_t)(yaw_deg * 10.0f));
+    s_gimbal.yaw_deg = yaw_deg;          /* 位置模式: 估计角直接跟踪设定点 */
+    s_gimbal.yaw_deg_s = 0.0f;
+
+    Gimbal_DrivePitchAbsolute(pitch_deg);
     return BSP_STATUS_OK;
 }
 

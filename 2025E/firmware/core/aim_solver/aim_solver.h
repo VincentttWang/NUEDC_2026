@@ -1,0 +1,194 @@
+/**
+ * @file  aim_solver.h
+ * @brief Core 层激光瞄准几何前馈解算器。
+ *
+ * 设计目标: 把"车在哪里 + 靶心在哪里"这两个【已知量】直接解算成云台
+ * yaw/pitch 绝对角, 作为前馈量下发给云台位置模式。视觉只作低增益 bias
+ * 校正 (见 AIM_VISION_BIAS), 因此:
+ *   - 运动中激光始终指向 (前馈连续、零滞后), 不依赖同时识别激光光斑;
+ *   - 视觉丢失时纯前馈继续, 激光不断 (满足发挥部分"连续发光"硬约束);
+ *   - E3 画圆相位由里程直接参数化, 车 1 圈 = 画 1 圈, 天然同步。
+ *
+ * 坐标系 (世界系, 单位 m, 右手系):
+ *   - 原点 O: AB 边中点 (贴近靶的那条边);
+ *   - +X: 沿 AB, 由 A 指向 B;
+ *   - +Y: 由 AB 指向靶面外侧 (靶在 +Y, 正方形赛道在 -Y);
+ *   - +Z: 竖直向上。
+ * 车位姿用 KINEMATICS_POSE 表示 (x_m, y_m, heading_deg), heading 为车体 +X
+ * (前向) 相对世界 +X 的夹角, 由 IMU 融合航向提供。
+ *
+ * 本模块为纯计算, 不依赖任何硬件/中间层, 可单独单元测试。
+ */
+#ifndef AIM_SOLVER_H
+#define AIM_SOLVER_H
+
+#include "kinematics/kinematics.h"
+
+#include <stdbool.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* ===== 世界布局默认值 (依赖实机标定, 下面为按赛题名义尺寸给的起调值) ===== */
+/** 正方形赛道边长, 单位 m (赛题 100cm)。 */
+#define AIM_SOLVER_DEFAULT_TRACK_SIDE_M 1.00f
+/** 靶面到 AB 边的外沿距离, 单位 m (赛题 50cm)。 */
+#define AIM_SOLVER_DEFAULT_TARGET_OFFSET_M 0.50f
+/** 靶心沿 AB (世界 X) 的水平位置, 单位 m。默认对准 AB 中点 (0)。 */
+#define AIM_SOLVER_DEFAULT_TARGET_X_M 0.00f
+/** 靶心离地高度 (世界 Z), 单位 m。靶高 <=50cm, 取中部为起调值。 */
+#define AIM_SOLVER_DEFAULT_TARGET_Z_M 0.25f
+/** 云台 yaw 轴支点相对车体原点的前向偏移 (车体 +X), 单位 m。 */
+#define AIM_SOLVER_DEFAULT_MOUNT_X_M 0.00f
+/** 云台 yaw 轴支点相对车体原点的左向偏移 (车体 +Y), 单位 m。 */
+#define AIM_SOLVER_DEFAULT_MOUNT_Y_M 0.00f
+/** 云台 yaw 轴支点离地高度, 单位 m。 */
+#define AIM_SOLVER_DEFAULT_MOUNT_Z_M 0.15f
+/** yaw 机械零位补偿: yaw_cmd=0 时激光相对车体 +X 前向的夹角, 单位 deg。 */
+#define AIM_SOLVER_DEFAULT_YAW_ZERO_OFFSET_DEG 0.0f
+/** pitch 机械零位补偿: 加到解算 pitch 上, 单位 deg。 */
+#define AIM_SOLVER_DEFAULT_PITCH_ZERO_OFFSET_DEG 0.0f
+/** E3 画圆半径, 单位 m (赛题 6cm 红色圆弧)。 */
+#define AIM_SOLVER_DEFAULT_CIRCLE_RADIUS_M 0.06f
+
+/**
+ * @brief 世界系三维向量/点, 单位 m。
+ */
+typedef struct {
+    float x_m;
+    float y_m;
+    float z_m;
+} AIM_VEC3F;
+
+/**
+ * @brief 瞄准解算配置 (世界布局 + 云台机械安装参数)。
+ */
+typedef struct {
+    /** 靶心世界坐标。 */
+    AIM_VEC3F target_center;
+    /** 云台 yaw 轴支点相对车体原点的前向偏移 (车体 +X), 单位 m。 */
+    float mount_x_m;
+    /** 云台 yaw 轴支点相对车体原点的左向偏移 (车体 +Y), 单位 m。 */
+    float mount_y_m;
+    /** 云台 yaw 轴支点离地高度, 单位 m。 */
+    float mount_z_m;
+    /** yaw 机械零位补偿, 单位 deg。 */
+    float yaw_zero_offset_deg;
+    /** pitch 机械零位补偿, 单位 deg。 */
+    float pitch_zero_offset_deg;
+    /** E3 画圆半径, 单位 m。 */
+    float circle_radius_m;
+} AIM_SOLVER_CONFIG;
+
+/**
+ * @brief 瞄准解算结果。
+ */
+typedef struct {
+    /** 云台 yaw 目标角 (车体系, 供位置模式), 归一化到 [-180,180], 单位 deg。 */
+    float yaw_cmd_deg;
+    /** 云台 pitch 目标角 (供位置模式), 单位 deg。 */
+    float pitch_cmd_deg;
+    /** 云台支点到目标点的直线距离, 单位 m。 */
+    float range_m;
+    /** 云台支点到目标点的水平投影距离, 单位 m。 */
+    float horizontal_m;
+} AIM_SOLVER_RESULT;
+
+/**
+ * @brief 视觉低增益 bias 校正器。
+ *
+ * 把 K230 回传的"靶心相对图像中心的角度误差"积分成一个缓变 bias, 叠加到前馈
+ * 角上, 消除里程漂移与机械标定误差。视觉无效时 bias 保持不动 (前馈照常)。
+ */
+typedef struct {
+    /** yaw bias, 单位 deg。 */
+    float yaw_bias_deg;
+    /** pitch bias, 单位 deg。 */
+    float pitch_bias_deg;
+    /** 校正积分增益, 单位 (deg bias) / (deg error · s)。宜取小值 (慢校正)。 */
+    float ki;
+    /** bias 绝对值限幅, 单位 deg。 */
+    float bias_limit_deg;
+} AIM_VISION_BIAS;
+
+/**
+ * @brief 获取默认解算配置 (按赛题名义尺寸)。
+ */
+AIM_SOLVER_CONFIG AimSolver_DefaultConfig(void);
+
+/**
+ * @brief 初始化解算器。
+ * @param config 配置指针; NULL 时用默认配置。
+ */
+void AimSolver_Init(const AIM_SOLVER_CONFIG *config);
+
+/**
+ * @brief 获取当前解算配置。
+ */
+AIM_SOLVER_CONFIG AimSolver_GetConfig(void);
+
+/**
+ * @brief 运行时设置靶心世界坐标 (供上位机/标定流程写入)。
+ */
+void AimSolver_SetTargetCenter(AIM_VEC3F target_center);
+
+/**
+ * @brief 由车位姿 + 世界目标点解算云台角度 (前馈核心)。
+ * @param pose 车在世界系的位姿。
+ * @param target_world 世界系目标点。
+ * @return 解算结果。
+ */
+AIM_SOLVER_RESULT AimSolver_Solve(KINEMATICS_POSE pose, AIM_VEC3F target_world);
+
+/**
+ * @brief 直接瞄准靶心 (基本要求 (2)(3) 与发挥 (1)(2))。
+ */
+AIM_SOLVER_RESULT AimSolver_SolveCenter(KINEMATICS_POSE pose);
+
+/**
+ * @brief 计算靶面 (Y = 靶心 Y 的竖直平面) 上, 相位 phase_deg 处的圆点。
+ * @param phase_deg 圆周相位, 0° 取靶心正右方 (世界 +X), 逆时针为正。
+ * @return 世界系圆点坐标。
+ */
+AIM_VEC3F AimSolver_CircleTarget(float phase_deg);
+
+/**
+ * @brief 瞄准靶面 6cm 圆上相位 phase_deg 的点 (发挥 (3) 画圆)。
+ */
+AIM_SOLVER_RESULT AimSolver_SolveCircle(KINEMATICS_POSE pose, float phase_deg);
+
+/**
+ * @brief 里程圈进度 → 圆周相位。
+ * @param lap_progress 当前圈内进度, [0,1)。
+ * @param phase0_deg 相位起点偏移, 单位 deg。
+ * @return 圆周相位, 单位 deg。
+ */
+float AimSolver_ProgressToPhaseDeg(float lap_progress, float phase0_deg);
+
+/**
+ * @brief 初始化视觉 bias 校正器。
+ * @param ki 校正积分增益 (宜取小值)。
+ * @param limit bias 绝对值限幅, 单位 deg。
+ */
+void AimVisionBias_Init(AIM_VISION_BIAS *bias, float ki, float limit);
+
+/**
+ * @brief 更新视觉 bias。
+ * @param bias 校正器。
+ * @param yaw_err_deg 靶心相对图像中心的水平角误差, 单位 deg。
+ * @param pitch_err_deg 靶心相对图像中心的竖直角误差, 单位 deg。
+ * @param valid 本帧视觉是否有效; false 时 bias 保持不动。
+ * @param dt_s 控制周期, 单位 s。
+ */
+void AimVisionBias_Update(AIM_VISION_BIAS *bias,
+                          float yaw_err_deg,
+                          float pitch_err_deg,
+                          bool valid,
+                          float dt_s);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* AIM_SOLVER_H */
