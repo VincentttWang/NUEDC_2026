@@ -27,18 +27,40 @@ void Localization_Update(float distance_m, float heading_deg){
         Localization_Init(zero, LOCALIZATION_DEFAULT_TRACK_SIDE_M, distance_m);
     }
 
-    /* 里程增量: 编码器累计里程为单调量, 取差分得到本步位移 (可正可负)。 */
+    /* 兼容累计里程输入；发挥任务使用 UpdateDelta 注入车心修正后的增量。 */
     float delta_m = distance_m - s_loc.last_distance_m;
     s_loc.last_distance_m = distance_m;
 
+    Localization_UpdateDelta(delta_m, heading_deg);
+}
+
+void Localization_UpdateDelta(float center_delta_m, float heading_deg){
+    if (!s_loc.initialized){
+        KINEMATICS_POSE zero = {0.0f, 0.0f, 0.0f};
+        Localization_Init(zero, LOCALIZATION_DEFAULT_TRACK_SIDE_M, 0.0f);
+    }
+
     /* 航向直接采用 IMU 融合值 (低漂移); 位置沿该航向积分位移。 */
     float heading_rad = KINEMATICS_DEG_TO_RAD(heading_deg);
-    s_loc.pose.x_m += delta_m * cosf(heading_rad);
-    s_loc.pose.y_m += delta_m * sinf(heading_rad);
+    s_loc.pose.x_m += center_delta_m * cosf(heading_rad);
+    s_loc.pose.y_m += center_delta_m * sinf(heading_rad);
     s_loc.pose.heading_deg = Kinematics_NormalizeAngleDeg(heading_deg);
 
     /* 圈进度按行进路程累加 (前进为主, 用绝对值累计避免抖动倒扣)。 */
-    s_loc.travelled_m += (delta_m < 0.0f) ? -delta_m : delta_m;
+    s_loc.travelled_m += (center_delta_m < 0.0f) ? -center_delta_m : center_delta_m;
+}
+
+float Localization_CorrectWheelDelta(float wheel_delta_m,
+                                     float gyro_z_deg_s,
+                                     float encoder_lateral_offset_m,
+                                     float dt_s){
+    if (dt_s <= 0.0f){
+        return wheel_delta_m;
+    }
+
+    /* v_wheel = v_center - omega * y，因此 v_center = v_wheel + omega * y。 */
+    float omega_rad_s = KINEMATICS_DEG_TO_RAD(gyro_z_deg_s);
+    return wheel_delta_m + omega_rad_s * encoder_lateral_offset_m * dt_s;
 }
 
 CORE_POINT2F Localization_CornerPoint(LOCALIZATION_CORNER corner){
@@ -77,6 +99,16 @@ void Localization_ResetToCorner(LOCALIZATION_CORNER corner){
     CORE_POINT2F p = Localization_CornerPoint(corner);
     s_loc.pose.x_m = p.x;
     s_loc.pose.y_m = p.y;
+}
+
+void Localization_ResetToCornerAtTravel(LOCALIZATION_CORNER corner,
+                                        float travelled_m){
+    if ((corner >= LOCALIZATION_CORNER_COUNT) || (travelled_m < 0.0f)){
+        return;
+    }
+
+    Localization_ResetToCorner(corner);
+    s_loc.travelled_m = travelled_m;
 }
 
 KINEMATICS_POSE Localization_GetPose(void){

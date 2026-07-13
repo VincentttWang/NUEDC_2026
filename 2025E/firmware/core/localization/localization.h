@@ -78,11 +78,43 @@ void Localization_Init(KINEMATICS_POSE start_pose,
 void Localization_Update(float distance_m, float heading_deg);
 
 /**
+ * @brief 用已经换算到车体中心的位移增量推进一步。
+ * @param center_delta_m 本周期车体中心前向位移，单位 m，可正可负。
+ * @param heading_deg IMU 融合航向，单位 deg（世界系）。
+ *
+ * @note 发挥任务优先使用本接口。调用方可先用
+ *       Localization_CorrectWheelDelta() 修正单轮编码器在转弯时的弧长差。
+ */
+void Localization_UpdateDelta(float center_delta_m, float heading_deg);
+
+/**
+ * @brief 把单个编码轮的位移换算为车体中心位移。
+ * @param wheel_delta_m 编码轮本周期位移，单位 m。
+ * @param gyro_z_deg_s 车体绕 +Z 的角速度，单位 deg/s，逆时针为正。
+ * @param encoder_lateral_offset_m 编码轮相对车体中心的横向偏移，单位 m；
+ *        位于车体左侧为正，右侧为负。
+ * @param dt_s 本周期时长，单位 s。
+ * @return 估算的车体中心位移，单位 m。
+ */
+float Localization_CorrectWheelDelta(float wheel_delta_m,
+                                     float gyro_z_deg_s,
+                                     float encoder_lateral_offset_m,
+                                     float dt_s);
+
+/**
  * @brief 路标校正: 已到达某已知角点, 把估计位置 snap 到该角世界坐标。
  * @param corner 角点标识。
  * @note 只重置 x/y, 不动航向 (航向由 IMU 提供, 无需重置)。
  */
 void Localization_ResetToCorner(LOCALIZATION_CORNER corner);
+
+/**
+ * @brief 路标校正并同步重锚累计路程。
+ * @param corner 已确认到达的角点。
+ * @param travelled_m 从任务起点到该角点的理论累计路程，单位 m。
+ */
+void Localization_ResetToCornerAtTravel(LOCALIZATION_CORNER corner,
+                                        float travelled_m);
 
 /**
  * @brief 获取角点世界坐标。
