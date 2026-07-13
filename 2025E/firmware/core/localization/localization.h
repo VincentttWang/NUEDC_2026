@@ -56,6 +56,8 @@ typedef struct {
     float last_distance_m;
     /** 自 Init 起累计行进里程, 单位 m (用于圈进度)。 */
     float travelled_m;
+    /** 最近一次车心位移增量, 单位 m (供 S3 求 v_center=Δ/dt 与遥测)。 */
+    float last_center_delta_m;
     /** 是否已初始化。 */
     bool initialized;
 } LOCALIZATION_STATE;
@@ -100,6 +102,23 @@ float Localization_CorrectWheelDelta(float wheel_delta_m,
                                      float gyro_z_deg_s,
                                      float encoder_lateral_offset_m,
                                      float dt_s);
+
+/**
+ * @brief 单轮里程一步推进: 先车心修正, 再航位推算 (组合入口)。
+ * @param wheel_delta_m 编码轮本周期位移, 单位 m。
+ * @param gyro_z_deg_s 车体绕 +Z 的角速度, 单位 deg/s, 逆时针为正。
+ * @param encoder_lateral_offset_m 编码轮相对车体中心的横向偏移, 单位 m;
+ *        位于车体左侧为正, 右侧为负。
+ * @param heading_deg IMU 融合航向, 单位 deg (世界系)。
+ * @param dt_s 本周期时长, 单位 s。
+ * @note = Localization_CorrectWheelDelta() + Localization_UpdateDelta(),
+ *       S5 传感器接线单次调用即可, 避免两步误用。
+ */
+void Localization_UpdateFromWheel(float wheel_delta_m,
+                                  float gyro_z_deg_s,
+                                  float encoder_lateral_offset_m,
+                                  float heading_deg,
+                                  float dt_s);
 
 /**
  * @brief 路标校正: 已到达某已知角点, 把估计位置 snap 到该角世界坐标。

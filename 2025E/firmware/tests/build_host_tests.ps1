@@ -30,6 +30,10 @@ $tests = @(
        src  = @("core/kinematics/kinematics.c", "core/aim_solver/aim_solver.c",
                 "tests/test_aim_solver.c");
        inc  = @("core") },
+    @{ name = "test_localization";
+       src  = @("core/kinematics/kinematics.c", "core/localization/localization.c",
+                "tests/test_localization.c");
+       inc  = @("core") },
     @{ name = "test_aim_localization";
        src  = @("core/kinematics/kinematics.c", "core/aim_solver/aim_solver.c",
                 "core/localization/localization.c", "tests/test_aim_localization.c");

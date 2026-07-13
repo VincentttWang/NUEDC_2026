@@ -45,6 +45,7 @@ void Localization_UpdateDelta(float center_delta_m, float heading_deg){
     s_loc.pose.x_m += center_delta_m * cosf(heading_rad);
     s_loc.pose.y_m += center_delta_m * sinf(heading_rad);
     s_loc.pose.heading_deg = Kinematics_NormalizeAngleDeg(heading_deg);
+    s_loc.last_center_delta_m = center_delta_m;
 
     /* 圈进度按行进路程累加 (前进为主, 用绝对值累计避免抖动倒扣)。 */
     s_loc.travelled_m += (center_delta_m < 0.0f) ? -center_delta_m : center_delta_m;
@@ -61,6 +62,18 @@ float Localization_CorrectWheelDelta(float wheel_delta_m,
     /* v_wheel = v_center - omega * y，因此 v_center = v_wheel + omega * y。 */
     float omega_rad_s = KINEMATICS_DEG_TO_RAD(gyro_z_deg_s);
     return wheel_delta_m + omega_rad_s * encoder_lateral_offset_m * dt_s;
+}
+
+void Localization_UpdateFromWheel(float wheel_delta_m,
+                                  float gyro_z_deg_s,
+                                  float encoder_lateral_offset_m,
+                                  float heading_deg,
+                                  float dt_s){
+    float center_delta_m = Localization_CorrectWheelDelta(wheel_delta_m,
+                                                          gyro_z_deg_s,
+                                                          encoder_lateral_offset_m,
+                                                          dt_s);
+    Localization_UpdateDelta(center_delta_m, heading_deg);
 }
 
 CORE_POINT2F Localization_CornerPoint(LOCALIZATION_CORNER corner){
