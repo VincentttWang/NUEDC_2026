@@ -4,7 +4,7 @@
 # 矩形检测恢复为 aim_track.py 的灰度 cv_lite 路径，
 # 面积/长宽比筛选、最大候选优先。
 # 角度与标定目标点计算采用 rect11_lcd.py 的 FOV/靶高/偏置参数模型。
-# 协议：A5 5A yaw_i16_be pitch_i16_be checksum，单位 0.01 deg。
+# 协议：A5 5A status seq yaw_i16_be pitch_i16_be checksum，单位 0.01 deg。
 # ------------------------------------------------------------------------
 import time, os, gc, math
 import image
@@ -59,13 +59,13 @@ UART_TX_PIN, UART_RX_PIN = 3, 4
 UART_BAUD = 115200
 FRAME_SOF0, FRAME_SOF1 = 0xA5, 0x5A
 ANGLE_SCALE = 100.0
+ANGLE_STATUS_VALID = 0
+ANGLE_STATUS_NOT_FOUND = 1
+ANGLE_STATUS_LOST = 2
 VISION_FRAME_START, VISION_FRAME_END = 0x12, 0x5B
 
 # ===== 激光与 LCD =====
 LASER_PIN = 2
-LASER_ENABLE_YAW_ERROR_DEG = 1.5
-LASER_ENABLE_PITCH_ERROR_DEG = 1.5
-LASER_ENABLE_CONFIRM_FRAMES = 3
 DISPLAY_LCD = True
 LCD_WIDTH, LCD_HEIGHT = 800, 480
 DISPLAY_INTERVAL = 2
@@ -79,6 +79,8 @@ sensor = None
 display_img = None
 laser_requested = False
 laser_command_buffer = bytearray()
+angle_tx_seq = 0
+target_seen = False
 
 
 def mirror_pt(x, y):
@@ -148,12 +150,16 @@ def normalize_rect_corners(corners):
     return [bottom[0], bottom[1], top[1], top[0]]
 
 
-def send_angle_frame(yaw_err_deg, pitch_err_deg):
+def send_angle_frame(yaw_err_deg, pitch_err_deg, status):
+    global angle_tx_seq
     if uart is None:
         return
     frame = bytearray()
     frame.append(FRAME_SOF0)
     frame.append(FRAME_SOF1)
+    frame.append(status & 0xFF)
+    frame.append(angle_tx_seq & 0xFF)
+    angle_tx_seq = (angle_tx_seq + 1) & 0xFF
     append_i16_be(frame, yaw_err_deg * ANGLE_SCALE)
     append_i16_be(frame, pitch_err_deg * ANGLE_SCALE)
     frame.append(sum(frame) & 0xFF)
@@ -281,11 +287,10 @@ def draw_overlay(img, found, rect, corners, center, target, yaw_err, pitch_err, 
 
 
 def main():
-    global sensor
+    global sensor, target_seen
     os.exitpoint(os.EXITPOINT_ENABLE)
     camera_init()
     frame_count = 0
-    laser_confirm = 0
     fps = 0.0
     fps_window_start_ms = time.ticks_ms()
     fps_window_count = 0
@@ -314,12 +319,10 @@ def main():
                               int(center[1] - CALIB_OFFSET_Y_CM * pixel_per_cm))
                 target = mirror_pt(raw_target[0], raw_target[1])
                 yaw_deg, pitch_deg, yaw_err, pitch_err = angle_error(target[0], target[1])
-                send_angle_frame(yaw_err, pitch_err)
+                send_angle_frame(yaw_err, pitch_err, ANGLE_STATUS_VALID)
+                target_seen = True
                 send_vision_frame(target, [mirror_pt(x, y) for x, y in corners])
 
-                locked = (abs(yaw_err) <= LASER_ENABLE_YAW_ERROR_DEG and
-                          abs(pitch_err) <= LASER_ENABLE_PITCH_ERROR_DEG)
-                laser_confirm = min(LASER_ENABLE_CONFIRM_FRAMES, laser_confirm + 1) if locked else 0
                 set_laser(laser_requested)
             else:
                 corners = None
@@ -328,7 +331,8 @@ def main():
                 target = None
                 yaw_err = 0.0
                 pitch_err = 0.0
-                laser_confirm = 0
+                send_angle_frame(0.0, 0.0,
+                                 ANGLE_STATUS_LOST if target_seen else ANGLE_STATUS_NOT_FOUND)
                 send_vision_frame((0, 0), [(0, 0), (0, 0), (0, 0), (0, 0)])
                 set_laser(laser_requested)
 

@@ -108,6 +108,7 @@ static void CanMvUart_ResetRxState(void){
 static void CanMvUart_ParseAngleFrame(void){
     CANMV_TARGET_DATA *data = &s_canmv_target_data[CANMV_TARGET_ANGLE];
     uint8_t checksum = 0U;
+    uint8_t vision_status;
 
     for (uint8_t i = 0U; i < (CANMV_ANGLE_FRAME_LEN - 1U); i++){
         checksum = (uint8_t)(checksum + s_canmv_rx_buffer[i]);
@@ -118,13 +119,27 @@ static void CanMvUart_ParseAngleFrame(void){
         return;
     }
 
-    data->value[0] = (uint16_t)(((uint16_t)s_canmv_rx_buffer[2] << 8) |
-                                s_canmv_rx_buffer[3]);
-    data->value[1] = (uint16_t)(((uint16_t)s_canmv_rx_buffer[4] << 8) |
+    vision_status = s_canmv_rx_buffer[2];
+    if (vision_status > CANMV_ANGLE_STATUS_LOST){
+        data->status = CANMV_STATUS_FRAME_DROP;
+        g_canmv_uart_drop_count++;
+        return;
+    }
+
+    data->value[0] = (uint16_t)(((uint16_t)s_canmv_rx_buffer[4] << 8) |
                                 s_canmv_rx_buffer[5]);
+    data->value[1] = (uint16_t)(((uint16_t)s_canmv_rx_buffer[6] << 8) |
+                                s_canmv_rx_buffer[7]);
     data->count = 2U;
-    data->status = CANMV_STATUS_OK;
-    s_canmv_target_seen[CANMV_TARGET_ANGLE] = true;
+    if (vision_status == CANMV_ANGLE_STATUS_VALID){
+        data->status = CANMV_STATUS_OK;
+        s_canmv_target_seen[CANMV_TARGET_ANGLE] = true;
+    } else if ((vision_status == CANMV_ANGLE_STATUS_LOST) ||
+               s_canmv_target_seen[CANMV_TARGET_ANGLE]){
+        data->status = CANMV_STATUS_LOST;
+    } else{
+        data->status = CANMV_STATUS_NOT_FOUND;
+    }
     g_canmv_uart_angle_frame_count++;
 }
 
@@ -204,7 +219,7 @@ void CanMvUart_ProcessByte(uint8_t byte){
 
     /*
      * 支持两种定长帧：坐标帧 0x12...0x5B（27 字节）和角度帧
-     * 0xA5 0x5A yaw_i16 pitch_i16 checksum（7 字节）。
+     * 0xA5 0x5A status seq yaw_i16 pitch_i16 checksum（9 字节）。
      * 关键点 —— 进入接收态后按长度采集, **中途不再把载荷里的 0x12/0x5B 当作帧
      * 边界**。旧实现见到任意 0x12 就重同步, 只要坐标/角点字节里出现 0x12/0x5B
      * 就会把整帧打散, 导致含这些字节的目标(尤其静止靶重复发同一帧)永远收不到。
