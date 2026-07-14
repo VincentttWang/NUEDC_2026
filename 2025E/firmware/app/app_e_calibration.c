@@ -30,9 +30,14 @@ APP_E_CALIBRATION_CONFIG AppE_GetCalibrationConfig(void){
     aim.solver.mount_x_m = 0.000f; /* 车体前方为正。 */
     aim.solver.mount_y_m = 0.000f; /* 车体左侧为正。 */
 
-    /* 4. 云台机械零位：增大 yaw offset 会减小 yaw 指令；pitch 反之。 */
+    /* 4. 云台机械零位：增大 yaw offset 会减小 yaw 指令；pitch 反之。
+     *    pitch_zero_offset = "激光水平(0 仰角)时的 pitch 电机角"。
+     *    solver 输出 pitch_cmd = atan2(高差,水平距离) + 该 offset; 电机限位 [135,165](home150±15)。
+     *    绕场几何仰角 ~3.6°(远角)~11.3°(近AB), offset=143 → 指令落 ~147~154° 居中不钳位。
+     *    标定: 让车静瞄靶, 增/减该值直到激光竖直方向正中靶心 (增大→pitch 指令增大;
+     *    激光是随之上抬还是下压取决于机械装配, 观察后决定加减方向)。 */
     aim.solver.yaw_zero_offset_deg = 0.000f;
-    aim.solver.pitch_zero_offset_deg = 0.000f;
+    aim.solver.pitch_zero_offset_deg = 143.000f;
 
     /* 5. 视觉慢校正：若某轴误差越校越大，只翻转对应 sign。 */
     aim.vision_bias_ki = 0.100f;       /* 从小增益开始实机调试。 */
@@ -46,8 +51,10 @@ APP_E_CALIBRATION_CONFIG AppE_GetCalibrationConfig(void){
 
     /* 7. 速率前馈 lead 时间(s)：补偿转弯时位置伺服速度滞后 + IMU 融合航向滞后。
      *    yaw 用低延迟陀螺 −ω 项提前 τ 秒量, 只在转弯(ω 大)起作用、不影响直线。
-     *    起调 0.04；转弯仍滞后→加大(至 0.06~0.08)，转弯过冲/激光甩过头→减小。 */
-    aim.yaw_rate_lead_s = 0.030f;   /* lead 只补系统延迟(~30-60ms); 过大(如0.32)会把车的蛇形晃动放大成 yaw 剧摆 */
+     *    实机: 位置环 Kv≈4.3/s → 转弯 ~130°/s 滞后 ~30°; lead≈1/Kv 可补。
+     *    起调 0.12(补~15°)；转弯仍滞后→加大(先抬 F32C 位置环KP, 再抬 lead 到 0.15~0.18)，
+     *    出现转弯末尾过冲/激光甩过头 或 直线被蛇形放大→减小。 */
+    aim.yaw_rate_lead_s = 0.120f;
     aim.pitch_rate_lead_s = 0.000f;
 
     APP_E_CALIBRATION_CONFIG config = {
