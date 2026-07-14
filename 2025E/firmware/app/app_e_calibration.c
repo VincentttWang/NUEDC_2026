@@ -33,12 +33,11 @@ APP_E_CALIBRATION_CONFIG AppE_GetCalibrationConfig(void){
     /* 4. 云台机械零位：增大 yaw offset 会减小 yaw 指令；pitch 反之。
      *    pitch_zero_offset = "激光水平(0 仰角)时的 pitch 电机角"。
      *    solver 输出 pitch_cmd = atan2(高差,水平距离) + 该 offset; 电机限位 [135,165](home150±15)。
-     *    实测 home(150°) 时激光基本水平(出光点22cm), 故 0 仰角对应电机角=home=150。
-     *    高差 0.03m → 几何仰角 ~1.1°(远角)~3.4°(近AB), 指令落 ~151~153° (home 上方一点)。
-     *    标定: 让车静瞄靶, 增/减该值直到激光竖直方向正中靶心 (增大→pitch 指令增大;
-     *    激光是随之上抬还是下压取决于机械装配, 观察后决定加减方向)。 */
+     *    实测标定 = 140 (光束正中靶心); pitch 轴有减速比, 电机每度对应光束多度,
+     *    故只需比 home 低 ~10° 即可下压到位。命令落 ~141~143° 仍在 [135,165] 内。
+     *    重标: 让车静瞄靶, 增/减该值直到激光竖直方向正中靶心 (增大→pitch 指令增大→光束上抬)。 */
     aim.solver.yaw_zero_offset_deg = 0.000f;
-    aim.solver.pitch_zero_offset_deg = 150.000f;
+    aim.solver.pitch_zero_offset_deg = 140.000f;
 
     /* 5. 视觉慢校正：若某轴误差越校越大，只翻转对应 sign。 */
     aim.vision_bias_ki = 0.100f;       /* 从小增益开始实机调试。 */

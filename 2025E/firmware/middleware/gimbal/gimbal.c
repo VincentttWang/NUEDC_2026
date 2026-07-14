@@ -88,8 +88,9 @@
 #define GIMBAL_PITCH_HOME_TIMEOUT_MS  2000U
 #define GIMBAL_PITCH_HOME_POLL_MS     50U
 
-/* 归位后 pitch 限位收紧到 home±range (归位阶段仍用全量程从 0° travel 到 home)。 */
-#define GIMBAL_PITCH_RANGE_X10        150     /* ±30° */
+/* 归位后 pitch 限位收紧到 home±range (归位阶段仍用全量程从 0° travel 到 home)。
+ * 瞄靶命令 ~141~143°(offset 140 + 几何仰角), 落在 [135,165] 内, ±15° 足够。 */
+#define GIMBAL_PITCH_RANGE_X10        150     /* ±15° -> [135,165] */
 #define GIMBAL_PITCH_HOME_DEG         ((float)GIMBAL_PITCH_HOME_X10 / 10.0f)
 #define GIMBAL_PITCH_RANGE_DEG        ((float)GIMBAL_PITCH_RANGE_X10 / 10.0f)
 
