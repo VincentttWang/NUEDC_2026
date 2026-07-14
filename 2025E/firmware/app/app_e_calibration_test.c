@@ -16,6 +16,11 @@
 #include <stdio.h>
 
 #define CAL_TEST_LOOP_DELAY_MS 20U
+/* 前馈瞄准闭环用更高控制率 (~200Hz), yaw 更跟手。 */
+#define CAL_TEST_AIM_LOOP_DELAY_MS 5U
+/* OLED 刷新与控制解耦: 屏幕每 ~50ms 更新一次, 避免 200Hz 阻塞式 I2C 刷屏
+ * 拖垮控制周期 (甚至把 I2C 逼入错误态反复超时, 表现为卡死)。 */
+#define CAL_TEST_DISPLAY_INTERVAL_MS 50U
 #define CAL_TEST_CIRCLE_PHASE_STEP_DEG 10.0f
 
 typedef enum {
@@ -130,6 +135,7 @@ static void CalTest_RunAim(bool enable_vision_bias){
     char line2[24];
     APP_E_CALIBRATION_CONFIG calibration = AppE_GetCalibrationConfig();
     uint32_t last_ms = BSP_Time_GetMs();
+    uint32_t last_display_ms = last_ms;
     bool laser_on = false;
 
     if (!enable_vision_bias){
@@ -139,7 +145,13 @@ static void CalTest_RunAim(bool enable_vision_bias){
     Key_ClearAllEvents();
     CalTest_SetLaser(false);
     (void)Chassis_Brake();
-    Gimbal_EnsurePitchReady();
+    /*
+     * 不在此阻塞等待 pitch 归位: 本测试聚焦 yaw 稳定, 与 pitch 无关。
+     * Gimbal_SetAngle 在 pitch 未就绪时会自动跳过 pitch、照常驱动 yaw;
+     * 开机 Gimbal_StartupElevatePitch() 已让 F32C 自主抬升 pitch。
+     * 之前这里调 Gimbal_EnsurePitchReady() 会阻塞轮询 pitch 反馈 (云台断电时
+     * 吃满 2s、且超时依赖 SysTick), 表现为进入本页时"卡死"。
+     */
     AutoAim_Init(&calibration.auto_aim);
     if (AutoAim_Start(AUTO_AIM_MODE_CENTER) != BSP_STATUS_OK){
         Ui_RenderStatusPage("Calibration", UI_STATUS_ERROR, "IMU not ready", "K2 long:back");
@@ -152,7 +164,7 @@ static void CalTest_RunAim(bool enable_vision_bias){
 
     Ui_RenderLines(enable_vision_bias ? "Cal Vision" : "Cal Geometry",
                    enable_vision_bias ? "Bias enabled" : "Bias disabled",
-                   "Cmd:0.0,0.0", "Err:0.0,0.0", "Bias:0.0,0.0",
+                   "Y:0.0 H:0.0", "Gz:0.0 Rff:0.0", "Bias:0.0,0.0",
                    "K3:laser OFF", "K2 long:back");
 
     while (!CalTest_IsBack()){
@@ -164,16 +176,22 @@ static void CalTest_RunAim(bool enable_vision_bias){
         }
 
         (void)AutoAim_Update(dt_s);
-        AUTO_AIM_STATE state = AutoAim_GetState();
-        snprintf(line0, sizeof(line0), "Cmd:%0.1f,%0.1f",
-                 state.yaw_command_deg, state.pitch_command_deg);
-        snprintf(line1, sizeof(line1), "Err:%0.1f,%0.1f",
-                 state.vision_yaw_error_deg, state.vision_pitch_error_deg);
-        snprintf(line2, sizeof(line2), "Bias:%0.1f,%0.1f",
-                 state.vision_bias.yaw_bias_deg, state.vision_bias.pitch_bias_deg);
-        Ui_UpdateContentLine(1U, line0);
-        Ui_UpdateContentLine(2U, line1);
-        Ui_UpdateContentLine(3U, line2);
+
+        /* OLED 刷新与控制解耦: 每 ~50ms 刷一次屏, 控制仍按 5ms 跑。 */
+        if ((uint32_t)(now_ms - last_display_ms) >= CAL_TEST_DISPLAY_INTERVAL_MS){
+            last_display_ms = now_ms;
+            AUTO_AIM_STATE state = AutoAim_GetState();
+            /* yaw 稳定诊断: 指令yaw / 世界航向 / 陀螺yaw-rate / 速率前馈量。 */
+            snprintf(line0, sizeof(line0), "Y:%0.1f H:%0.1f",
+                     state.yaw_command_deg, state.pose.heading_deg);
+            snprintf(line1, sizeof(line1), "Gz:%0.1f Rff:%0.1f",
+                     state.gyro_z_deg_s, state.yaw_rate_ff_deg_s);
+            snprintf(line2, sizeof(line2), "Bias:%0.1f,%0.1f",
+                     state.vision_bias.yaw_bias_deg, state.vision_bias.pitch_bias_deg);
+            Ui_UpdateContentLine(1U, line0);
+            Ui_UpdateContentLine(2U, line1);
+            Ui_UpdateContentLine(3U, line2);
+        }
 
         if (Key_IsShortPress(KEY_ID_ENTER)){
             laser_on = !laser_on;
@@ -181,7 +199,7 @@ static void CalTest_RunAim(bool enable_vision_bias){
             Ui_UpdateContentLine(4U, laser_on ? "K3:laser ON" : "K3:laser OFF");
             Key_ClearAllEvents();
         }
-        BSP_DelayMs(CAL_TEST_LOOP_DELAY_MS);
+        BSP_DelayMs(CAL_TEST_AIM_LOOP_DELAY_MS);
     }
 
     CalTest_SetLaser(false);

@@ -11,8 +11,13 @@ APP_E_CALIBRATION_CONFIG AppE_GetCalibrationConfig(void){
     };
     aim.track_side_m = 1.000f; /* 填黑线中心线之间的实测平均边长。 */
 
-    /* 2. 单轮编码器：编码轮在车体左侧为正、右侧为负。 */
-    aim.encoder_lateral_offset_m = 0.000f;
+    /* 2. 单轮编码器：编码轮在车体左侧为正、右侧为负。
+     *    实测：编码轮在右轮、轮距 14cm → -轮距/2 = -0.070m。
+     *    转弯时用陀螺把单轮里程重构到车心, 消除弯中位置漂移(近弯 B 放大明显)。 */
+    aim.encoder_lateral_offset_m = -0.070f;
+    /* 陀螺 yaw-rate 符号：实测本机 gz 与航向反号 → -1（左转时 head 增而 gz 负）。
+     * 影响速率前馈与车心重构，符号错会让转弯前馈反向、越快越滞后。 */
+    aim.gyro_z_sign = -1.000f;
 
     /* 3. 靶心世界水平坐标与云台转轴相对车体定位原点的安装位置。 */
     aim.solver.target_center = (AIM_POINT2F){
@@ -38,6 +43,12 @@ APP_E_CALIBRATION_CONFIG AppE_GetCalibrationConfig(void){
     /* 6. F3：0°=靶心右侧，90°=上方。 */
     aim.solver.circle_radius_m = 0.060f;
     aim.circle_phase0_deg = 0.000f;
+
+    /* 7. 速率前馈 lead 时间(s)：补偿转弯时位置伺服速度滞后 + IMU 融合航向滞后。
+     *    yaw 用低延迟陀螺 −ω 项提前 τ 秒量, 只在转弯(ω 大)起作用、不影响直线。
+     *    起调 0.04；转弯仍滞后→加大(至 0.06~0.08)，转弯过冲/激光甩过头→减小。 */
+    aim.yaw_rate_lead_s = 0.030f;   /* lead 只补系统延迟(~30-60ms); 过大(如0.32)会把车的蛇形晃动放大成 yaw 剧摆 */
+    aim.pitch_rate_lead_s = 0.000f;
 
     APP_E_CALIBRATION_CONFIG config = {
         .auto_aim = aim,

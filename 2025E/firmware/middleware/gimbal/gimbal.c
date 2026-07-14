@@ -47,10 +47,25 @@
  *   yaw 不设角度限位 (min==max 取消限位), 允许连续多圈旋转。
  */
 #ifndef GIMBAL_YAW_POS_SPEED
-#define GIMBAL_YAW_POS_SPEED 80      /* yaw 位置模式运动速度 (RPM) */
+#define GIMBAL_YAW_POS_SPEED 150     /* yaw 位置模式运动速度 (RPM); 原 80, 抬高给近弯余量 */
 #endif
 #ifndef GIMBAL_YAW_POS_ACC
-#define GIMBAL_YAW_POS_ACC   60      /* yaw 位置模式加速度 (转/s²) */
+#define GIMBAL_YAW_POS_ACC   150     /* yaw 位置模式加速度 (转/s²); 原 60, 抬高减小到位滞后 */
+#endif
+/*
+ * yaw 电机物理转向适配 (前馈位置模式 Gimbal_SetAngle 专用):
+ *   +1 = 电机正转方向与几何 yaw 约定 (逆时针为正) 一致;
+ *   -1 = 相反 (实测本机为相反, 故默认 -1)。
+ * 逻辑 yaw 约定与开环估计角保持不变, 仅翻转下发给 F32C 的目标角物理方向。
+ * 速度模式/视觉跟踪方向由 gimbal_tracking 的 yaw_output_sign 独立整定, 不受此影响。
+ */
+#ifndef GIMBAL_YAW_DIR
+#define GIMBAL_YAW_DIR (-1.0f)
+#endif
+/* yaw 连续解缠开关: 1=跨 ±180 平滑(滑环); 0=直接归一化(±180 处跳 360°)。
+ * 设 0 可用于排查解缠是否引入问题 (A/B 对比)。 */
+#ifndef GIMBAL_YAW_UNWRAP
+#define GIMBAL_YAW_UNWRAP 0
 #endif
 
 /*
@@ -117,6 +132,20 @@ static void Gimbal_SendAxisRpm(uint8_t addr, int16_t rpm, int16_t *last_rpm){
  */
 static bool s_pitch_home_started;  /* 已发起开机位置模式抬升 */
 static PITCH_MODE s_pitch_mode;    /* HOMING / READY (初值 HOMING=未就绪) */
+
+/*
+ * yaw 连续解缠累计命令角 (逻辑值, 可多圈): 不被 Gimbal_Init 重置, 始终跟踪从上电起
+ * 真实下发的多圈位置。滑环支持多圈旋转, 靶转到车后方(过 ±180)时命令就近累积、
+ * 不发生 360° 突跳, 云台平滑跟随。
+ */
+static float s_yaw_cmd_unwrapped_deg;
+
+/* 归一化到 [-180,180), 处理任意范围输入 (供 yaw 解缠求就近增量)。 */
+static float Gimbal_NormalizeDeg(float angle){
+    while (angle >= 180.0f){ angle -= 360.0f; }
+    while (angle < -180.0f){ angle += 360.0f; }
+    return angle;
+}
 
 /* pitch 是否已就绪 (抬升完成, 可接受速度/park 指令)。 */
 static bool Gimbal_PitchReady(void){
@@ -367,8 +396,19 @@ BSP_STATUS Gimbal_SetAngle(float yaw_deg, float pitch_deg){
      * 用于运动中连续瞄准与画圆: 前馈连续、零滞后、不依赖视觉识别激光光斑。
      */
     Gimbal_EnsureYawPositionMode();
-    Gimbal_SendYawAngle((int32_t)(yaw_deg * 10.0f));
-    s_gimbal.yaw_deg = yaw_deg;          /* 位置模式: 估计角直接跟踪设定点 */
+    /*
+     * yaw 连续解缠: 输入 yaw_deg∈[-180,180); 就近跟随上次连续命令 (增量取最短路,
+     * 幅值 <180°), 跨 ±180 不发生 360° 突跳 —— 车绕到远边(靶在车后方)时云台平滑
+     * 跟随而非猛转一整圈。滑环允许多圈, 累计角随圈数自然增长。
+     * 物理转向由 GIMBAL_YAW_DIR 适配; 逻辑估计角保持归一化值供显示。
+     */
+#if GIMBAL_YAW_UNWRAP
+    s_yaw_cmd_unwrapped_deg += Gimbal_NormalizeDeg(yaw_deg - s_yaw_cmd_unwrapped_deg);
+    Gimbal_SendYawAngle((int32_t)(GIMBAL_YAW_DIR * s_yaw_cmd_unwrapped_deg * 10.0f));
+#else
+    Gimbal_SendYawAngle((int32_t)(GIMBAL_YAW_DIR * yaw_deg * 10.0f));
+#endif
+    s_gimbal.yaw_deg = yaw_deg;          /* 逻辑估计角保持归一化值 (供显示) */
     s_gimbal.yaw_deg_s = 0.0f;
 
     Gimbal_DrivePitchAbsolute(pitch_deg);

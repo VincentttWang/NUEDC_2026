@@ -7,6 +7,7 @@
 #include "canmv_uart.h"
 #include "chassis.h"
 #include "bsp/debug_uart/debug_uart.h"
+#include "bsp/bldc/f32c_bldc.h"
 #include "gimbal.h"
 #include "gimbal_tracking.h"
 #include "key.h"
@@ -30,6 +31,8 @@
 #define APP_E_CORNER_ENTER_CONFIRM_COUNT 2U
 #define APP_E_CORNER_EXIT_CONFIRM_COUNT 3U
 #define APP_E_LOOP_DELAY_MS 10U
+/* 起步前倒计时秒数: 车刹住、云台已瞄准、激光已亮, 让用户摆好车/退开再走。 */
+#define APP_E_START_COUNTDOWN_S 3U
 /* 更新同步遥测抽取: 每 N 次传感器更新记一条 (带 SysTick 时间戳还原真实时序)。 */
 #define APP_E_AIM_LOG_EVERY_FRAMES 1U   /* Aim: 每 N 个 CanMV 视觉帧 */
 #define APP_E_LINE_LOG_EVERY_SCANS 10U  /* E1: 每 N 次灰度扫描 */
@@ -224,6 +227,33 @@ static void AppE_RunLineTask(uint8_t lap_count, APP_E_AIM_MODE aim_mode){
     DebugUart_Printf("[E1] start laps=%u edges=%ld\r\n",
                      (unsigned)target_laps, (long)target_edges);
 
+    /*
+     * 起步前倒计时: 车保持刹车、云台已在瞄准起点位姿、激光已亮 (aim 模式),
+     * 便于摆好车/退开再走。长按 K2(CALIB) 可中途放弃。
+     */
+    for (uint8_t cd = APP_E_START_COUNTDOWN_S; cd > 0U; cd--){
+        char cd_line[24];
+        uint32_t cd_end_ms = BSP_Time_GetMs() + 1000U;
+        snprintf(cd_line, sizeof(cd_line), "Start in %u...", (unsigned)cd);
+        Ui_UpdateContentLine(1U, cd_line);
+        while ((int32_t)(cd_end_ms - BSP_Time_GetMs()) > 0){
+            if (AppE_IsBackEvent()){
+                (void)Motion_Stop();
+                AppE_StopLineAim(aim_mode);
+                Key_ClearAllEvents();
+                return;
+            }
+            if (aim_mode != APP_E_AIM_MODE_NONE){
+                (void)AutoAim_Update(0.02f);   /* 云台瞄准起点位姿 (车静止) */
+            }
+            (void)Chassis_Brake();
+            BSP_DelayMs(APP_E_LOOP_DELAY_MS);
+        }
+    }
+    /* 倒计时结束: 重置计时基准, 任务超时不含倒计时。 */
+    start_ms = BSP_Time_GetMs();
+    last_ms = start_ms;
+
     while (AppE_ElapsedMs(start_ms) < task_timeout_ms){
         uint32_t now_ms = BSP_Time_GetMs();
         float dt_s = (float)(now_ms - last_ms) / 1000.0f;
@@ -243,6 +273,28 @@ static void AppE_RunLineTask(uint8_t lap_count, APP_E_AIM_MODE aim_mode){
                 Ui_RenderStatusPage("Line aim", UI_STATUS_WARN, "IMU lost", "K2 long:back");
                 AppE_WaitBack();
                 return;
+            }
+        }
+
+        /*
+         * 转弯滞后调试遥测: 每 ~20ms 经 Debug_Ex(UART1@115200) 输出一条 CSV:
+         *   A,t_ms,line_state,gyroZ,vCenter,heading,yawCmd,yawRateFF,yawActX10
+         *   line_state: 0=FOLLOW 1=CORNER_FWD 2=CORNER_ARC
+         *   yawActX10 : F32C 上报 yaw 多圈角(0.1°); 逻辑角=-yawActX10/10 (GIMBAL_YAW_DIR=-1)
+         *   注: yawAct 因请求-响应异步约滞后一个采样(~20ms)。
+         */
+        if (aim_mode != APP_E_AIM_MODE_NONE){
+            static uint32_t s_dbg_last_ms;
+            if ((uint32_t)(now_ms - s_dbg_last_ms) >= 20U){
+                s_dbg_last_ms = now_ms;
+                AUTO_AIM_STATE aim_st = AutoAim_GetState();
+                DebugUart_Printf("A,%lu,%d,%.1f,%.2f,%.1f,%.1f,%.1f,%ld\r\n",
+                                 (unsigned long)now_ms, (int)line_state,
+                                 aim_st.gyro_z_deg_s, aim_st.v_center_mps,
+                                 aim_st.pose.heading_deg, aim_st.yaw_command_deg,
+                                 aim_st.yaw_rate_ff_deg_s,
+                                 (long)BLDC_Motor1.multi_angle);
+                BLDC_ReqFeedback(BLDC_ADDR_1, FB_MULTI_ANGLE);   /* 请求下次 yaw 实际角 */
             }
         }
 

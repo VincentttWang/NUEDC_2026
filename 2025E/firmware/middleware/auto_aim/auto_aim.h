@@ -24,6 +24,13 @@ extern "C" {
 #define AUTO_AIM_DEFAULT_VISION_YAW_SIGN -1.0f
 #define AUTO_AIM_DEFAULT_VISION_PITCH_SIGN 1.0f
 #define AUTO_AIM_DEFAULT_CIRCLE_PHASE0_DEG 0.0f
+/* 陀螺 yaw-rate 符号: 使 ω 与航向变化率同号 (左转 yaw 增大时 ω>0)。
+ * 实测本机 gz 与航向反号, 故默认 -1; 用于速率前馈与车心速度重构。 */
+#define AUTO_AIM_DEFAULT_GYRO_Z_SIGN -1.0f
+/* 速率前馈 lead 时间, 单位 s: yaw/pitch 位置指令叠加 rate·lead 以补偿执行延迟。
+ * 0 = 纯静态前馈 (上板先测基线, 再逐步加大)。 */
+#define AUTO_AIM_DEFAULT_YAW_RATE_LEAD_S 0.0f
+#define AUTO_AIM_DEFAULT_PITCH_RATE_LEAD_S 0.0f
 
 typedef enum {
     AUTO_AIM_MODE_CENTER = 0,
@@ -40,6 +47,12 @@ typedef struct {
     float vision_yaw_sign;
     float vision_pitch_sign;
     float circle_phase0_deg;
+    /** yaw 速率前馈 lead 时间, 单位 s。 */
+    float yaw_rate_lead_s;
+    /** pitch 速率前馈 lead 时间, 单位 s。 */
+    float pitch_rate_lead_s;
+    /** 陀螺 yaw-rate 符号 (使 ω 与航向变化率同号); 实测本机反号取 -1。 */
+    float gyro_z_sign;
     AIM_SOLVER_CONFIG solver;
 } AUTO_AIM_CONFIG;
 
@@ -58,6 +71,14 @@ typedef struct {
     float last_wheel_delta_m;
     float last_center_delta_m;
     float lap_progress;
+    /** 车心前向速度 (= last_center_delta/dt), 单位 m/s。 */
+    float v_center_mps;
+    /** 车体 yaw 角速度 (陀螺), 单位 deg/s。 */
+    float gyro_z_deg_s;
+    /** yaw 速率前馈量, 单位 deg/s。 */
+    float yaw_rate_ff_deg_s;
+    /** pitch 速率前馈量, 单位 deg/s。 */
+    float pitch_rate_ff_deg_s;
     uint32_t vision_frame_count;
 } AUTO_AIM_STATE;
 

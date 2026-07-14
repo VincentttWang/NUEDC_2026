@@ -50,7 +50,7 @@
 /* 位置限位与启动角, 单位 0.1° (即 *10): 起始 0°, 正向最大 180°, 启动正转 120° */
 #define BLDC_PITCH_MIN_X10    0
 #define BLDC_PITCH_MAX_X10    1800
-#define BLDC_PITCH_INIT_X10   1400
+#define BLDC_PITCH_INIT_X10   1500
 /* 位置模式下移动到目标角的运动速度 (RPM). 位置模式必须设速度, 否则默认 0 不动.
  * 抑制震荡的首要旋钮: 速度越低, 逼近目标越温和, 过冲/震荡越小 */
 #define BLDC_PITCH_SPEED      30

@@ -49,6 +49,7 @@ int main(void){
     AUTO_AIM_CONFIG config = AutoAim_DefaultConfig();
     config.start_pose = (KINEMATICS_POSE){0.0f, 0.0f, 0.0f};
     config.encoder_lateral_offset_m = 0.1f;
+    config.gyro_z_sign = 1.0f;   /* 本测试直接用正 gz, 不叠符号 */
     AutoAim_Init(&config);
 
     s_imu.attitude_deg.yaw = 20.0f;

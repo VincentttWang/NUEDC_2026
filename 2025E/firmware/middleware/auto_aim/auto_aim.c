@@ -24,6 +24,9 @@ AUTO_AIM_CONFIG AutoAim_DefaultConfig(void){
         .vision_yaw_sign = AUTO_AIM_DEFAULT_VISION_YAW_SIGN,
         .vision_pitch_sign = AUTO_AIM_DEFAULT_VISION_PITCH_SIGN,
         .circle_phase0_deg = AUTO_AIM_DEFAULT_CIRCLE_PHASE0_DEG,
+        .yaw_rate_lead_s = AUTO_AIM_DEFAULT_YAW_RATE_LEAD_S,
+        .pitch_rate_lead_s = AUTO_AIM_DEFAULT_PITCH_RATE_LEAD_S,
+        .gyro_z_sign = AUTO_AIM_DEFAULT_GYRO_Z_SIGN,
         .solver = AimSolver_DefaultConfig(),
     };
     return config;
@@ -120,12 +123,16 @@ BSP_STATUS AutoAim_Update(float dt_s){
     }
     s_state.imu_valid = true;
 
+    /* 陀螺 yaw-rate 取符号使其与航向变化率同号 (实测本机 gz 反号)。
+     * ω 同时用于车心速度重构与速率前馈, 符号错会让两者都反向。 */
+    float omega_deg_s = s_config.gyro_z_sign * imu.gyro_deg_s.z;
+
     wheel_distance_m = Chassis_GetDistance();
     s_state.last_wheel_delta_m = wheel_distance_m - s_last_wheel_distance_m;
     s_last_wheel_distance_m = wheel_distance_m;
     s_state.last_center_delta_m = Localization_CorrectWheelDelta(
         s_state.last_wheel_delta_m,
-        imu.gyro_deg_s.z,
+        omega_deg_s,
         s_config.encoder_lateral_offset_m,
         dt_s);
     heading_deg = Kinematics_NormalizeAngleDeg(imu.attitude_deg.yaw +
@@ -145,18 +152,34 @@ BSP_STATUS AutoAim_Update(float dt_s){
                          s_state.vision_valid,
                          dt_s);
 
+    /* 确定本周期实际瞄准的世界目标点 (靶心或圆点), 供静态角与速率前馈共用。 */
+    AIM_SOLVER_CONFIG solver_cfg = AimSolver_GetConfig();
+    AIM_POINT2F target_xy;
+    float target_dz;
     if (s_state.mode == AUTO_AIM_MODE_CIRCLE){
         float phase_deg = AimSolver_ProgressToPhaseDeg(s_state.lap_progress,
                                                        s_config.circle_phase0_deg);
-        s_state.feedforward = AimSolver_SolveCircle(s_state.pose, phase_deg);
+        AimSolver_CirclePoint(phase_deg, &target_xy, &target_dz);
     } else{
-        s_state.feedforward = AimSolver_SolveCenter(s_state.pose);
+        target_xy = solver_cfg.target_center;
+        target_dz = solver_cfg.height_diff_m;
     }
+    s_state.feedforward = AimSolver_Solve(s_state.pose, target_xy, target_dz);
+
+    /* 速率前馈: 车运动引起的云台角速度需求, 以 lead-time 叠加补偿执行延迟。 */
+    s_state.gyro_z_deg_s = omega_deg_s;
+    s_state.v_center_mps = s_state.last_center_delta_m / dt_s;
+    AIM_RATE_FF rate = AimFusion_MotionRate(s_state.pose, target_xy, target_dz,
+                                            s_state.v_center_mps, s_state.gyro_z_deg_s);
+    s_state.yaw_rate_ff_deg_s = rate.yaw_rate_deg_s;
+    s_state.pitch_rate_ff_deg_s = rate.pitch_rate_deg_s;
 
     s_state.yaw_command_deg = s_state.feedforward.yaw_cmd_deg +
-                              s_state.vision_bias.yaw_bias_deg;
+                              s_state.vision_bias.yaw_bias_deg +
+                              rate.yaw_rate_deg_s * s_config.yaw_rate_lead_s;
     s_state.pitch_command_deg = s_state.feedforward.pitch_cmd_deg +
-                                s_state.vision_bias.pitch_bias_deg;
+                                s_state.vision_bias.pitch_bias_deg +
+                                rate.pitch_rate_deg_s * s_config.pitch_rate_lead_s;
     return Gimbal_SetAngle(s_state.yaw_command_deg, s_state.pitch_command_deg);
 }
 
