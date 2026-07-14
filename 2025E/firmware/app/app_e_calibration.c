@@ -24,20 +24,21 @@ APP_E_CALIBRATION_CONFIG AppE_GetCalibrationConfig(void){
         .x_m = 0.000f,
         .y_m = 0.500f,
     };
-    /* 竖直高差 = 靶心离地高 - 云台出光点离地高 (机械上尽量趋 0)。
-     * 名义: 靶心 0.25m - 出光点 0.15m = 0.10m。 */
-    aim.solver.height_diff_m = 0.100f;
+    /* 竖直高差 = 靶心离地高 - 云台出光点离地高。
+     * 实测: 靶心 0.25m - 出光点 0.22m = 0.03m。 */
+    aim.solver.height_diff_m = 0.030f;
     aim.solver.mount_x_m = 0.000f; /* 车体前方为正。 */
     aim.solver.mount_y_m = 0.000f; /* 车体左侧为正。 */
 
     /* 4. 云台机械零位：增大 yaw offset 会减小 yaw 指令；pitch 反之。
      *    pitch_zero_offset = "激光水平(0 仰角)时的 pitch 电机角"。
      *    solver 输出 pitch_cmd = atan2(高差,水平距离) + 该 offset; 电机限位 [135,165](home150±15)。
-     *    绕场几何仰角 ~3.6°(远角)~11.3°(近AB), offset=143 → 指令落 ~147~154° 居中不钳位。
+     *    实测 home(150°) 时激光基本水平(出光点22cm), 故 0 仰角对应电机角=home=150。
+     *    高差 0.03m → 几何仰角 ~1.1°(远角)~3.4°(近AB), 指令落 ~151~153° (home 上方一点)。
      *    标定: 让车静瞄靶, 增/减该值直到激光竖直方向正中靶心 (增大→pitch 指令增大;
      *    激光是随之上抬还是下压取决于机械装配, 观察后决定加减方向)。 */
     aim.solver.yaw_zero_offset_deg = 0.000f;
-    aim.solver.pitch_zero_offset_deg = 143.000f;
+    aim.solver.pitch_zero_offset_deg = 150.000f;
 
     /* 5. 视觉慢校正：若某轴误差越校越大，只翻转对应 sign。 */
     aim.vision_bias_ki = 0.100f;       /* 从小增益开始实机调试。 */
