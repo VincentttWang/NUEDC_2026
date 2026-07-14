@@ -63,9 +63,18 @@
 #define GIMBAL_YAW_DIR (-1.0f)
 #endif
 /* yaw 连续解缠开关: 1=跨 ±180 平滑(滑环); 0=直接归一化(±180 处跳 360°)。
- * 设 0 可用于排查解缠是否引入问题 (A/B 对比)。 */
+ * 注: 必须为 1 才能与下面的速率限幅配合(0 时命令在 ±180 跳 360°, 会被限幅慢绕一圈)。
+ * 之前为排查曾设 0, gz 符号修复后转弯已正常, 恢复 1。 */
 #ifndef GIMBAL_YAW_UNWRAP
-#define GIMBAL_YAW_UNWRAP 0
+#define GIMBAL_YAW_UNWRAP 1
+#endif
+/*
+ * yaw 命令角速率限幅 (deg/s): 只削掉进入任务时"一步跳到瞄准角"的大阶跃(高位置环 KP
+ * 下会过冲/初始晃动), 把它变成缓坡; 而转弯/跟踪(<~150°/s)远低于此、完全不受影响。
+ * 于是可放心用高 KP(跟踪紧、激光稳)又无初始晃动。<=0 关闭限幅。
+ */
+#ifndef GIMBAL_YAW_MAX_SLEW_DEG_S
+#define GIMBAL_YAW_MAX_SLEW_DEG_S 300.0f
 #endif
 
 /*
@@ -139,6 +148,11 @@ static PITCH_MODE s_pitch_mode;    /* HOMING / READY (初值 HOMING=未就绪) *
  * 不发生 360° 突跳, 云台平滑跟随。
  */
 static float s_yaw_cmd_unwrapped_deg;
+
+/* yaw 命令速率限幅状态: s_yaw_sent_deg = 实际下发(限幅后)的命令角; 不被 Gimbal_Init
+ * 重置, 跟踪真实下发值, 使限幅缓坡从上次下发处平滑开始。 */
+static float s_yaw_sent_deg;
+static uint32_t s_yaw_slew_ms;
 
 /* 归一化到 [-180,180), 处理任意范围输入 (供 yaw 解缠求就近增量)。 */
 static float Gimbal_NormalizeDeg(float angle){
@@ -404,10 +418,34 @@ BSP_STATUS Gimbal_SetAngle(float yaw_deg, float pitch_deg){
      */
 #if GIMBAL_YAW_UNWRAP
     s_yaw_cmd_unwrapped_deg += Gimbal_NormalizeDeg(yaw_deg - s_yaw_cmd_unwrapped_deg);
-    Gimbal_SendYawAngle((int32_t)(GIMBAL_YAW_DIR * s_yaw_cmd_unwrapped_deg * 10.0f));
+    float yaw_desired_deg = s_yaw_cmd_unwrapped_deg;
 #else
-    Gimbal_SendYawAngle((int32_t)(GIMBAL_YAW_DIR * yaw_deg * 10.0f));
+    float yaw_desired_deg = yaw_deg;
 #endif
+    /*
+     * 命令角速率限幅: 只削掉进入任务时的大阶跃(初始晃动), 缓坡逼近目标; 转弯/跟踪
+     * (<~150°/s) 远低于限幅、原样通过。这样高位置环 KP 追斜坡紧、又不在初始阶跃过冲。
+     */
+    uint32_t now_ms = BSP_Time_GetMs();
+    float slew_dt_s = (float)(now_ms - s_yaw_slew_ms) / 1000.0f;
+    s_yaw_slew_ms = now_ms;
+    if ((slew_dt_s <= 0.0f) || (slew_dt_s > 0.1f)){
+        slew_dt_s = 0.01f;
+    }
+    if (GIMBAL_YAW_MAX_SLEW_DEG_S > 0.0f){
+        float max_step = GIMBAL_YAW_MAX_SLEW_DEG_S * slew_dt_s;
+        float delta = yaw_desired_deg - s_yaw_sent_deg;
+        if (delta > max_step){
+            s_yaw_sent_deg += max_step;
+        } else if (delta < -max_step){
+            s_yaw_sent_deg -= max_step;
+        } else{
+            s_yaw_sent_deg = yaw_desired_deg;
+        }
+    } else{
+        s_yaw_sent_deg = yaw_desired_deg;
+    }
+    Gimbal_SendYawAngle((int32_t)(GIMBAL_YAW_DIR * s_yaw_sent_deg * 10.0f));
     s_gimbal.yaw_deg = yaw_deg;          /* 逻辑估计角保持归一化值 (供显示) */
     s_gimbal.yaw_deg_s = 0.0f;
 

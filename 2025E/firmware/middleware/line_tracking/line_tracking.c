@@ -9,6 +9,21 @@ static const float s_sensor_position[LINE_FOLLOW_SENSOR_COUNT] = {
     -3.5f, -2.5f, -1.5f, -0.5f, 0.5f, 1.5f, 2.5f, 3.5f,
 };
 
+/*
+ * 抑制数字灰度"量化跳变→bang-bang→蛇形"的两个补丁 (不改车速/限幅):
+ *   - error 一阶低通(EMA): 平滑离散跳变, 直接掐掉 kd 在跳变上的尖峰;
+ *   - 中心死区: 线在中心两传感器内(|error|<=5, 即偏心 <=0.5 格)不修, 消除绕中心的极限环。
+ * alpha 越小越平滑但越滞后; deadband 越大越不抖但容许的偏心越大。
+ */
+#ifndef LINE_TRACKING_ERROR_LPF_ALPHA
+#define LINE_TRACKING_ERROR_LPF_ALPHA 0.5f
+#endif
+#ifndef LINE_TRACKING_ERROR_DEADBAND
+#define LINE_TRACKING_ERROR_DEADBAND 7.0f
+#endif
+
+static float s_line_tracking_filtered_error;
+
 static bool LineTracking_IsSensorEnabled(uint8_t index){
     return ((LINE_TRACKING_ACTIVE_SENSOR_MASK & (1U << index)) != 0U);
 }
@@ -63,6 +78,7 @@ void LineTracking_Init(const LINE_TRACKING_CONFIG *config){
 void LineTracking_Reset(void){
     PID_Reset(&s_line_tracking_pid);
 
+    s_line_tracking_filtered_error = 0.0f;
     s_line_tracking_output.error = 0.0f;
     s_line_tracking_output.correction = 0.0f;
     s_line_tracking_output.left_duty = 0.0f;
@@ -143,7 +159,19 @@ BSP_STATUS LineTracking_Compute(const LINE_FOLLOW_SENSOR_STATE *sensor,
      */
     float average_position = position_sum / (float)active_count;
     out->error = average_position * s_line_tracking_config.sensor_position_scale;
-    out->correction = PID_Update(&s_line_tracking_pid, out->error, 0.0f, dt_s);
+
+    /*
+     * error 一阶低通 + 中心死区: 把喂给 PID 的误差平滑并对小偏心置零,
+     * 消除数字灰度量化跳变导致的转向尖峰/极限环蛇形。out->error 仍保留原始值。
+     */
+    s_line_tracking_filtered_error += LINE_TRACKING_ERROR_LPF_ALPHA *
+        (out->error - s_line_tracking_filtered_error);
+    float pid_error = s_line_tracking_filtered_error;
+    if ((pid_error > -LINE_TRACKING_ERROR_DEADBAND) &&
+        (pid_error < LINE_TRACKING_ERROR_DEADBAND)){
+        pid_error = 0.0f;
+    }
+    out->correction = PID_Update(&s_line_tracking_pid, pid_error, 0.0f, dt_s);
 
     /*
      * 巡线时左右轮差值为 2 * correction。这里单独限制 correction，
