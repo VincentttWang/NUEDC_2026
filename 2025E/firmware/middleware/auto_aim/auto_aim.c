@@ -11,6 +11,8 @@ static AUTO_AIM_CONFIG s_config;
 static AUTO_AIM_STATE s_state;
 static float s_last_wheel_distance_m;
 static float s_heading_offset_deg;
+static float s_omega_ratef_lpf;   /* 速率前馈用的低通 ω 状态 (deg/s) */
+static float s_v_ratef_lpf;       /* 速率前馈用的低通 v 状态 (m/s), 去里程混叠尖峰 */
 static bool s_initialized;
 
 AUTO_AIM_CONFIG AutoAim_DefaultConfig(void){
@@ -24,8 +26,8 @@ AUTO_AIM_CONFIG AutoAim_DefaultConfig(void){
         .vision_yaw_sign = AUTO_AIM_DEFAULT_VISION_YAW_SIGN,
         .vision_pitch_sign = AUTO_AIM_DEFAULT_VISION_PITCH_SIGN,
         .circle_phase0_deg = AUTO_AIM_DEFAULT_CIRCLE_PHASE0_DEG,
-        .yaw_rate_lead_s = AUTO_AIM_DEFAULT_YAW_RATE_LEAD_S,
         .pitch_rate_lead_s = AUTO_AIM_DEFAULT_PITCH_RATE_LEAD_S,
+        .rate_ff_motion_tau_s = AUTO_AIM_DEFAULT_RATE_FF_MOTION_TAU_S,
         .gyro_z_sign = AUTO_AIM_DEFAULT_GYRO_Z_SIGN,
         .solver = AimSolver_DefaultConfig(),
     };
@@ -59,6 +61,8 @@ BSP_STATUS AutoAim_Start(AUTO_AIM_MODE mode){
     s_state = (AUTO_AIM_STATE){0};
     s_state.active = true;
     s_state.mode = mode;
+    s_omega_ratef_lpf = 0.0f;
+    s_v_ratef_lpf = 0.0f;
     AimVisionBias_Init(&s_state.vision_bias,
                        s_config.vision_bias_ki,
                        s_config.vision_bias_limit_deg);
@@ -166,17 +170,35 @@ BSP_STATUS AutoAim_Update(float dt_s){
     }
     s_state.feedforward = AimSolver_Solve(s_state.pose, target_xy, target_dz);
 
-    /* 速率前馈: 车运动引起的云台角速度需求, 以 lead-time 叠加补偿执行延迟。 */
-    s_state.gyro_z_deg_s = omega_deg_s;
+    /* 速率前馈: 车运动引起的云台角速度需求。yaw 侧现由 gimbal velff 消执行滞后, 故 yaw_rate
+     * 仅用于遥测(yawRateFF 列, 对照 velff 内部前馈是否够); pitch 侧仍经 pitch lead 叠加。 */
+    s_state.gyro_z_deg_s = omega_deg_s;   /* 原始 ω: 遥测/上报与车心重构用 */
     s_state.v_center_mps = s_state.last_center_delta_m / dt_s;
+    /* 速率前馈单独用低通后的 ω 和 v (平滑遥测/pitch lead 输入):
+     *  - ω: 直线蛇形(绕0振荡)被平均掉; 转弯(持续 ω)保留。
+     *  - v: 去掉里程更新慢于循环导致的 v=Δs/dt 混叠尖峰(0↔~1m/s)。 */
+    float omega_ratef = omega_deg_s;
+    float v_ratef = s_state.v_center_mps;
+    if (s_config.rate_ff_motion_tau_s > 0.0f){
+        float alpha = dt_s / (dt_s + s_config.rate_ff_motion_tau_s);
+        s_omega_ratef_lpf += alpha * (omega_deg_s - s_omega_ratef_lpf);
+        s_v_ratef_lpf += alpha * (s_state.v_center_mps - s_v_ratef_lpf);
+        omega_ratef = s_omega_ratef_lpf;
+        v_ratef = s_v_ratef_lpf;
+    } else{
+        s_omega_ratef_lpf = omega_deg_s;
+        s_v_ratef_lpf = s_state.v_center_mps;
+    }
     AIM_RATE_FF rate = AimFusion_MotionRate(s_state.pose, target_xy, target_dz,
-                                            s_state.v_center_mps, s_state.gyro_z_deg_s);
+                                            v_ratef, omega_ratef);
     s_state.yaw_rate_ff_deg_s = rate.yaw_rate_deg_s;
     s_state.pitch_rate_ff_deg_s = rate.pitch_rate_deg_s;
 
+    /* yaw 命令 = 静态几何角 + 视觉慢校正; yaw 的执行延迟补偿已由 gimbal 层 velff 内建
+     * (命令角求导前馈), 此处不再叠加 yaw lead, 避免与 velff 重复前馈。
+     * pitch 仍走位置模式, 保留 pitch lead 补偿其执行延迟 (默认 0)。 */
     s_state.yaw_command_deg = s_state.feedforward.yaw_cmd_deg +
-                              s_state.vision_bias.yaw_bias_deg +
-                              rate.yaw_rate_deg_s * s_config.yaw_rate_lead_s;
+                              s_state.vision_bias.yaw_bias_deg;
     s_state.pitch_command_deg = s_state.feedforward.pitch_cmd_deg +
                                 s_state.vision_bias.pitch_bias_deg +
                                 rate.pitch_rate_deg_s * s_config.pitch_rate_lead_s;

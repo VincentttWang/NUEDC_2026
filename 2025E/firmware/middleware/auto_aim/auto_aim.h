@@ -27,10 +27,15 @@ extern "C" {
 /* 陀螺 yaw-rate 符号: 使 ω 与航向变化率同号 (左转 yaw 增大时 ω>0)。
  * 实测本机 gz 与航向反号, 故默认 -1; 用于速率前馈与车心速度重构。 */
 #define AUTO_AIM_DEFAULT_GYRO_Z_SIGN -1.0f
-/* 速率前馈 lead 时间, 单位 s: yaw/pitch 位置指令叠加 rate·lead 以补偿执行延迟。
- * 0 = 纯静态前馈 (上板先测基线, 再逐步加大)。 */
-#define AUTO_AIM_DEFAULT_YAW_RATE_LEAD_S 0.0f
+/* pitch 速率前馈 lead 时间, 单位 s: pitch 位置指令叠加 rate·lead 补偿位置模式执行延迟。
+ * 0 = 纯静态前馈。(yaw 的执行延迟已由 gimbal 层 velff 内建, 故 yaw 无此 lead。) */
 #define AUTO_AIM_DEFAULT_PITCH_RATE_LEAD_S 0.0f
+/* 速率前馈运动输入(ω 与 v)低通时间常数, 单位 s: 仅平滑"速率前馈用的 ω 和 v"。
+ *  - ω: 直线蛇形是绕 0 的振荡, 低通后被平均掉, 不灌进命令放大成 yaw 抖; 转弯(持续 ω)保留。
+ *  - v: 单轮里程更新慢于循环时 v=Δs/dt 会混叠尖峰(0↔~1m/s), 经平移项 v·sinΔβ/Rh 灌成命令
+ *       每拍大抖; 低通恢复平滑真实车速。
+ * 车心里程重构(积分)与遥测仍用原始 ω/Δs, 不受影响。0 = 不低通。fc≈1/(2π·τ); τ=0.133 -> ~1.2Hz。 */
+#define AUTO_AIM_DEFAULT_RATE_FF_MOTION_TAU_S 0.0f
 
 typedef enum {
     AUTO_AIM_MODE_CENTER = 0,
@@ -47,10 +52,10 @@ typedef struct {
     float vision_yaw_sign;
     float vision_pitch_sign;
     float circle_phase0_deg;
-    /** yaw 速率前馈 lead 时间, 单位 s。 */
-    float yaw_rate_lead_s;
-    /** pitch 速率前馈 lead 时间, 单位 s。 */
+    /** pitch 速率前馈 lead 时间, 单位 s。(yaw 执行延迟由 gimbal velff 内建, 无 yaw lead。) */
     float pitch_rate_lead_s;
+    /** 速率前馈运动输入(ω 与 v)低通时间常数 (s); 0=不低通。抑制蛇形/里程混叠被前馈放大成 yaw 抖。 */
+    float rate_ff_motion_tau_s;
     /** 陀螺 yaw-rate 符号 (使 ω 与航向变化率同号); 实测本机反号取 -1。 */
     float gyro_z_sign;
     AIM_SOLVER_CONFIG solver;

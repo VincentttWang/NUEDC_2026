@@ -49,13 +49,14 @@ APP_E_CALIBRATION_CONFIG AppE_GetCalibrationConfig(void){
     aim.solver.circle_radius_m = 0.060f;
     aim.circle_phase0_deg = 0.000f;
 
-    /* 7. 速率前馈 lead 时间(s)：补偿转弯时位置伺服速度滞后 + IMU 融合航向滞后。
-     *    yaw 用低延迟陀螺 −ω 项提前 τ 秒量, 只在转弯(ω 大)起作用、不影响直线。
-     *    实机: 位置环 Kv≈4.3/s → 转弯 ~130°/s 滞后 ~30°; lead≈1/Kv 可补。
-     *    起调 0.12(补~15°)；转弯仍滞后→加大(先抬 F32C 位置环KP, 再抬 lead 到 0.15~0.18)，
-     *    出现转弯末尾过冲/激光甩过头 或 直线被蛇形放大→减小。 */
-    aim.yaw_rate_lead_s = 0.120f;
+    /* 7. pitch 速率前馈 lead 时间(s)：补偿 pitch 位置模式的伺服速度滞后。
+     *    Δz 仅 3cm, pitch 全程只变 ~2°、变化极慢, 故默认 0 即可。
+     *    (yaw 的转弯执行滞后已由 gimbal 层 velff 内建, 不再用 lead, 避免重复前馈。) */
     aim.pitch_rate_lead_s = 0.000f;
+    /* 速率前馈运动输入(ω 与 v)低通时间常数(s): 平均掉直线蛇形(绕0)与里程混叠尖峰(v 0↔1m/s),
+     * 不让速率前馈把它们放大成 yaw 抖; 转弯(持续大 ω/v)仍保留(略延迟)。0.133 -> ~1.2Hz。
+     * 抬大更稳直线但转弯前馈更迟, 反之亦然。 */
+    aim.rate_ff_motion_tau_s = 0.133f;
 
     APP_E_CALIBRATION_CONFIG config = {
         .auto_aim = aim,
