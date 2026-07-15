@@ -11,7 +11,6 @@ static AUTO_AIM_CONFIG s_config;
 static AUTO_AIM_STATE s_state;
 static float s_last_wheel_distance_m;
 static float s_heading_offset_deg;
-static float s_omega_ratef_lpf;   /* 速率前馈用的低通 ω 状态 (deg/s) */
 static float s_v_ratef_lpf;       /* 速率前馈用的低通 v 状态 (m/s), 去里程混叠尖峰 */
 static bool s_initialized;
 
@@ -21,25 +20,51 @@ AUTO_AIM_CONFIG AutoAim_DefaultConfig(void){
         .start_pose = {-0.5f, 0.0f, -90.0f},
         .track_side_m = AUTO_AIM_DEFAULT_TRACK_SIDE_M,
         .encoder_lateral_offset_m = AUTO_AIM_DEFAULT_ENCODER_LATERAL_OFFSET_M,
-        .vision_bias_ki = AUTO_AIM_DEFAULT_VISION_BIAS_KI,
-        .vision_bias_limit_deg = AUTO_AIM_DEFAULT_VISION_BIAS_LIMIT_DEG,
+        .vision_yaw = {
+            .gain0 = AUTO_AIM_DEFAULT_VISION_YAW_GAIN0,
+            .gain_min = AUTO_AIM_DEFAULT_VISION_YAW_GAIN_MIN,
+            .limit_deg = AUTO_AIM_DEFAULT_VISION_YAW_LIMIT_DEG,
+        },
+        .vision_pitch = {
+            .gain0 = AUTO_AIM_DEFAULT_VISION_PITCH_GAIN0,
+            .gain_min = AUTO_AIM_DEFAULT_VISION_PITCH_GAIN_MIN,
+            .limit_deg = AUTO_AIM_DEFAULT_VISION_PITCH_LIMIT_DEG,
+        },
+        .vision_yaw_startup_limit_deg = AUTO_AIM_DEFAULT_VISION_YAW_STARTUP_LIMIT_DEG,
+        .vision_pitch_startup_limit_deg = AUTO_AIM_DEFAULT_VISION_PITCH_STARTUP_LIMIT_DEG,
         .vision_yaw_sign = AUTO_AIM_DEFAULT_VISION_YAW_SIGN,
         .vision_pitch_sign = AUTO_AIM_DEFAULT_VISION_PITCH_SIGN,
         .circle_phase0_deg = AUTO_AIM_DEFAULT_CIRCLE_PHASE0_DEG,
         .pitch_rate_lead_s = AUTO_AIM_DEFAULT_PITCH_RATE_LEAD_S,
-        .rate_ff_motion_tau_s = AUTO_AIM_DEFAULT_RATE_FF_MOTION_TAU_S,
+        .rate_ff_v_tau_s = AUTO_AIM_DEFAULT_RATE_FF_V_TAU_S,
         .gyro_z_sign = AUTO_AIM_DEFAULT_GYRO_Z_SIGN,
         .solver = AimSolver_DefaultConfig(),
     };
     return config;
 }
 
+/* 起步对齐轴增益 = 该轴慢跟踪增益换上独立的起步限幅。 */
+static AIM_VISION_GAIN AutoAim_StartupGain(AIM_VISION_GAIN axis, float limit_deg){
+    axis.limit_deg = limit_deg;
+    return axis;
+}
+
+/* 重置两个视觉校正器 (bias 与帧计数清零, 从首帧快收敛重新开始)。 */
+static void AutoAim_ResetVisionBias(void){
+    AimVisionBias_Init(&s_state.vision_bias,
+                       s_config.vision_yaw,
+                       s_config.vision_pitch);
+    AimVisionBias_Init(&s_state.startup_bias,
+                       AutoAim_StartupGain(s_config.vision_yaw,
+                                           s_config.vision_yaw_startup_limit_deg),
+                       AutoAim_StartupGain(s_config.vision_pitch,
+                                           s_config.vision_pitch_startup_limit_deg));
+}
+
 void AutoAim_Init(const AUTO_AIM_CONFIG *config){
     s_config = (config == NULL) ? AutoAim_DefaultConfig() : *config;
     s_state = (AUTO_AIM_STATE){0};
-    AimVisionBias_Init(&s_state.vision_bias,
-                       s_config.vision_bias_ki,
-                       s_config.vision_bias_limit_deg);
+    AutoAim_ResetVisionBias();
     AimSolver_Init(&s_config.solver);
     s_initialized = true;
 }
@@ -61,11 +86,10 @@ BSP_STATUS AutoAim_Start(AUTO_AIM_MODE mode){
     s_state = (AUTO_AIM_STATE){0};
     s_state.active = true;
     s_state.mode = mode;
-    s_omega_ratef_lpf = 0.0f;
     s_v_ratef_lpf = 0.0f;
-    AimVisionBias_Init(&s_state.vision_bias,
-                       s_config.vision_bias_ki,
-                       s_config.vision_bias_limit_deg);
+    /* bias 与帧计数清零: 每次任务从首帧快收敛重新开始。 */
+    AutoAim_ResetVisionBias();
+    s_state.startup_align = false;
 
     s_last_wheel_distance_m = Chassis_GetDistance();
     Localization_Init(s_config.start_pose,
@@ -150,11 +174,19 @@ BSP_STATUS AutoAim_Update(float dt_s){
         s_state.vision_yaw_error_deg = yaw_error_deg;
         s_state.vision_pitch_error_deg = pitch_error_deg;
     }
-    AimVisionBias_Update(&s_state.vision_bias,
-                         s_config.vision_yaw_sign * yaw_error_deg,
-                         s_config.vision_pitch_sign * pitch_error_deg,
-                         s_state.vision_valid,
-                         dt_s);
+    /* 视觉帧路由: 起步对齐窗口内喂大量程 startup_bias (吸收静态总偏差),
+     * 窗口外喂慢跟踪 vision_bias (只管运动中漂移)。 */
+    if (s_state.startup_align){
+        AimVisionBias_Update(&s_state.startup_bias,
+                             s_config.vision_yaw_sign * yaw_error_deg,
+                             s_config.vision_pitch_sign * pitch_error_deg,
+                             s_state.vision_valid);
+    } else{
+        AimVisionBias_Update(&s_state.vision_bias,
+                             s_config.vision_yaw_sign * yaw_error_deg,
+                             s_config.vision_pitch_sign * pitch_error_deg,
+                             s_state.vision_valid);
+    }
 
     /* 确定本周期实际瞄准的世界目标点 (靶心或圆点), 供静态角与速率前馈共用。 */
     AIM_SOLVER_CONFIG solver_cfg = AimSolver_GetConfig();
@@ -170,39 +202,51 @@ BSP_STATUS AutoAim_Update(float dt_s){
     }
     s_state.feedforward = AimSolver_Solve(s_state.pose, target_xy, target_dz);
 
-    /* 速率前馈: 车运动引起的云台角速度需求。yaw 侧现由 gimbal velff 消执行滞后, 故 yaw_rate
-     * 仅用于遥测(yawRateFF 列, 对照 velff 内部前馈是否够); pitch 侧仍经 pitch lead 叠加。 */
+    /* 速率前馈: 车运动引起的云台角速度需求 (支点基准, 含 mount 甩臂项)。
+     * yaw_rate 直接作为 velff 的解析速度前馈下发 (闭式运动学, 无差分噪声,
+     * 免疫角点 snap 命令跳变); pitch 侧仍经 pitch lead 叠加 (默认 0)。 */
     s_state.gyro_z_deg_s = omega_deg_s;   /* 原始 ω: 遥测/上报与车心重构用 */
     s_state.v_center_mps = s_state.last_center_delta_m / dt_s;
-    /* 速率前馈单独用低通后的 ω 和 v (平滑遥测/pitch lead 输入):
-     *  - ω: 直线蛇形(绕0振荡)被平均掉; 转弯(持续 ω)保留。
-     *  - v: 去掉里程更新慢于循环导致的 v=Δs/dt 混叠尖峰(0↔~1m/s)。 */
-    float omega_ratef = omega_deg_s;
+    /* v 单独低通: 去掉里程更新慢于/差拍于循环导致的 v=Δs/dt 混叠尖峰(0↔~1m/s)。
+     * ω 不低通: 低噪声真实自转, 速度内环需实时 1:1 反转补偿(含蛇形), 滤了引入相位滞后。 */
     float v_ratef = s_state.v_center_mps;
-    if (s_config.rate_ff_motion_tau_s > 0.0f){
-        float alpha = dt_s / (dt_s + s_config.rate_ff_motion_tau_s);
-        s_omega_ratef_lpf += alpha * (omega_deg_s - s_omega_ratef_lpf);
+    if (s_config.rate_ff_v_tau_s > 0.0f){
+        float alpha = dt_s / (dt_s + s_config.rate_ff_v_tau_s);
         s_v_ratef_lpf += alpha * (s_state.v_center_mps - s_v_ratef_lpf);
-        omega_ratef = s_omega_ratef_lpf;
         v_ratef = s_v_ratef_lpf;
     } else{
-        s_omega_ratef_lpf = omega_deg_s;
         s_v_ratef_lpf = s_state.v_center_mps;
     }
     AIM_RATE_FF rate = AimFusion_MotionRate(s_state.pose, target_xy, target_dz,
-                                            v_ratef, omega_ratef);
+                                            v_ratef, omega_deg_s,
+                                            solver_cfg.mount_x_m,
+                                            solver_cfg.mount_y_m);
     s_state.yaw_rate_ff_deg_s = rate.yaw_rate_deg_s;
     s_state.pitch_rate_ff_deg_s = rate.pitch_rate_deg_s;
 
-    /* yaw 命令 = 静态几何角 + 视觉慢校正; yaw 的执行延迟补偿已由 gimbal 层 velff 内建
-     * (命令角求导前馈), 此处不再叠加 yaw lead, 避免与 velff 重复前馈。
-     * pitch 仍走位置模式, 保留 pitch lead 补偿其执行延迟 (默认 0)。 */
+    /* yaw 命令 = 静态几何角 + 起步对齐校正 + 视觉慢校正; yaw 执行延迟补偿由 gimbal
+     * 层 velff 内建, 此处不叠加 yaw lead。pitch 保留 pitch lead (默认 0)。 */
     s_state.yaw_command_deg = s_state.feedforward.yaw_cmd_deg +
+                              s_state.startup_bias.yaw_bias_deg +
                               s_state.vision_bias.yaw_bias_deg;
     s_state.pitch_command_deg = s_state.feedforward.pitch_cmd_deg +
+                                s_state.startup_bias.pitch_bias_deg +
                                 s_state.vision_bias.pitch_bias_deg +
                                 rate.pitch_rate_deg_s * s_config.pitch_rate_lead_s;
-    return Gimbal_SetAngle(s_state.yaw_command_deg, s_state.pitch_command_deg);
+    return Gimbal_SetAngle(s_state.yaw_command_deg, s_state.pitch_command_deg,
+                           s_state.yaw_rate_ff_deg_s);
+}
+
+void AutoAim_SetStartupAlign(bool active){
+    if (!s_state.active){
+        return;
+    }
+    if (s_state.startup_align && !active &&
+        (s_state.startup_bias.frame_count > 0U)){
+        /* 对齐完成且吸收过帧: 慢 bias 跳过快收敛段, 直接稳态小增益跟漂移。 */
+        AimVisionBias_SetSteadyGain(&s_state.vision_bias);
+    }
+    s_state.startup_align = active;
 }
 
 void AutoAim_AnchorCorner(LOCALIZATION_CORNER corner, float travelled_m){

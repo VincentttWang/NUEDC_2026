@@ -7,14 +7,17 @@ aim_tune_viz.py — 实时可视化云台前馈整定 (读 MCU Debug_Ex 遥测)�
       本脚本实时画出跟踪好坏, 用于"看着调参"。
 
 遥测格式 (app_e_task.c 每 ~20ms 一行, 115200):
-    A,t_ms,line_state,gz,vCenter,heading,yawCmd,yawRateFF,yawActX10
+    A,t_ms,line_state,gz,vCenter,heading,yawCmd,yawRateFF,yawActX10[,yawBias,visErrY]
       line_state: 0=直线 1=角前冲 2=角弧转
       yawActX10 : F32C 上报 yaw 多圈角(0.1°); 逻辑角 = yaw_dir * yawActX10/10
+      yawBias   : 视觉慢校正当前 yaw bias (deg); 旧固件无此列, 兼容解析
+      visErrY   : 最近有效视觉帧 yaw 误差 (deg)
 
-三张图:
+四张图:
   1) yawCmd vs yawAct  —— 云台实际有没有追上指令 (看滞后/过冲)
   2) 跟踪误差 cmd-act   —— 激光方位偏差 (=激光在靶上抖多少); 目标进 ±1° 绿线内
   3) gz                —— 车蛇形晃动 (循迹平滑效果)
+  4) yawBias / visErrY —— 视觉收敛曲线 (bias 应快收敛后平缓, visErr 应趋近 0)
 背景按 line_state 着色: 黄=角前冲, 粉=角弧转, 白=直线。
 标题实时统计: 直线段 gz/err 的 RMS, 转弯段 err 的 RMS/峰值。
 
@@ -59,7 +62,8 @@ class Reader(threading.Thread):
         super().__init__(daemon=True)
         self.port, self.baud, self.yaw_dir = port, baud, yaw_dir
         self.lock = threading.Lock()
-        self.data = collections.deque(maxlen=60000)  # (t, state, gz, v, head, ycmd_uw, yact_plot, err)
+        # (t, state, gz, v, head, ycmd_uw, yact_plot, err, ybias, viserr)
+        self.data = collections.deque(maxlen=60000)
         self.t0 = None
         self.prev_uw = None
         self.error = None
@@ -96,6 +100,12 @@ class Reader(threading.Thread):
                 head = float(p[5]); ycmd = float(p[6]); _yff = float(p[7]); yactx10 = int(p[8])
             except ValueError:
                 continue
+            ybias = viserr = 0.0
+            if len(p) >= 11:   # 新固件: 视觉 bias / 视觉误差列 (旧格式兼容)
+                try:
+                    ybias = float(p[9]); viserr = float(p[10])
+                except ValueError:
+                    pass
             yact = self.yaw_dir * yactx10 / 10.0
             err = norm180(ycmd - yact)
             # 脚本侧对 yawCmd 解缠, 使叠加图连续无 ±180 跳变
@@ -106,7 +116,8 @@ class Reader(threading.Thread):
                 self.t0 = t_ms
             t = (t_ms - self.t0) / 1000.0
             with self.lock:
-                self.data.append((t, state, gz, v, head, ycmd_uw, yact_plot, err))
+                self.data.append((t, state, gz, v, head, ycmd_uw, yact_plot, err,
+                                  ybias, viserr))
         try:
             ser.close()
         except Exception:  # noqa
@@ -143,7 +154,7 @@ def main():
     reader = Reader(args.port, args.baud, args.yaw_dir, args.save)
     reader.start()
 
-    fig, axes = plt.subplots(3, 1, sharex=True, figsize=(11, 8))
+    fig, axes = plt.subplots(4, 1, sharex=True, figsize=(11, 9))
     fig.canvas.manager.set_window_title(f"aim tune viz — {args.port}")
 
     def update(_frame):
@@ -185,8 +196,17 @@ def main():
         axes[2].plot(ts, gz, color="tab:green", lw=1.0)
         axes[2].axhline(0.0, color="k", lw=0.5)
         axes[2].set_ylabel("gz car yaw-rate (deg/s)")
-        axes[2].set_xlabel("t (s)")
         axes[2].grid(True, alpha=0.3)
+
+        ybias = [d[8] for d in win]
+        viserr = [d[9] for d in win]
+        axes[3].plot(ts, ybias, color="tab:blue", lw=1.2, label="yawBias")
+        axes[3].plot(ts, viserr, color="tab:gray", lw=0.8, label="visErrY")
+        axes[3].axhline(0.0, color="k", lw=0.5)
+        axes[3].set_ylabel("vision (deg)")
+        axes[3].set_xlabel("t (s)")
+        axes[3].legend(loc="upper left", fontsize=8)
+        axes[3].grid(True, alpha=0.3)
 
         s_gz = [d[2] for d in win if d[1] == 0]
         s_err = [d[7] for d in win if d[1] == 0]

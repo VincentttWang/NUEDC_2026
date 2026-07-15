@@ -30,7 +30,8 @@ const CANMV_TARGET_DATA *CanMvUart_GetTargetData(CANMV_TARGET target){
     return (target == CANMV_TARGET_ANGLE) ? &s_angle_data : NULL;
 }
 
-BSP_STATUS Gimbal_SetAngle(float yaw_deg, float pitch_deg){
+BSP_STATUS Gimbal_SetAngle(float yaw_deg, float pitch_deg, float yaw_rate_ff_deg_s){
+    (void)yaw_rate_ff_deg_s;
     s_command_yaw = yaw_deg;
     s_command_pitch = pitch_deg;
     s_command_count++;
@@ -69,11 +70,29 @@ int main(void){
     assert(state.vision_valid);
     assert(Near(state.pose.heading_deg, 0.0f, 0.001f));
     assert(state.last_center_delta_m > state.last_wheel_delta_m);
-    assert(Near(state.vision_bias.yaw_bias_deg, -0.035f, 0.001f));
-    assert(Near(state.vision_bias.pitch_bias_deg, -0.0175f, 0.001f));
+    /* 首帧逐轴增益: yaw g0=0.5 -> 0.5*(-1.0); pitch g0=0.25 -> 0.25*(-0.5) */
+    assert(Near(state.vision_bias.yaw_bias_deg, -0.5f, 0.001f));
+    assert(Near(state.vision_bias.pitch_bias_deg, -0.125f, 0.001f));
     assert(s_command_count == 1);
     assert(Near(s_command_yaw, state.yaw_command_deg, 0.001f));
     assert(Near(s_command_pitch, state.pitch_command_deg, 0.001f));
+
+    /* 起步对齐窗口: 视觉帧喂大量程 startup_bias, 慢 bias 冻结不动。 */
+    AutoAim_SetStartupAlign(true);
+    s_angle_data.value[0] = (uint16_t)(int16_t)200;   /* +2.00° */
+    s_angle_data.value[1] = (uint16_t)(int16_t)100;   /* +1.00° */
+    g_canmv_uart_angle_frame_count = 2U;
+    assert(AutoAim_Update(0.1f) == BSP_STATUS_OK);
+    state = AutoAim_GetState();
+    /* startup 首帧逐轴: yaw 0.5*(-2.0)=-1.0, pitch 0.25*(+1.0)=+0.25 */
+    assert(Near(state.startup_bias.yaw_bias_deg, -1.0f, 0.001f));
+    assert(Near(state.startup_bias.pitch_bias_deg, 0.25f, 0.001f));
+    assert(Near(state.vision_bias.yaw_bias_deg, -0.5f, 0.001f));   /* 慢 bias 未动 */
+    AutoAim_SetStartupAlign(false);
+    /* 对齐完成: 慢 bias 跳到稳态小增益段 (g0/gmin=25 -> frame_count>=25)。 */
+    state = AutoAim_GetState();
+    assert(state.vision_bias.frame_count >= 25U);
+    assert(!state.startup_align);
 
     AutoAim_AnchorCorner(LOCALIZATION_CORNER_B, 1.0f);
     state = AutoAim_GetState();

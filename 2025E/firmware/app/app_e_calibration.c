@@ -27,7 +27,12 @@ APP_E_CALIBRATION_CONFIG AppE_GetCalibrationConfig(void){
     /* 竖直高差 = 靶心离地高 - 云台出光点离地高。
      * 实测: 靶心 0.25m - 出光点 0.22m = 0.03m。 */
     aim.solver.height_diff_m = 0.030f;
-    aim.solver.mount_x_m = 0.000f; /* 车体前方为正。 */
+    /* 云台 yaw 支点安装偏移 (定位原点 = 轮轴中点):
+     * 实测支点在轮轴前 12cm → mount_x = +0.12。静态解与速率前馈均消费此值;
+     * 近靶处(~0.5m)12cm 臂长最坏折 ~10° 级指向差, 且随位姿变化, 静态标零吸收不掉。
+     * 注: 陀螺仪在轮轴后 2.5cm —— 无需补偿: 航向/角速度是刚体全局量, 与安装位置
+     * 无关(只有加速度计读数受位置影响, 本工程不直接消费加计), 勿为此加"修正"。 */
+    aim.solver.mount_x_m = 0.120f; /* 车体前方为正。 */
     aim.solver.mount_y_m = 0.000f; /* 车体左侧为正。 */
 
     /* 4. 云台机械零位：增大 yaw offset 会减小 yaw 指令；pitch 反之。
@@ -39,9 +44,28 @@ APP_E_CALIBRATION_CONFIG AppE_GetCalibrationConfig(void){
     aim.solver.yaw_zero_offset_deg = 0.000f;
     aim.solver.pitch_zero_offset_deg = 140.000f;
 
-    /* 5. 视觉慢校正：若某轴误差越校越大，只翻转对应 sign。 */
-    aim.vision_bias_ki = 0.100f;       /* 从小增益开始实机调试。 */
-    aim.vision_bias_limit_deg = 3.000f;
+    /* 5. 视觉 bias (衰减增益, 逐轴): 第 n 个有效帧增益 g(n)=max(gain_min, gain0/(1+n))。
+     *    yaw: gain0=0.5 -> 首帧吃掉一半残差, ~3 帧完成主收敛;
+     *         gain_min=0.02 @~30fps -> 稳态时间常数 ~1.7s, 跟漂移不引入抖动。
+     *    pitch 独立且更保守: 视觉误差是"光束角"而校正加在"电机角"上, pitch 减速比把
+     *         等效环增益放大数倍(电机 1°≈光束数度) -> gain 按 1/减速比缩;
+     *         若实测 pitch 收敛振荡/过冲 -> 再减半 gain0; 收敛慢 -> 加大。
+     *         行程仅 home±15°, 限幅收紧到 2°。
+     *    测量质量(平滑/野值/丢帧预测/延迟前推)由 K230 侧 Kalman 负责, 此处无门控。
+     *    上板首验: 若某轴误差越校越大(激光越修越偏), 只翻转对应 sign。 */
+    aim.vision_yaw = (AIM_VISION_GAIN){
+        .gain0 = 0.500f, .gain_min = 0.020f, .limit_deg = 3.000f,
+    };
+    aim.vision_pitch = (AIM_VISION_GAIN){
+        .gain0 = 0.250f, .gain_min = 0.010f, .limit_deg = 2.000f,
+    };
+    /* 起步静态对齐限幅(逐轴): 倒计时窗口内一次性吸收静态总偏差 (含光轴统一假设下
+     * 的相机-激光偏差, yaw 实测基线 ~9° 故给 ±10°; pitch 行程小给 ±5°)。开跑即冻结。
+     * ⚠ 若上板发现激光稳定偏离靶心一个常量 → 光轴统一假设不成立(相机居中≠激光
+     * 命中), 需回头做 S10 光轴标定(K230 IDEAL_* 或光斑检测)。
+     * 若对齐期间校正量打到限幅且激光越转越偏 → 翻对应 vision_*_sign。 */
+    aim.vision_yaw_startup_limit_deg = 10.000f;
+    aim.vision_pitch_startup_limit_deg = 5.000f;
     aim.vision_yaw_sign = -1.000f;
     aim.vision_pitch_sign = 1.000f;
 
@@ -53,10 +77,10 @@ APP_E_CALIBRATION_CONFIG AppE_GetCalibrationConfig(void){
      *    Δz 仅 3cm, pitch 全程只变 ~2°、变化极慢, 故默认 0 即可。
      *    (yaw 的转弯执行滞后已由 gimbal 层 velff 内建, 不再用 lead, 避免重复前馈。) */
     aim.pitch_rate_lead_s = 0.000f;
-    /* 速率前馈运动输入(ω 与 v)低通时间常数(s): 平均掉直线蛇形(绕0)与里程混叠尖峰(v 0↔1m/s),
-     * 不让速率前馈把它们放大成 yaw 抖; 转弯(持续大 ω/v)仍保留(略延迟)。0.133 -> ~1.2Hz。
-     * 抬大更稳直线但转弯前馈更迟, 反之亦然。 */
-    aim.rate_ff_motion_tau_s = 0.133f;
+    /* 速率前馈 v 输入低通时间常数(s): 只滤 v (单轮里程 v=Δs/dt 混叠尖峰 0↔1m/s)。
+     * ω 不滤: 蛇形是车身真实自转, velff 速度内环实时 1:1 反转补偿才能把激光钉在世界系;
+     * 滤 ω 只会给转弯前馈加相位滞后。0.133 -> ~1.2Hz。 */
+    aim.rate_ff_v_tau_s = 0.133f;
 
     APP_E_CALIBRATION_CONFIG config = {
         .auto_aim = aim,

@@ -53,18 +53,26 @@
 #endif
 
 /* ===== yaw 速度前馈: MCU 位置外环 + F32C 速度内环 (Gimbal_SetAngle 唯一执行路径) =====
- * 把"几何需求角速度"(命令角求导)直接喂 F32C 速度环, 再叠加位置校正修残余 -> 消位置模式
- * 追斜坡的速度滞后(转弯明显)。yaw 前馈已由此内建, 故 auto_aim 不再另加 yaw_rate_lead。
+ * ω_cmd = 解析速率前馈(上层运动学闭式解, 经参数传入) + KP·(目标角 − 预估反馈角)。
+ *   - 解析前馈替代命令求导: 无差分噪声, 免疫角点 snap 命令跳变(跳变改由 P 项平滑吸收);
+ *   - 反馈一步预估: multi_angle 是上拍请求的(滞后~1环), 用上拍下发 ω 外推到当前,
+ *     消转弯时 ~4° 的陈旧假误差, 为抬 KP 解锁;
+ *   - ΔΣ 量化整形: 1RPM=6°/s 太粗(KP=4 下等效 ±1.5° 位置死区), 舍入误差累进下一拍,
+ *     ~30Hz 交替下发相邻 RPM, 平均速度分辨率 ~0.2°/s。
+ * yaw 前馈已由此内建, 故 auto_aim 不再另加 yaw_rate_lead。
  * ⚠ 速度模式无位置保持, MCU 若停更会失控空转(滑环下不撞机械, 但激光乱扫); 任务正常退出
  *   由 Gimbal_Stop 发 0 停住。 */
 #ifndef GIMBAL_YAW_VELFF_KP
-#define GIMBAL_YAW_VELFF_KP 4.0f            /* 位置外环增益 (deg/s per deg); 高->追紧但反馈滞后下易振 */
+#define GIMBAL_YAW_VELFF_KP 6.0f            /* 位置外环增益 (deg/s per deg); 预估解锁后可试 6~8 */
 #endif
 #ifndef GIMBAL_YAW_VELFF_MAX_DEG_S
 #define GIMBAL_YAW_VELFF_MAX_DEG_S 300.0f  /* ω 指令限幅, 兼作初始阶跃/失控缓冲 */
 #endif
-#ifndef GIMBAL_YAW_VELFF_RATE_LPF_A
-#define GIMBAL_YAW_VELFF_RATE_LPF_A 0.5f   /* 命令求导的轻低通(降差分噪声) */
+/* 链路自愈周期: 周期性重发使能+速度模式+当前 RPM。使能/模式/速度帧若在上电初期丢失,
+ * 去重机制下饱和恒定的 RPM 永不重发 → 云台冻结(实测刷机后首跑冻到第一个弯才恢复)。
+ * 自愈把丢帧后果从"永久冻结"压到"最多一个周期"。总线占用 ~6 帧/s, 可忽略。 */
+#ifndef GIMBAL_YAW_LINK_REFRESH_MS
+#define GIMBAL_YAW_LINK_REFRESH_MS 500U
 #endif
 
 /*
@@ -138,12 +146,15 @@ static PITCH_MODE s_pitch_mode;    /* HOMING / READY (初值 HOMING=未就绪) *
  */
 static float s_yaw_cmd_unwrapped_deg;
 
-/* yaw 速度前馈状态: 速度模式已配置标志、命令求导用的上拍目标/时间戳、低通后的前馈角速度。
+/* yaw 速度前馈状态: 速度模式已配置标志、时间戳、上拍下发的逻辑 ω(反馈一步预估用)、
+ * ΔΣ 量化整形的舍入误差累计、链路自愈时间戳、上电就近对齐待执行标志。
  * 均属 yaw 生命周期状态, 不被 Gimbal_Init 重置。 */
 static bool s_yaw_speed_mode_set;
 static uint32_t s_yaw_velff_ms;
-static float s_yaw_velff_prev_target_deg;
-static float s_yaw_velff_ff_deg_s;
+static float s_yaw_velff_prev_omega_deg_s;
+static float s_yaw_velff_rpm_err;
+static uint32_t s_yaw_link_refresh_ms;
+static bool s_yaw_align_pending;
 
 /* 归一化到 [-180,180), 处理任意范围输入 (供 yaw 解缠求就近增量)。 */
 static float Gimbal_NormalizeDeg(float angle){
@@ -312,13 +323,13 @@ static void Gimbal_EnsureYawSpeedMode(void){
 
 /*
  * yaw 速度前馈级联 (Gimbal_SetAngle 的 yaw 执行):
- *   ω_cmd = FF(命令角求导, 低通) + Kp·(目标角 - 反馈角) ; 限幅后按转速下发 F32C 速度环。
- * 目标角同样做滑环解缠; 反馈角取 F32C 多圈角(逻辑系)。前馈直接驱动转速, 消位置环斜坡滞后。
+ *   ω_cmd = 解析速率前馈(参数传入) + Kp·(目标角 − 一步预估反馈角);
+ *   限幅后经 ΔΣ 量化整形按转速下发 F32C 速度环。目标角做滑环解缠。
  */
-static void Gimbal_DriveYawVelFF(float yaw_deg){
+static void Gimbal_DriveYawVelFF(float yaw_deg, float yaw_rate_ff_deg_s){
     Gimbal_EnsureYawSpeedMode();
 
-    /* 目标角解缠(滑环多圈), 与位置路径一致。 */
+    /* 目标角解缠(滑环多圈)。 */
     s_yaw_cmd_unwrapped_deg += Gimbal_NormalizeDeg(yaw_deg - s_yaw_cmd_unwrapped_deg);
     float yaw_target_deg = s_yaw_cmd_unwrapped_deg;
 
@@ -326,30 +337,52 @@ static void Gimbal_DriveYawVelFF(float yaw_deg){
     float dt_s = (float)(now_ms - s_yaw_velff_ms) / 1000.0f;
     s_yaw_velff_ms = now_ms;
     if ((dt_s <= 0.0f) || (dt_s > 0.1f)){
-        /* 首拍/长间隔: 复位求导基准, 不产生假前馈。 */
+        /* 首拍/长间隔: 预估基准与量化累计失效, 复位; 命令角待就近对齐反馈。 */
         dt_s = 0.03f;
-        s_yaw_velff_prev_target_deg = yaw_target_deg;
-        s_yaw_velff_ff_deg_s = 0.0f;
+        s_yaw_velff_prev_omega_deg_s = 0.0f;
+        s_yaw_velff_rpm_err = 0.0f;
+        s_yaw_align_pending = true;
     }
 
-    /* 前馈角速度 = 命令角求导 + 轻低通(降差分噪声)。 */
-    float raw_rate = (yaw_target_deg - s_yaw_velff_prev_target_deg) / dt_s;
-    s_yaw_velff_prev_target_deg = yaw_target_deg;
-    s_yaw_velff_ff_deg_s += GIMBAL_YAW_VELFF_RATE_LPF_A * (raw_rate - s_yaw_velff_ff_deg_s);
+    /* 链路自愈: 周期性重发使能+速度模式, 并强制重发当前 RPM(失效去重缓存)。
+     * 防止上电初期丢帧 + ω 饱和恒定 RPM 被去重卡死 → 云台永久冻结。 */
+    if ((uint32_t)(now_ms - s_yaw_link_refresh_ms) >= GIMBAL_YAW_LINK_REFRESH_MS){
+        s_yaw_link_refresh_ms = now_ms;
+        BLDC_Enable(GIMBAL_YAW_ADDR);
+        BLDC_SetMode(GIMBAL_YAW_ADDR, MODE_SPEED);
+        s_gimbal.last_yaw_rpm = INT16_MIN;   /* 哨兵: 本拍必重发速度 */
+    }
 
-    /* 位置外环: F32C 多圈角反馈(物理)换算回逻辑系; 请求下拍反馈。 */
-    float yaw_actual_deg = GIMBAL_YAW_DIR * (float)Gimbal_YawMotor()->multi_angle / 10.0f;
+    /* 位置外环反馈一步预估: multi_angle 是上拍请求的(滞后~1环), 用上拍下发的 ω
+     * 外推到当前, 消运动中的陈旧假误差。随后请求下拍反馈。 */
+    float yaw_fb_deg = GIMBAL_YAW_DIR * (float)Gimbal_YawMotor()->multi_angle / 10.0f;
     BLDC_ReqFeedback(GIMBAL_YAW_ADDR, FB_MULTI_ANGLE);
 
-    float omega = s_yaw_velff_ff_deg_s + GIMBAL_YAW_VELFF_KP * (yaw_target_deg - yaw_actual_deg);
+    /* 上电/长间隔就近对齐: 电机可能带着上一会话的多圈角(独立供电不掉电), 而 MCU
+     * 解缠基准已清零 → 位置误差可达数百度, 会整圈扫掠。收到首个有效反馈后把解缠
+     * 命令角对齐到反馈的最短路一侧, 初始误差 ≤180°(滑环允许任意圈数, 对齐无代价)。 */
+    if (s_yaw_align_pending && (Gimbal_YawMotor()->data_ready != 0U)){
+        s_yaw_align_pending = false;
+        s_yaw_cmd_unwrapped_deg = yaw_fb_deg +
+            Gimbal_NormalizeDeg(yaw_target_deg - yaw_fb_deg);
+        yaw_target_deg = s_yaw_cmd_unwrapped_deg;
+    }
+    float yaw_est_deg = yaw_fb_deg + s_yaw_velff_prev_omega_deg_s * dt_s;
+
+    float omega = yaw_rate_ff_deg_s +
+                  GIMBAL_YAW_VELFF_KP * (yaw_target_deg - yaw_est_deg);
     if (omega > GIMBAL_YAW_VELFF_MAX_DEG_S){
         omega = GIMBAL_YAW_VELFF_MAX_DEG_S;
     } else if (omega < -GIMBAL_YAW_VELFF_MAX_DEG_S){
         omega = -GIMBAL_YAW_VELFF_MAX_DEG_S;
     }
+    s_yaw_velff_prev_omega_deg_s = omega;
 
-    /* 逻辑角速度 -> 物理转速(RPM), 经 GIMBAL_YAW_DIR 适配后下发。 */
-    int16_t rpm = (int16_t)(GIMBAL_YAW_DIR * GIMBAL_DEG_S_TO_RPM(omega));
+    /* 逻辑角速度 -> 物理转速(RPM), 经 GIMBAL_YAW_DIR 适配; ΔΣ 量化整形:
+     * 舍入误差累进下一拍, 相邻 RPM 交替使平均转速达到亚 RPM 分辨率。 */
+    float rpm_f = GIMBAL_YAW_DIR * GIMBAL_DEG_S_TO_RPM(omega) + s_yaw_velff_rpm_err;
+    int16_t rpm = (int16_t)(rpm_f >= 0.0f ? rpm_f + 0.5f : rpm_f - 0.5f);
+    s_yaw_velff_rpm_err = rpm_f - (float)rpm;
     Gimbal_SendAxisRpm(GIMBAL_YAW_ADDR, rpm, &s_gimbal.last_yaw_rpm);
 
     s_gimbal.yaw_deg = yaw_deg;     /* 逻辑估计角(归一化, 供显示) */
@@ -424,14 +457,14 @@ static void Gimbal_DrivePitchAbsolute(float pitch_deg){
     Gimbal_SendPitchAngle((int32_t)(s_gimbal.pitch_target_deg * 10.0f));
 }
 
-BSP_STATUS Gimbal_SetAngle(float yaw_deg, float pitch_deg){
+BSP_STATUS Gimbal_SetAngle(float yaw_deg, float pitch_deg, float yaw_rate_ff_deg_s){
     /*
      * 前馈瞄准接口 (运动中连续瞄准/画圆, 前馈连续零滞后, 不依赖视觉识别光斑):
-     *   - yaw: 速度前馈级联 (MCU 位置外环 + F32C 速度内环), 消位置模式追斜坡的速度滞后;
+     *   - yaw: 速度前馈级联 (解析速率前馈 + MCU 位置外环 + F32C 速度内环);
      *   - pitch: 位置模式, 直接置绝对设定点。
      * 与 Gimbal_SetSpeed 互斥使用: 一个任务内应固定用其一, 需切换时先 Stop。
      */
-    Gimbal_DriveYawVelFF(yaw_deg);
+    Gimbal_DriveYawVelFF(yaw_deg, yaw_rate_ff_deg_s);
     Gimbal_DrivePitchAbsolute(pitch_deg);
     return BSP_STATUS_OK;
 }

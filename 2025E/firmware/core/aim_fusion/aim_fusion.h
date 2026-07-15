@@ -6,11 +6,13 @@
  *   - aim_solver: 纯几何 (位姿+靶心 → 静态角);
  *   - aim_fusion: 控制融合 (静态角 + 车运动 + 视觉误差 → 最终指令 + 速率前馈)。
  *
- * 速率前馈 (车运动引起的云台角速度需求, 固定靶点):
- *   yaw_rate   = RAD2DEG( v·sin(Δβ)/Rh ) − ω     (平移掠过 − 车体自转)
- *   pitch_rate = RAD2DEG( Δz·v·cos(Δβ)/(Rh²+Δz²) )
- * 其中 Δβ = 世界方位 − 车航向, ω 取自陀螺 yaw-rate (逆时针为正), v 为车心前向速度。
- * 速率项忽略 mount 偏移 (二阶小量, 静态角已含之)。
+ * 速率前馈 (车运动引起的云台角速度需求, 固定靶点), 以【云台支点】为基准:
+ *   支点世界速度 v_g = v·x̂(航向) + ω × r_mount   (车身自转把支点甩出的横向速度)
+ *   yaw_rate   = RAD2DEG( 视线垂向分量(v_g)/Rh ) − ω   (视线转速 − 车体自转)
+ *   pitch_rate = RAD2DEG( Δz·视线径向分量(v_g)/(Rh²+Δz²) )
+ * 其中 ω 取自陀螺 yaw-rate (逆时针为正), v 为车心前向速度, Rh 从支点起算。
+ * mount 不可忽略: 支点在轮轴前 12cm 时, 转弯 ω×r ≈ 0.27m/s 与车速同量级,
+ * 忽略会在近靶转弯段引入 ~15°/s 的速率误差。mount=0 退化为原车心公式。
  *
  * 本模块为纯计算, 不依赖任何硬件/中间层, 可单独单元测试。
  */
@@ -20,6 +22,7 @@
 #include "aim_solver/aim_solver.h"
 
 #include <stdbool.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -31,20 +34,40 @@ extern "C" {
 #define AIM_FUSION_MAX_YAW_RATE_DEG_S 300.0f
 
 /**
- * @brief 视觉低增益 bias 校正器 (自 aim_solver 迁入)。
+ * @brief 视觉 bias 校正器: 按帧衰减增益 (KF 式增益调度的退化形态)。
  *
- * 把 K230 回传的"靶心相对图像中心的角度误差"积分成一个缓变 bias, 叠加到前馈
- * 角上, 消除里程漂移与机械标定误差。视觉无效时 bias 保持不动 (前馈照常)。
+ * 把 K230 回传的"靶心相对光轴的角度误差"吸收成缓变 bias, 叠加到前馈角上,
+ * 消除里程漂移与机械标定误差。测量质量控制(平滑/野值/丢帧预测)在 K230 侧
+ * Kalman 完成, 本层只决定"信任程度":
+ *   第 n 个有效帧增益 g(n) = max(gain_min, gain0/(1+n)), n 从 0 起;
+ *   首帧吃掉 gain0 比例的残差(快收敛, 供 4s 限时任务), 稳态小增益跟踪慢漂移。
+ * 视觉无效时 bias 冻结 (前馈照常, 帧计数不清零); 任务启动时清零重新快收敛。
  */
+/**
+ * @brief 单轴衰减增益参数。yaw/pitch 分开配置:
+ *        pitch 视觉误差是"光束角"而校正加在"电机角"上, 减速比放大等效环增益,
+ *        且 pitch 电机行程 (±15°) 远小于 yaw, 增益与限幅都应独立取值。
+ */
+typedef struct {
+    /** 首帧增益 (0~1]。 */
+    float gain0;
+    /** 稳态最小增益。 */
+    float gain_min;
+    /** bias 绝对值限幅, 单位 deg。 */
+    float limit_deg;
+} AIM_VISION_GAIN;
+
 typedef struct {
     /** yaw bias, 单位 deg。 */
     float yaw_bias_deg;
     /** pitch bias, 单位 deg。 */
     float pitch_bias_deg;
-    /** 校正积分增益, 单位 (deg bias) / (deg error · s)。宜取小值 (慢校正)。 */
-    float ki;
-    /** bias 绝对值限幅, 单位 deg。 */
-    float bias_limit_deg;
+    /** yaw 轴增益/限幅。 */
+    AIM_VISION_GAIN yaw;
+    /** pitch 轴增益/限幅。 */
+    AIM_VISION_GAIN pitch;
+    /** 已吸收的有效帧计数 (增益调度用; 一帧含两轴测量, 计数共用)。 */
+    uint32_t frame_count;
 } AIM_VISION_BIAS;
 
 /**
@@ -72,40 +95,49 @@ typedef struct {
 } AIM_FUSION_OUTPUT;
 
 /**
- * @brief 初始化视觉 bias 校正器。
- * @param ki 校正积分增益 (宜取小值)。
- * @param limit bias 绝对值限幅, 单位 deg。
+ * @brief 初始化视觉 bias 校正器 (bias 与帧计数清零)。
+ * @param yaw yaw 轴增益/限幅。
+ * @param pitch pitch 轴增益/限幅。
  */
-void AimVisionBias_Init(AIM_VISION_BIAS *bias, float ki, float limit);
+void AimVisionBias_Init(AIM_VISION_BIAS *bias, AIM_VISION_GAIN yaw,
+                        AIM_VISION_GAIN pitch);
 
 /**
- * @brief 更新视觉 bias。
+ * @brief 按帧更新视觉 bias: bias += g(n)·err (仅在新有效帧时调用生效)。
  * @param bias 校正器。
- * @param yaw_err_deg 靶心相对图像中心的水平角误差, 单位 deg。
- * @param pitch_err_deg 靶心相对图像中心的竖直角误差, 单位 deg。
- * @param valid 本帧视觉是否有效; false 时 bias 保持不动。
- * @param dt_s 控制周期, 单位 s。
+ * @param yaw_err_deg 靶心相对光轴的水平角误差, 单位 deg。
+ * @param pitch_err_deg 靶心相对光轴的竖直角误差, 单位 deg。
+ * @param valid 本帧视觉是否有效; false 时 bias 冻结 (帧计数不清零)。
  */
 void AimVisionBias_Update(AIM_VISION_BIAS *bias,
                           float yaw_err_deg,
                           float pitch_err_deg,
-                          bool valid,
-                          float dt_s);
+                          bool valid);
 
 /**
- * @brief 计算车运动引起的云台角速度需求 (速率前馈)。
- * @param pose 车在世界系的位姿。
+ * @brief 直接进入稳态增益 (跳过快收敛段): 把帧计数推到 g(n)<=gain_min 处。
+ *        用于起步对齐完成后, 慢跟踪 bias 不再对首帧做大步吸收。
+ */
+void AimVisionBias_SetSteadyGain(AIM_VISION_BIAS *bias);
+
+/**
+ * @brief 计算车运动引起的云台角速度需求 (速率前馈, 以云台支点为基准)。
+ * @param pose 车在世界系的位姿 (定位原点 = 轮轴中点)。
  * @param target_xy 世界系目标水平点 (靶心或圆点)。
  * @param dz_m 目标相对云台出光点的竖直高差, 单位 m。
  * @param v_center_mps 车心前向速度, 单位 m/s (可由 last_center_delta/dt 求)。
  * @param omega_deg_s 车体绕 +Z 角速度 (陀螺 yaw-rate), 单位 deg/s, 逆时针为正。
+ * @param mount_x_m 云台 yaw 支点相对定位原点的车体前向偏移, 单位 m (前为正)。
+ * @param mount_y_m 云台 yaw 支点相对定位原点的车体左向偏移, 单位 m (左为正)。
  * @return 速率前馈; yaw 轴已按 AIM_FUSION_MAX_YAW_RATE_DEG_S 钳位。
  */
 AIM_RATE_FF AimFusion_MotionRate(KINEMATICS_POSE pose,
                                  AIM_POINT2F target_xy,
                                  float dz_m,
                                  float v_center_mps,
-                                 float omega_deg_s);
+                                 float omega_deg_s,
+                                 float mount_x_m,
+                                 float mount_y_m);
 
 /**
  * @brief 组装最终指令 = 静态前馈角 + 视觉 bias, 并携带速率前馈。

@@ -18,10 +18,13 @@ static const float s_sensor_position[LINE_FOLLOW_SENSOR_COUNT] = {
 #ifndef LINE_TRACKING_ERROR_LPF_ALPHA
 #define LINE_TRACKING_ERROR_LPF_ALPHA 0.5f
 #endif
+/* 中心死区: 线大致居中(|error|<=该值)就直行、不做微修正, 让车"提交直线运动", 消掉数字灰度
+ * 量化噪声引起的高频微修蛇形。scale=10 时 error 10 ≈ 偏 1 个传感器, 故 10 ≈ 容许 ±1 格偏心。
+ * 放宽 -> 更不抖但容许偏心更大(过大可能贴近传感器阵列边缘才纠、转弯入口判断变晚);
+ * 收窄 -> 循迹更贴线但微修蛇形回来。现场按"直线不抖 & 不跑偏丢线"折中(可试 6~15)。 */
 #ifndef LINE_TRACKING_ERROR_DEADBAND
-#define LINE_TRACKING_ERROR_DEADBAND 7.0f
+#define LINE_TRACKING_ERROR_DEADBAND 10.0f
 #endif
-
 static float s_line_tracking_filtered_error;
 
 static bool LineTracking_IsSensorEnabled(uint8_t index){
@@ -46,7 +49,7 @@ static LINE_TRACKING_CONFIG LineTracking_DefaultConfig(void){
         .pid_config = {
             .kp = 1.0f,
             .ki = 0.0f,
-            .kd = 1.5f,
+            .kd = 0.0f,   /* 不对量化质心求导(会出尖峰); 靠宽死区+低通抑制微修蛇形 */
             .integral_limit = 500.0f,
             .output_limit = LINE_TRACKING_DEFAULT_CORRECTION_LIMIT,
             .mode = PID_MODE_POSITION,

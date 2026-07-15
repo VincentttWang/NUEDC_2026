@@ -3,7 +3,7 @@
 
 #include "bsp_common.h"
 
-BSP_STATUS Gimbal_SetAngle(float yaw_deg, float pitch_deg);
+BSP_STATUS Gimbal_SetAngle(float yaw_deg, float pitch_deg, float yaw_rate_ff_deg_s);
 BSP_STATUS Gimbal_Stop(void);
 
 #endif

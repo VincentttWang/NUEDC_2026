@@ -139,7 +139,11 @@ static void CalTest_RunAim(bool enable_vision_bias){
     bool laser_on = false;
 
     if (!enable_vision_bias){
-        calibration.auto_aim.vision_bias_ki = 0.0f;
+        /* 纯几何模式: 两轴增益全置 0, 视觉帧到达也不吸收。 */
+        calibration.auto_aim.vision_yaw.gain0 = 0.0f;
+        calibration.auto_aim.vision_yaw.gain_min = 0.0f;
+        calibration.auto_aim.vision_pitch.gain0 = 0.0f;
+        calibration.auto_aim.vision_pitch.gain_min = 0.0f;
     }
 
     Key_ClearAllEvents();
@@ -241,7 +245,7 @@ void AppE_CalibrationTest_RunCircle(void){
 
         AIM_SOLVER_RESULT result = AimSolver_SolveCircle(calibration.auto_aim.start_pose,
                                                          phase_deg);
-        (void)Gimbal_SetAngle(result.yaw_cmd_deg, result.pitch_cmd_deg);
+        (void)Gimbal_SetAngle(result.yaw_cmd_deg, result.pitch_cmd_deg, 0.0f);
         snprintf(line0, sizeof(line0), "Phase:%0.1f", phase_deg);
         snprintf(line1, sizeof(line1), "Cmd:%0.1f,%0.1f",
                  result.yaw_cmd_deg, result.pitch_cmd_deg);

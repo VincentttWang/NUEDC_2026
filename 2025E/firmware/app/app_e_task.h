@@ -25,8 +25,8 @@ void AppE_RunLineAim(uint8_t lap_count);
 void AppE_RunLineCircle(uint8_t lap_count);
 
 /**
- * @brief 持续视觉瞄准：一直把 K230 目标中心闭环驱到图像中心，直到长按返回。
- * @note 不设超时，丢失目标自动停云台、目标重现自动恢复。
+ * @brief F1 参数持续瞄准调试：复用几何前馈、起步对齐、视觉慢校正和 velff。
+ * @note 不设任务超时；无视觉时保持纯几何前馈，直到长按返回。
  */
 void AppE_RunContinuousAim(void);
 
