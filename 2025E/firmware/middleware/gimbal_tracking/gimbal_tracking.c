@@ -214,10 +214,10 @@ void GimbalTracking_Reset(void){
     s_gimbal_tracking_state.link_timeout = false;
 }
 
-BSP_STATUS GimbalTracking_UpdateLaserCenter(float dt_s){
+BSP_STATUS GimbalTracking_UpdateAngle(float dt_s){
     GimbalTracking_EnsureInitialized();
 
-    /* 角度帧优先：只在收到新视觉帧时更新 PID，帧间保持上一速度指令。 */
+    /* 只在收到新角度帧时更新 PID，帧间保持上一速度指令。 */
     if (g_canmv_uart_angle_frame_count != s_last_angle_frame_count){
         float yaw_error_deg;
         float pitch_error_deg;
@@ -238,6 +238,18 @@ BSP_STATUS GimbalTracking_UpdateLaserCenter(float dt_s){
             return GimbalTracking_HandleTargetNotReady();
         }
         return BSP_STATUS_OK;
+    }
+
+    return GimbalTracking_HandleTargetNotReady();
+}
+
+BSP_STATUS GimbalTracking_UpdateLaserCenter(float dt_s){
+    GimbalTracking_EnsureInitialized();
+
+    /* 角度协议一旦出现即优先，并持续使用；否则兼容旧像素激光协议。 */
+    if ((g_canmv_uart_angle_frame_count != s_last_angle_frame_count) ||
+        s_angle_protocol_active){
+        return GimbalTracking_UpdateAngle(dt_s);
     }
 
     /* 每帧先读最新目标: Lock 则跟踪, Lost 则停转但继续接收(不永久锁死)。 */

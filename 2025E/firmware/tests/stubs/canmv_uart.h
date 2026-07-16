@@ -28,5 +28,7 @@ typedef struct {
 
 extern volatile uint32_t g_canmv_uart_angle_frame_count;
 const CANMV_TARGET_DATA *CanMvUart_GetTargetData(CANMV_TARGET target);
+CANMV_STATUS CanMvUart_GetStatus(CANMV_TARGET target);
+uint8_t CanMvUart_GetData(CANMV_TARGET target, uint16_t *out, uint8_t max_count);
 
 #endif

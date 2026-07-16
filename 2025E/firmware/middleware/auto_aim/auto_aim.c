@@ -105,6 +105,7 @@ BSP_STATUS AutoAim_Start(AUTO_AIM_MODE mode){
         s_state.imu_valid = false;
     }
     s_state.vision_frame_count = g_canmv_uart_angle_frame_count;
+    s_state.vision_correction_enabled = true;
     return s_state.imu_valid ? BSP_STATUS_OK : BSP_STATUS_NOT_READY;
 }
 
@@ -176,16 +177,18 @@ BSP_STATUS AutoAim_Update(float dt_s){
     }
     /* 视觉帧路由: 起步对齐窗口内喂大量程 startup_bias (吸收静态总偏差),
      * 窗口外喂慢跟踪 vision_bias (只管运动中漂移)。 */
-    if (s_state.startup_align){
-        AimVisionBias_Update(&s_state.startup_bias,
-                             s_config.vision_yaw_sign * yaw_error_deg,
-                             s_config.vision_pitch_sign * pitch_error_deg,
-                             s_state.vision_valid);
-    } else{
-        AimVisionBias_Update(&s_state.vision_bias,
-                             s_config.vision_yaw_sign * yaw_error_deg,
-                             s_config.vision_pitch_sign * pitch_error_deg,
-                             s_state.vision_valid);
+    if (s_state.vision_correction_enabled){
+        if (s_state.startup_align){
+            AimVisionBias_Update(&s_state.startup_bias,
+                                 s_config.vision_yaw_sign * yaw_error_deg,
+                                 s_config.vision_pitch_sign * pitch_error_deg,
+                                 s_state.vision_valid);
+        } else{
+            AimVisionBias_Update(&s_state.vision_bias,
+                                 s_config.vision_yaw_sign * yaw_error_deg,
+                                 s_config.vision_pitch_sign * pitch_error_deg,
+                                 s_state.vision_valid);
+        }
     }
 
     /* 确定本周期实际瞄准的世界目标点 (靶心或圆点), 供静态角与速率前馈共用。 */
@@ -247,6 +250,35 @@ void AutoAim_SetStartupAlign(bool active){
         AimVisionBias_SetSteadyGain(&s_state.vision_bias);
     }
     s_state.startup_align = active;
+}
+
+void AutoAim_SetStartupBias(float yaw_bias_deg, float pitch_bias_deg){
+    if (!s_state.active){
+        return;
+    }
+
+    /*
+     * 这是纯视觉闭环已经物理对准后的控制器交接值，不是未经验证的单帧误差，
+     * 因而不复用积分器的小量程限幅。frame_count 标记该基准有效，使关闭
+     * startup_align 时 steady bias 直接使用稳态小增益，避免再次快速修正。
+     */
+    s_state.startup_bias.yaw_bias_deg = yaw_bias_deg;
+    s_state.startup_bias.pitch_bias_deg = pitch_bias_deg;
+    s_state.startup_bias.frame_count = 1U;
+}
+
+void AutoAim_SetVisionCorrectionEnabled(bool enabled){
+    if (!s_state.active){
+        return;
+    }
+    s_state.vision_correction_enabled = enabled;
+}
+
+void AutoAim_ResetVisionCorrection(void){
+    if (!s_state.active){
+        return;
+    }
+    AutoAim_ResetVisionBias();
 }
 
 void AutoAim_AnchorCorner(LOCALIZATION_CORNER corner, float travelled_m){

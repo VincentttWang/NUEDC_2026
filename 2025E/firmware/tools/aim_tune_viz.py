@@ -7,11 +7,13 @@ aim_tune_viz.py — 实时可视化云台前馈整定 (读 MCU Debug_Ex 遥测)�
       本脚本实时画出跟踪好坏, 用于"看着调参"。
 
 遥测格式 (app_e_task.c 每 ~20ms 一行, 115200):
-    A,t_ms,line_state,gz,vCenter,heading,yawCmd,yawRateFF,yawActX10[,yawBias,visErrY]
+    A,t_ms,line_state,gz,vCenter,heading,yawCmd,yawRateFF,yawActX10[,yawBias,visErrY,
+      startupBias,steadyBias,visValid,visStatus,visionFrame,bldcAngleFrame,yawOmegaCmd,yawRpmCmd]
       line_state: 0=直线 1=角前冲 2=角弧转
       yawActX10 : F32C 上报 yaw 多圈角(0.1°); 逻辑角 = yaw_dir * yawActX10/10
       yawBias   : 视觉慢校正当前 yaw bias (deg); 旧固件无此列, 兼容解析
       visErrY   : 最近有效视觉帧 yaw 误差 (deg)
+      后续诊断列由脚本兼容忽略，原始值仍完整写入 --save 文件。
 
 四张图:
   1) yawCmd vs yawAct  —— 云台实际有没有追上指令 (看滞后/过冲)
@@ -69,12 +71,15 @@ class Reader(threading.Thread):
         self.error = None
         self.running = True
         self.save = open(save_path, "w", encoding="utf-8") if save_path else None
+        self.ser = None
 
     def run(self):
         try:
             ser = serial.Serial(self.port, self.baud, timeout=0.2)
+            self.ser = ser
         except Exception as e:  # noqa
             self.error = f"打开 {self.port} 失败: {e} (WHEELTEC 上位机是否占用? 先关闭)"
+            self._close_save()
             return
         while self.running:
             try:
@@ -87,6 +92,7 @@ class Reader(threading.Thread):
             if self.save:
                 try:
                     self.save.write(raw.decode("ascii", "replace"))
+                    self.save.flush()
                 except Exception:  # noqa
                     pass
             s = raw.decode("ascii", "replace").strip()
@@ -122,6 +128,26 @@ class Reader(threading.Thread):
             ser.close()
         except Exception:  # noqa
             pass
+        self.ser = None
+        self._close_save()
+
+    def stop(self):
+        """请求采集线程退出，并关闭串口以立即唤醒阻塞读取。"""
+        self.running = False
+        if self.ser is not None:
+            try:
+                self.ser.close()
+            except Exception:  # noqa
+                pass
+
+    def _close_save(self):
+        if self.save is not None:
+            try:
+                self.save.flush()
+                self.save.close()
+            except Exception:  # noqa
+                pass
+            self.save = None
 
     def snapshot(self):
         with self.lock:
@@ -223,7 +249,8 @@ def main():
         plt.tight_layout(rect=(0, 0, 1, 0.97))
         plt.show()
     finally:
-        reader.running = False
+        reader.stop()
+        reader.join(timeout=1.0)
 
 
 if __name__ == "__main__":

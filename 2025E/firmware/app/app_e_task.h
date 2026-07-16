@@ -25,8 +25,8 @@ void AppE_RunLineAim(uint8_t lap_count);
 void AppE_RunLineCircle(uint8_t lap_count);
 
 /**
- * @brief F1 参数持续瞄准调试：复用几何前馈、起步对齐、视觉慢校正和 velff。
- * @note 不设任务超时；无视觉时保持纯几何前馈，直到长按返回。
+ * @brief 纯 K230 角度误差持续瞄准，不使用世界坐标、IMU、编码器或几何前馈。
+ * @note 不设任务超时；视觉丢失时停 yaw/保持 pitch，重获目标后恢复。
  */
 void AppE_RunContinuousAim(void);
 

@@ -94,6 +94,41 @@ int main(void){
     assert(state.vision_bias.frame_count >= 25U);
     assert(!state.startup_align);
 
+    /* 几何预定位阶段: 视觉仍可见，但禁止写入两套 bias。 */
+    float frozen_yaw_bias = state.vision_bias.yaw_bias_deg;
+    float frozen_pitch_bias = state.vision_bias.pitch_bias_deg;
+    AutoAim_SetVisionCorrectionEnabled(false);
+    s_angle_data.value[0] = (uint16_t)(int16_t)-500;
+    s_angle_data.value[1] = (uint16_t)(int16_t)300;
+    g_canmv_uart_angle_frame_count = 3U;
+    assert(AutoAim_Update(0.1f) == BSP_STATUS_OK);
+    state = AutoAim_GetState();
+    assert(state.vision_valid);
+    assert(!state.vision_correction_enabled);
+    assert(Near(state.vision_bias.yaw_bias_deg, frozen_yaw_bias, 0.001f));
+    assert(Near(state.vision_bias.pitch_bias_deg, frozen_pitch_bias, 0.001f));
+
+    /* 预定位结束可原地清零校正器，不破坏任务/定位状态。 */
+    AutoAim_ResetVisionCorrection();
+    AutoAim_SetVisionCorrectionEnabled(true);
+    state = AutoAim_GetState();
+    assert(state.active);
+    assert(state.vision_correction_enabled);
+    assert(Near(state.startup_bias.yaw_bias_deg, 0.0f, 0.001f));
+    assert(Near(state.startup_bias.pitch_bias_deg, 0.0f, 0.001f));
+    assert(Near(state.vision_bias.yaw_bias_deg, 0.0f, 0.001f));
+    assert(Near(state.vision_bias.pitch_bias_deg, 0.0f, 0.001f));
+
+    /* 纯视觉锁定后的控制器交接可直接写入已验证的几何基准偏置。 */
+    AutoAim_SetStartupAlign(true);
+    AutoAim_SetStartupBias(12.5f, -3.25f);
+    AutoAim_SetStartupAlign(false);
+    state = AutoAim_GetState();
+    assert(Near(state.startup_bias.yaw_bias_deg, 12.5f, 0.001f));
+    assert(Near(state.startup_bias.pitch_bias_deg, -3.25f, 0.001f));
+    assert(state.startup_bias.frame_count == 1U);
+    assert(state.vision_bias.frame_count >= 25U);
+
     AutoAim_AnchorCorner(LOCALIZATION_CORNER_B, 1.0f);
     state = AutoAim_GetState();
     assert(Near(state.pose.x_m, 0.5f, 0.001f));

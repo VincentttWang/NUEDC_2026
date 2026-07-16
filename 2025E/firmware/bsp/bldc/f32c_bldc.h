@@ -74,6 +74,7 @@ typedef struct {
     int16_t  acc;           /* 加速度 (转/s²) */
     uint16_t voltage;       /* 母线电压 (*100, 即 0.01V/bit) */
     uint8_t  data_ready;    /* 数据更新标志 */
+    uint32_t multi_angle_frame_count; /* 通过校验的多圈角反馈帧累计数 */
 } BLDC_MotorData_t;
 
 /* ===== 全局电机数据 ===== */

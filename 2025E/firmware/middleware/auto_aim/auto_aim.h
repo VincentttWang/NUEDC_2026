@@ -93,6 +93,8 @@ typedef struct {
     AIM_VISION_BIAS startup_bias;
     /** 起步对齐窗口是否激活 (激活期间视觉帧喂 startup_bias 而非 vision_bias)。 */
     bool startup_align;
+    /** 是否允许视觉误差写入校正器；关闭时仍接收/上报视觉帧。 */
+    bool vision_correction_enabled;
     float yaw_command_deg;
     float pitch_command_deg;
     float vision_yaw_error_deg;
@@ -123,6 +125,20 @@ BSP_STATUS AutoAim_Update(float dt_s);
  *        小增益 (快收敛已由对齐完成)。窗口内视觉未锁定则无副作用 (纯前馈起跑)。
  */
 void AutoAim_SetStartupAlign(bool active);
+/**
+ * @brief 写入由静态纯视觉对准测得的前馈基准偏置。
+ * @param yaw_bias_deg 已对准 yaw 角减去起点几何前馈 yaw 角，单位 deg。
+ * @param pitch_bias_deg 已对准 pitch 角减去起点几何前馈 pitch 角，单位 deg。
+ * @note 该接口用于控制器交接，不经过视觉积分器限幅；调用方必须先完成可靠锁定。
+ */
+void AutoAim_SetStartupBias(float yaw_bias_deg, float pitch_bias_deg);
+/**
+ * @brief 允许/禁止视觉误差写入 bias；禁用不影响视觉接收和几何前馈。
+ * @note 用于启动几何预定位阶段，避免云台大角度过渡的瞬态误差污染静态校正。
+ */
+void AutoAim_SetVisionCorrectionEnabled(bool enabled);
+/** @brief 清零 startup/steady 两套视觉校正器，保留当前任务和定位状态。 */
+void AutoAim_ResetVisionCorrection(void);
 void AutoAim_AnchorCorner(LOCALIZATION_CORNER corner, float travelled_m);
 BSP_STATUS AutoAim_Stop(void);
 AUTO_AIM_STATE AutoAim_GetState(void);

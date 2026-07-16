@@ -12,6 +12,7 @@
 #include "key.h"
 #include "line_follow.h"
 #include "line_tracking.h"
+#include "kinematics/kinematics.h"
 #include "motion.h"
 #include "ui.h"
 
@@ -35,8 +36,8 @@
 #define APP_E_UI_REFRESH_MS 400U
 /* CSV 调试遥测周期(ms): 供 aim_tune_viz.py 整定用; 每条 printf ~5ms 占循环, 比赛可加大或设 0 关。 */
 #define APP_E_TELEMETRY_INTERVAL_MS 20U
-/* 起步前倒计时秒数: 车刹住、云台已瞄准、激光已亮, 让用户摆好车/退开再走。 */
-#define APP_E_START_COUNTDOWN_S 3U
+/* 瞄准任务起步前的最短几何预定位时间；此后按视觉锁定事件起步，不设总时限。 */
+#define APP_E_AIM_GEOMETRY_SETTLE_MS 1000U
 /* 更新同步遥测抽取: 每 N 次传感器更新记一条 (带 SysTick 时间戳还原真实时序)。 */
 #define APP_E_AIM_LOG_EVERY_FRAMES 1U   /* Aim: 每 N 个 CanMV 视觉帧 */
 #define APP_E_LINE_LOG_EVERY_SCANS 10U  /* E1: 每 N 次灰度扫描 */
@@ -59,6 +60,12 @@ typedef enum {
     APP_E_AIM_MODE_CIRCLE_FEEDFORWARD,
 } APP_E_AIM_MODE;
 
+/** Aim Track/F1 共用的视觉连续锁定状态。 */
+typedef struct {
+    uint8_t confirm_frames;
+    bool locked;
+} APP_E_AIM_TRACK_LOCK;
+
 /* 默认从 A 点出发并始终左转：A -> C -> D -> B -> A。 */
 static const LOCALIZATION_CORNER s_app_e_corner_sequence[APP_E_EDGES_PER_LAP] = {
     LOCALIZATION_CORNER_C,
@@ -69,6 +76,48 @@ static const LOCALIZATION_CORNER s_app_e_corner_sequence[APP_E_EDGES_PER_LAP] = 
 
 static float AppE_AbsFloat(float value){
     return (value < 0.0f) ? -value : value;
+}
+
+static bool AppE_IsAimLocked(float yaw_error_deg,
+                             float pitch_error_deg,
+                             const APP_E_CALIBRATION_CONFIG *calibration);
+
+static void AppE_AimTrackLock_Reset(APP_E_AIM_TRACK_LOCK *lock){
+    if (lock == NULL){
+        return;
+    }
+    lock->confirm_frames = 0U;
+    lock->locked = false;
+}
+
+/*
+ * Aim Track/F1 共用锁定判据：只在 K230 新有效角度帧到达时累计；控制环中间的
+ * “无新帧”不破坏连续性，K230 明确 LOST/NOT_FOUND 或误差越界才清零。
+ */
+static bool AppE_AimTrackLock_Update(APP_E_AIM_TRACK_LOCK *lock,
+                                     bool new_valid_frame,
+                                     CANMV_STATUS vision_status,
+                                     float yaw_error_deg,
+                                     float pitch_error_deg,
+                                     const APP_E_CALIBRATION_CONFIG *calibration){
+    if ((lock == NULL) || (calibration == NULL)){
+        return false;
+    }
+
+    if (new_valid_frame){
+        if (AppE_IsAimLocked(yaw_error_deg, pitch_error_deg, calibration)){
+            if (lock->confirm_frames < calibration->aim_lock_confirm_frames){
+                lock->confirm_frames++;
+            }
+        } else{
+            lock->confirm_frames = 0U;
+        }
+    } else if (vision_status != CANMV_STATUS_OK){
+        lock->confirm_frames = 0U;
+    }
+
+    lock->locked = lock->confirm_frames >= calibration->aim_lock_confirm_frames;
+    return lock->locked;
 }
 
 /* K230 UART1 接收此命令后直接控制激光 GPIO；命令只从 MSPM0 发往 K230。 */
@@ -216,6 +265,7 @@ static void AppE_RunLineTask(uint8_t lap_count, APP_E_AIM_MODE aim_mode){
             AppE_WaitBack();
             return;
         }
+        AutoAim_SetVisionCorrectionEnabled(false);
         /* 发挥任务要求运动期间连续照射：前馈就绪后先开激光，再启动底盘。 */
         AppE_SetLaserEnabled(true);
     }
@@ -233,36 +283,149 @@ static void AppE_RunLineTask(uint8_t lap_count, APP_E_AIM_MODE aim_mode){
                      (unsigned)target_laps, (long)target_edges);
 
     /*
-     * 起步前倒计时: 车保持刹车、云台已在瞄准起点位姿、激光已亮 (aim 模式),
-     * 便于摆好车/退开再走。长按 K2(CALIB) 可中途放弃。
-     * 倒计时同时是"起步静态对齐"窗口: 车静止、位姿已知, 视觉以大量程校正器
-     * 一次性吸收静态总偏差 (零位/摆车/安装); 视觉没锁上则零副作用纯前馈起跑。
+     * 瞄准任务按“状态”起步，不再按固定 3s 强制起跑：
+     *   1) 最短 1s 纯几何预定位，禁止视觉积分，避开云台初始大角度过渡；
+     *   2) 停止几何控制，复用 Aim Track 的纯视觉角度速度闭环瞄准；
+     *   3) 连续锁定后，用“当前已对准角 - 起点几何角”生成 startup bias；
+     *   4) 重启 AutoAim，并携带该基准无跳变切入运动前馈与视觉慢校正。
+     * 没有视觉/始终未锁定时车辆持续刹车，无总超时；长按 K2 可安全退出。
      */
     if (aim_mode != APP_E_AIM_MODE_NONE){
-        AutoAim_SetStartupAlign(true);
-    }
-    for (uint8_t cd = APP_E_START_COUNTDOWN_S; cd > 0U; cd--){
-        char cd_line[24];
-        uint32_t cd_end_ms = BSP_Time_GetMs() + 1000U;
-        snprintf(cd_line, sizeof(cd_line), "Start in %u...", (unsigned)cd);
-        Ui_UpdateContentLine(1U, cd_line);
-        while ((int32_t)(cd_end_ms - BSP_Time_GetMs()) > 0){
+        uint32_t settle_start_ms = BSP_Time_GetMs();
+        uint32_t align_last_ms = settle_start_ms;
+        uint32_t align_ui_ms = settle_start_ms;
+        APP_E_AIM_TRACK_LOCK align_lock;
+        uint8_t align_imu_fail_count = 0U;
+
+        AppE_AimTrackLock_Reset(&align_lock);
+
+        Ui_UpdateContentLine(0U, "Geometry settle");
+        Ui_UpdateContentLine(1U, "Vision bias:OFF");
+        while ((uint32_t)(BSP_Time_GetMs() - settle_start_ms) <
+               APP_E_AIM_GEOMETRY_SETTLE_MS){
+            uint32_t now_ms = BSP_Time_GetMs();
+            float dt_s = (float)(now_ms - align_last_ms) / 1000.0f;
+            align_last_ms = now_ms;
+            if (dt_s <= 0.0f){
+                dt_s = 0.001f;
+            }
+            if (AutoAim_Update(dt_s) == BSP_STATUS_OK){
+                align_imu_fail_count = 0U;
+            } else if (++align_imu_fail_count >= calibration.imu_fail_limit){
+                AppE_StopLineAim(aim_mode);
+                Ui_RenderStatusPage("Line aim", UI_STATUS_WARN,
+                                    "IMU lost", "K2 long:back");
+                AppE_WaitBack();
+                return;
+            }
+            (void)Chassis_Brake();
             if (AppE_IsBackEvent()){
-                (void)Motion_Stop();
                 AppE_StopLineAim(aim_mode);
                 Key_ClearAllEvents();
                 return;
             }
-            if (aim_mode != APP_E_AIM_MODE_NONE){
-                (void)AutoAim_Update(0.02f);   /* 云台瞄准起点位姿 (车静止) */
-            }
-            (void)Chassis_Brake();
             BSP_DelayMs(APP_E_LOOP_DELAY_MS);
         }
-    }
-    /* 倒计时结束: 关闭对齐窗口(冻结起步校正), 重置计时基准(超时不含倒计时)。 */
-    if (aim_mode != APP_E_AIM_MODE_NONE){
+
+        /* 几何预定位结束后释放 AutoAim，真正复用 Aim Track 纯视觉控制器。 */
+        (void)AutoAim_Stop();
+        GimbalTracking_Init(NULL);
+        GimbalTracking_Reset();
+        align_last_ms = BSP_Time_GetMs();
+        align_ui_ms = align_last_ms;
+        uint32_t align_last_vf = g_canmv_uart_angle_frame_count;
+        DebugUart_Puts("[E1] AimTrack visual-align begin (no timeout)\r\n");
+        Ui_UpdateContentLine(0U, "Vision aligning");
+
+        while (!align_lock.locked){
+            uint32_t now_ms = BSP_Time_GetMs();
+            float dt_s = (float)(now_ms - align_last_ms) / 1000.0f;
+            align_last_ms = now_ms;
+            if (dt_s <= 0.0f){
+                dt_s = 0.001f;
+            }
+            (void)GimbalTracking_UpdateAngle(dt_s);
+            GIMBAL_TRACKING_STATE align_state = GimbalTracking_GetState();
+            uint32_t current_vf = g_canmv_uart_angle_frame_count;
+            bool new_angle_frame = current_vf != align_last_vf;
+            if (new_angle_frame){
+                align_last_vf = current_vf;
+            }
+            bool vision_ready = align_state.target_valid && !align_state.link_timeout;
+            (void)AppE_AimTrackLock_Update(
+                &align_lock,
+                new_angle_frame && vision_ready,
+                CanMvUart_GetStatus(CANMV_TARGET_ANGLE),
+                align_state.error.x,
+                align_state.error.y,
+                &calibration);
+
+            if ((uint32_t)(now_ms - align_ui_ms) >= APP_E_UI_REFRESH_MS){
+                char align_line[24];
+                align_ui_ms = now_ms;
+                snprintf(align_line, sizeof(align_line), "Err:%0.1f,%0.1f",
+                         align_state.error.x, align_state.error.y);
+                Ui_UpdateContentLine(1U, align_line);
+                snprintf(align_line, sizeof(align_line), "Lock:%u/%u",
+                         (unsigned)align_lock.confirm_frames,
+                         (unsigned)calibration.aim_lock_confirm_frames);
+                Ui_UpdateContentLine(2U, align_line);
+                DebugUart_Printf("[E1] align ey=%.2f ep=%.2f lock=%u/%u\r\n",
+                                 align_state.error.x, align_state.error.y,
+                                 (unsigned)align_lock.confirm_frames,
+                                 (unsigned)calibration.aim_lock_confirm_frames);
+            }
+
+            (void)Chassis_Brake();
+            if (AppE_IsBackEvent()){
+                (void)GimbalTracking_Stop();
+                AppE_SetLaserEnabled(false);
+                Key_ClearAllEvents();
+                return;
+            }
+            BSP_DelayMs(APP_E_LOOP_DELAY_MS);
+        }
+
+        /*
+         * 纯视觉已将光轴对准靶心。yaw 对准角必须读【编码器反馈的逻辑角】:
+         * 开环估计 Gimbal_GetAngle().yaw_deg 在视觉伺服(SetSpeed)期间按下发值
+         * 积分, 符号约定与 aim_solver 逻辑系差一个 GIMBAL_YAW_DIR, 跨路径相减
+         * 会得到反号 bias(起步误差翻倍而非清零)。阻塞刷新反馈同时也让交接后
+         * velff 首拍的就近对齐/位置外环吃到新鲜角, 消除起步甩动瞬态。
+         * pitch 无此问题: pitch_deg 即真实下发的位置设定点(电机角)。
+         */
+        float aligned_yaw_deg = Gimbal_ReadYawFeedbackDeg();
+        GIMBAL_ANGLE aligned_angle = Gimbal_GetAngle();
+        AIM_SOLVER_RESULT start_ff =
+            (aim_mode == APP_E_AIM_MODE_CIRCLE_FEEDFORWARD)
+                ? AimSolver_SolveCircle(calibration.auto_aim.start_pose,
+                                        calibration.auto_aim.circle_phase0_deg)
+                : AimSolver_SolveCenter(calibration.auto_aim.start_pose);
+        float startup_yaw_bias = Kinematics_AngleDiffDeg(aligned_yaw_deg,
+                                                         start_ff.yaw_cmd_deg);
+        float startup_pitch_bias = aligned_angle.pitch_deg - start_ff.pitch_cmd_deg;
+
+        (void)GimbalTracking_Stop();
+        AutoAim_Init(&calibration.auto_aim);
+        if (AutoAim_Start(aim_mode == APP_E_AIM_MODE_CIRCLE_FEEDFORWARD
+                              ? AUTO_AIM_MODE_CIRCLE
+                              : AUTO_AIM_MODE_CENTER) != BSP_STATUS_OK){
+            AppE_StopLineAim(aim_mode);
+            Ui_RenderStatusPage("Line aim", UI_STATUS_WARN,
+                                "IMU not ready", "K2 long:back");
+            AppE_WaitBack();
+            return;
+        }
+        AutoAim_SetStartupAlign(true);
+        AutoAim_SetStartupBias(startup_yaw_bias, startup_pitch_bias);
         AutoAim_SetStartupAlign(false);
+        AutoAim_SetVisionCorrectionEnabled(true);
+        DebugUart_Printf(
+            "[E1] vision LOCK aligned=%.2f,%.2f ff=%.2f,%.2f bias=%.2f,%.2f motion start\r\n",
+            aligned_yaw_deg, aligned_angle.pitch_deg,
+            start_ff.yaw_cmd_deg, start_ff.pitch_cmd_deg,
+            startup_yaw_bias, startup_pitch_bias);
+        Ui_UpdateContentLine(0U, "Running...");
     }
     start_ms = BSP_Time_GetMs();
     last_ms = start_ms;
@@ -291,11 +454,21 @@ static void AppE_RunLineTask(uint8_t lap_count, APP_E_AIM_MODE aim_mode){
 
         /*
          * 转弯滞后调试遥测: 每 ~20ms 经 Debug_Ex(UART1@115200) 输出一条 CSV:
-         *   A,t_ms,line_state,gyroZ,vCenter,heading,yawCmd,yawRateFF,yawActX10,yawBias,visErrY
+         *   A,t_ms,lineState,gz,vCenter,heading,yawCmd,yawRateFF,yawActX10,
+         *     yawBias,visErrY,startupBias,steadyBias,visValid,visStatus,
+         *     visionFrame,bldcAngleFrame,yawOmegaCmd,yawRpmCmd,pitchBias,visErrP,
+         *     poseX,poseY
          *   line_state: 0=FOLLOW 1=CORNER_FWD 2=CORNER_ARC
          *   yawActX10 : F32C 上报 yaw 多圈角(0.1°); 逻辑角=-yawActX10/10 (GIMBAL_YAW_DIR=-1)
-         *   yawBias   : 视觉总校正 = 起步对齐 + 慢跟踪 bias (deg)
-         *   visErrY   : 最近一个有效视觉帧的 yaw 误差 (deg, 原始符号; 无帧时保持旧值)
+         *   yawBias   : 视觉总校正 = startupBias + steadyBias (deg)
+         *   visErrY   : 最近一个有效视觉帧 yaw 误差；无有效帧时保持旧值
+         *   visValid  : 本控制周期是否刚消费一帧有效视觉角度 (脉冲量)
+         *   visStatus : CanMV 当前状态 (0=OK, 其余见 CANMV_STATUS)
+         *   visionFrame/bldcAngleFrame: 两条接收链路的累计帧数；不增长即链路冻结
+         *   yawOmegaCmd/yawRpmCmd: MCU 外环最终角速度与实际下发 F32C 的 RPM
+         *   pitchBias : pitch 视觉总校正 = 起步对齐 + 慢跟踪 (deg, 电机角)
+         *   visErrP   : 最近有效视觉帧 pitch 误差 (deg, 光束角; 验 pitch 符号用)
+         *   poseX/Y   : 定位位姿 (m, 世界系; 供离线回归确定性残差的几何来源)
          *   注: yawAct 因请求-响应异步约滞后一个采样(~20ms)。
          */
         if ((aim_mode != APP_E_AIM_MODE_NONE) && (APP_E_TELEMETRY_INTERVAL_MS > 0U)){
@@ -303,7 +476,10 @@ static void AppE_RunLineTask(uint8_t lap_count, APP_E_AIM_MODE aim_mode){
             if ((uint32_t)(now_ms - s_dbg_last_ms) >= APP_E_TELEMETRY_INTERVAL_MS){
                 s_dbg_last_ms = now_ms;
                 AUTO_AIM_STATE aim_st = AutoAim_GetState();
-                DebugUart_Printf("A,%lu,%d,%.1f,%.2f,%.1f,%.1f,%.1f,%ld,%.2f,%.2f\r\n",
+                GIMBAL_SPEED gimbal_speed = Gimbal_GetSpeed();
+                DebugUart_Printf(
+                    "A,%lu,%d,%.1f,%.2f,%.1f,%.1f,%.1f,%ld,%.2f,%.2f,"
+                    "%.2f,%.2f,%u,%d,%lu,%lu,%.1f,%d,%.2f,%.2f,%.3f,%.3f\r\n",
                                  (unsigned long)now_ms, (int)line_state,
                                  aim_st.gyro_z_deg_s, aim_st.v_center_mps,
                                  aim_st.pose.heading_deg, aim_st.yaw_command_deg,
@@ -311,7 +487,19 @@ static void AppE_RunLineTask(uint8_t lap_count, APP_E_AIM_MODE aim_mode){
                                  (long)BLDC_Motor1.multi_angle,
                                  aim_st.startup_bias.yaw_bias_deg +
                                      aim_st.vision_bias.yaw_bias_deg,
-                                 aim_st.vision_yaw_error_deg);
+                                 aim_st.vision_yaw_error_deg,
+                                 aim_st.startup_bias.yaw_bias_deg,
+                                 aim_st.vision_bias.yaw_bias_deg,
+                                 aim_st.vision_valid ? 1U : 0U,
+                                 (int)CanMvUart_GetStatus(CANMV_TARGET_ANGLE),
+                                 (unsigned long)g_canmv_uart_angle_frame_count,
+                                 (unsigned long)BLDC_Motor1.multi_angle_frame_count,
+                                 gimbal_speed.yaw_deg_s,
+                                 (int)Gimbal_GetYawCommandRpm(),
+                                 aim_st.startup_bias.pitch_bias_deg +
+                                     aim_st.vision_bias.pitch_bias_deg,
+                                 aim_st.vision_pitch_error_deg,
+                                 aim_st.pose.x_m, aim_st.pose.y_m);
                 BLDC_ReqFeedback(BLDC_ADDR_1, FB_MULTI_ANGLE);   /* 请求下次 yaw 实际角 */
             }
         }
@@ -498,45 +686,35 @@ void AppE_RunContinuousAim(void){
     char line0[24];
     char line1[24];
     char line2[24];
-    APP_E_CALIBRATION_CONFIG calibration = AppE_GetCalibrationConfig();
-    uint32_t start_ms;
-    uint32_t last_ms;
-    uint32_t last_display_ms;
+    uint32_t last_ms = BSP_Time_GetMs();
+    uint32_t last_display_ms = last_ms;
     uint32_t last_vf = g_canmv_uart_angle_frame_count;
+    uint32_t lock_last_vf = last_vf;
     uint8_t vf_div = 0U;
-    uint8_t imu_fail_count = 0U;
-    bool startup_align = true;
+    APP_E_CALIBRATION_CONFIG calibration = AppE_GetCalibrationConfig();
+    APP_E_AIM_TRACK_LOCK vision_lock;
 
     /*
-     * F1 静止等价入口: 完整复用 AppE_GetCalibrationConfig + AutoAim 控制链。
-     * 前 APP_E_START_COUNTDOWN_S 秒与 F1 一样启用大范围 startup bias，随后冻结
-     * 起步校正并切入逐轴小增益视觉 bias。没有视觉帧时仍由规定起点的几何前馈
-     * 保持靶心，不再退回旧 GimbalTracking 像素 PID/速度控制路线。
+     * 纯视觉角度闭环入口：只消费 K230 的 yaw/pitch 角度误差。
+     * 不初始化 AutoAim，因此不使用世界坐标、规定起点、IMU、编码器、靶心几何
+     * 或运动速率前馈。GimbalTracking 将角度误差经两轴独立 PID 转成速度指令；
+     * K230 丢失目标时停止 yaw 并保持 pitch，重获目标后自动恢复。
      */
     AppE_PrepareTaskInput();
     (void)Chassis_Brake();
-    /* Aim track 用于持续跟踪调试：进入后激光保持常亮，直到用户退出。 */
     AppE_SetLaserEnabled(true);
     Gimbal_EnsurePitchReady();
-    AutoAim_Init(&calibration.auto_aim);
-    if (AutoAim_Start(AUTO_AIM_MODE_CENTER) != BSP_STATUS_OK){
-        AppE_SetLaserEnabled(false);
-        Ui_RenderStatusPage("Aim track", UI_STATUS_WARN, "IMU not ready", "K2 long:back");
-        AppE_WaitBack();
-        return;
-    }
-    AutoAim_SetStartupAlign(true);
-    start_ms = BSP_Time_GetMs();
-    last_ms = start_ms;
-    last_display_ms = start_ms;
+    GimbalTracking_Init(NULL);
+    GimbalTracking_Reset();
+    AppE_AimTrackLock_Reset(&vision_lock);
     Ui_RenderLines("Aim track",
-                   "F1 params: ALIGN",
+                   "K230 angle only",
                    "Vision:WAIT",
                    "Err:0.0,0.0",
-                   "Bias:0.0,0.0",
+                   "Speed:0.0,0.0",
                    "K2 long:stop",
                    NULL);
-    DebugUart_Puts("[AIM] start mode=F1_PARAMS\r\n");
+    DebugUart_Puts("[AIM] start mode=K230_ANGLE_ONLY\r\n");
 
     while (1){
         uint32_t now_ms = BSP_Time_GetMs();
@@ -547,39 +725,34 @@ void AppE_RunContinuousAim(void){
         }
 
         last_ms = now_ms;
-        if (startup_align &&
-            ((uint32_t)(now_ms - start_ms) >= APP_E_START_COUNTDOWN_S * 1000U)){
-            AutoAim_SetStartupAlign(false);
-            startup_align = false;
-            DebugUart_Puts("[AIM] startup-align frozen\r\n");
+        (void)GimbalTracking_UpdateAngle(dt_s);
+        GIMBAL_TRACKING_STATE state = GimbalTracking_GetState();
+        bool vision_ready = state.target_valid && !state.link_timeout;
+        uint32_t current_vf = g_canmv_uart_angle_frame_count;
+        bool new_angle_frame = current_vf != lock_last_vf;
+        if (new_angle_frame){
+            lock_last_vf = current_vf;
         }
-
-        BSP_STATUS status = AutoAim_Update(dt_s);
-        AUTO_AIM_STATE state = AutoAim_GetState();
-        if (status == BSP_STATUS_OK){
-            imu_fail_count = 0U;
-        } else if (++imu_fail_count >= calibration.imu_fail_limit){
-            DebugUart_Puts("[AIM] stop: IMU lost\r\n");
-            break;
-        }
+        (void)AppE_AimTrackLock_Update(&vision_lock,
+                                      new_angle_frame && vision_ready,
+                                      CanMvUart_GetStatus(CANMV_TARGET_ANGLE),
+                                      state.error.x, state.error.y,
+                                      &calibration);
 
         if ((uint32_t)(now_ms - last_display_ms) >= APP_E_UI_REFRESH_MS){
             last_display_ms = now_ms;
             snprintf(line0, sizeof(line0), "Vision:%s",
-                     CanMvUart_GetStatus(CANMV_TARGET_ANGLE) == CANMV_STATUS_OK
-                         ? "VALID" : "WAIT");
+                     vision_lock.locked ? "LOCK" : (vision_ready ? "TRACK" : "WAIT"));
             snprintf(line1, sizeof(line1), "Err:%0.1f,%0.1f",
-                     state.vision_yaw_error_deg, state.vision_pitch_error_deg);
-            snprintf(line2, sizeof(line2), "Bias:%0.1f,%0.1f",
-                     state.startup_bias.yaw_bias_deg + state.vision_bias.yaw_bias_deg,
-                     state.startup_bias.pitch_bias_deg + state.vision_bias.pitch_bias_deg);
-            Ui_UpdateContentLine(0U, startup_align ? "F1 params: ALIGN" : "F1 params: TRACK");
+                     state.error.x, state.error.y);
+            snprintf(line2, sizeof(line2), "Speed:%0.1f,%0.1f",
+                     state.yaw_speed, state.pitch_speed);
             Ui_UpdateContentLine(1U, line0);
             Ui_UpdateContentLine(2U, line1);
             Ui_UpdateContentLine(3U, line2);
         }
 
-        /* 每收到 N 个 K230 角度帧记录一次与 F1 同口径的角度域状态。 */
+        /* 每收到 N 个 K230 角度帧记录角度误差、PID 速度输出和 yaw 实际角。 */
         {
             uint32_t vf = g_canmv_uart_angle_frame_count;
             if (vf != last_vf){
@@ -587,14 +760,13 @@ void AppE_RunContinuousAim(void){
                 if (++vf_div >= APP_E_AIM_LOG_EVERY_FRAMES){
                     vf_div = 0U;
                     DebugUart_Printf(
-                        "[AIM] t=%lu al=%u vv=%u ey=%0.2f ep=%0.2f cy=%0.2f cp=%0.2f by=%0.2f bp=%0.2f vf=%lu\r\n",
+                        "[AIM] t=%lu vv=%u lk=%u ey=%0.2f ep=%0.2f vy=%0.2f vp=%0.2f ya=%ld vf=%lu\r\n",
                         (unsigned long)now_ms,
-                        startup_align ? 1U : 0U,
-                        state.vision_valid ? 1U : 0U,
-                        state.vision_yaw_error_deg, state.vision_pitch_error_deg,
-                        state.yaw_command_deg, state.pitch_command_deg,
-                        state.startup_bias.yaw_bias_deg + state.vision_bias.yaw_bias_deg,
-                        state.startup_bias.pitch_bias_deg + state.vision_bias.pitch_bias_deg,
+                        vision_ready ? 1U : 0U,
+                        (unsigned)vision_lock.confirm_frames,
+                        state.error.x, state.error.y,
+                        state.yaw_speed, state.pitch_speed,
+                        (long)BLDC_Motor1.multi_angle,
                         (unsigned long)vf);
                 }
             }
@@ -608,7 +780,7 @@ void AppE_RunContinuousAim(void){
         BSP_DelayMs(APP_E_LOOP_DELAY_MS);
     }
 
-    (void)AutoAim_Stop();
+    (void)GimbalTracking_Stop();
     AppE_SetLaserEnabled(false);
     DebugUart_Puts("[AIM] stop\r\n");
     Ui_RenderStatusPage("Aim track", UI_STATUS_OK, "Stopped", "K2 long:back");

@@ -39,19 +39,22 @@ extern "C" {
 #define GIMBAL_TRACKING_DEFAULT_PITCH_PID_INTEGRAL_LIMIT 300.0f
 #define GIMBAL_TRACKING_DEFAULT_PITCH_PID_OUTPUT_LIMIT 60.0f
 
-/* 角度协议的输入单位为 deg；按当前 320 px / 约 60° 水平视场换算的起调值。 */
-#define GIMBAL_TRACKING_DEFAULT_ANGLE_YAW_PID_KP 10.0f
-#define GIMBAL_TRACKING_DEFAULT_ANGLE_YAW_PID_KI 1.0f
-#define GIMBAL_TRACKING_DEFAULT_ANGLE_YAW_PID_KD 2.0f
-#define GIMBAL_TRACKING_DEFAULT_ANGLE_PITCH_PID_KP 4.0f
-#define GIMBAL_TRACKING_DEFAULT_ANGLE_PITCH_PID_KI 0.1f
+/* 角度协议纯视觉闭环 (Aim track): 输入 deg、输出 deg/s。
+ * 首轮只用 P，避免 K230 已做 Kalman/速度预测后 MCU 的 D 再次放大动态噪声，也避免
+ * 目标丢失或输出饱和时 I 项累积。先实测方向与 P，再按需要加入很小的 I/D。
+ * yaw 直接驱动 F32C 速度模式；pitch 速度在 gimbal 层积分成受限位置目标，且机械
+ * 减速比使等效增益更高，因此 pitch Kp 取 yaw 的约 1/3。 */
+#define GIMBAL_TRACKING_DEFAULT_ANGLE_YAW_PID_KP 6.0f
+#define GIMBAL_TRACKING_DEFAULT_ANGLE_YAW_PID_KI 0.0f
+#define GIMBAL_TRACKING_DEFAULT_ANGLE_YAW_PID_KD 0.0f
+#define GIMBAL_TRACKING_DEFAULT_ANGLE_PITCH_PID_KP 2.0f
+#define GIMBAL_TRACKING_DEFAULT_ANGLE_PITCH_PID_KI 0.0f
 #define GIMBAL_TRACKING_DEFAULT_ANGLE_PITCH_PID_KD 0.0f
 #define GIMBAL_TRACKING_DEFAULT_ANGLE_DEADBAND_DEG 0.75f
-/* 两轴现均为位置模式 (角速度经 middleware 积分成位置设定点), 无整数 RPM 台阶,
- * 因此不再使用最小速度地板, 仅保留像素死区。下面两个 MIN_MOVE 值当前未参与控制,
- * 保留作为"若某轴回退到速度模式需越过 6deg/s(1rpm) 台阶"时的参考初值。 */
-#define GIMBAL_TRACKING_DEFAULT_MIN_MOVE_YAW_DEG_S 1.0f    /* 保留: 速度模式最小驱动 */
-#define GIMBAL_TRACKING_DEFAULT_MIN_MOVE_PITCH_DEG_S 1.0f  /* 保留: 速度模式最小驱动 */
+/* yaw 速度模式整数 RPM 的理论最小台阶约 6deg/s，但直接设 6 会在死区边缘形成极限环；
+ * 当前保持 1deg/s 作为软件下限，实际量化由 F32C 链路决定。pitch 不使用速度地板。 */
+#define GIMBAL_TRACKING_DEFAULT_MIN_MOVE_YAW_DEG_S 1.0f
+#define GIMBAL_TRACKING_DEFAULT_MIN_MOVE_PITCH_DEG_S 1.0f  /* 仅旧像素控制保留 */
 #define GIMBAL_TRACKING_DEFAULT_DEADBAND_PX 1.0f           /* 像素死区; 内部输出 0 停住 */
 
 /**
@@ -126,6 +129,12 @@ void GimbalTracking_Reset(void);
  * @param dt_s 控制周期，单位 s。
  */
 BSP_STATUS GimbalTracking_UpdateLaserCenter(float dt_s);
+
+/**
+ * @brief 仅消费 K230 yaw/pitch 角度误差帧执行跟踪，不回退到旧像素协议。
+ * @param dt_s 控制周期，单位 s。
+ */
+BSP_STATUS GimbalTracking_UpdateAngle(float dt_s);
 
 /**
  * @brief 根据 K230 发送的 yaw/pitch 角度误差执行一次跟踪。

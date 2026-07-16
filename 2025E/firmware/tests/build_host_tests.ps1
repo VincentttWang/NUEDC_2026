@@ -46,6 +46,11 @@ $tests = @(
        src  = @("core/kinematics/kinematics.c", "core/aim_solver/aim_solver.c",
                 "core/aim_fusion/aim_fusion.c", "core/localization/localization.c",
                 "middleware/auto_aim/auto_aim.c", "tests/test_auto_aim.c");
+       inc  = @("tests/stubs", ".", "core", "bsp/common") },
+    @{ name = "test_gimbal_tracking";
+       src  = @("core/kinematics/kinematics.c", "core/geometry/geometry.c",
+                "core/pid/pid.c", "middleware/gimbal_tracking/gimbal_tracking.c",
+                "tests/test_gimbal_tracking.c");
        inc  = @("tests/stubs", ".", "core", "bsp/common") }
 )
 

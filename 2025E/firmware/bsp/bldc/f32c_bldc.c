@@ -382,6 +382,7 @@ void BLDC_ParseRxByte(uint8_t rx_byte)
                     break;
                 case FB_MULTI_ANGLE:
                     motor->multi_angle = (int32_t)raw;
+                    motor->multi_angle_frame_count++;
                     break;
                 case FB_SINGLE_ANGLE:
                     motor->single_angle = (uint16_t)raw;

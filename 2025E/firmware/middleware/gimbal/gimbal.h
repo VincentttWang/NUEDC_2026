@@ -139,6 +139,19 @@ GIMBAL_ANGLE Gimbal_GetAngle(void);
  */
 GIMBAL_SPEED Gimbal_GetSpeed(void);
 
+/** @brief 获取最近一次实际下发给 yaw F32C 的速度命令，单位 RPM。 */
+int16_t Gimbal_GetYawCommandRpm(void);
+
+/**
+ * @brief 阻塞读取 yaw 编码器反馈的【逻辑角】(deg): 发起反馈请求并等待新帧
+ *        (超时 ~100ms 则退回最后已知反馈)。
+ * @note 控制器交接等场合必须用本接口, 不可用 Gimbal_GetAngle().yaw_deg:
+ *       开环估计在 SetSpeed 路径按下发值积分(物理约定, 不含 GIMBAL_YAW_DIR),
+ *       与 SetAngle/aim_solver 的逻辑约定差一个符号, 跨路径混用会得到反号角;
+ *       编码器反馈经 GIMBAL_YAW_DIR 换算是唯一无歧义的逻辑角来源。
+ */
+float Gimbal_ReadYawFeedbackDeg(void);
+
 /**
  * @brief 将 yaw/pitch 开环估计位置清零。
  */

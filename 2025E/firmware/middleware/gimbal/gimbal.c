@@ -65,6 +65,14 @@
 #ifndef GIMBAL_YAW_VELFF_KP
 #define GIMBAL_YAW_VELFF_KP 6.0f            /* 位置外环增益 (deg/s per deg); 预估解锁后可试 6~8 */
 #endif
+#ifndef GIMBAL_YAW_RATE_FF_GAIN
+/*
+ * 解析速率前馈增益：补偿 F32C 速度链约 25~30ms 的等效执行延迟。
+ * 实测高速段(60~120deg/s)平均滞后约 2.6deg，1.15 可在不提高位置 Kp 的情况下
+ * 增强转弯动态响应；若弯后超前/回摆降到 1.10，仍滞后可逐步试到 1.20。
+ */
+#define GIMBAL_YAW_RATE_FF_GAIN 1.10f
+#endif
 #ifndef GIMBAL_YAW_VELFF_MAX_DEG_S
 #define GIMBAL_YAW_VELFF_MAX_DEG_S 300.0f  /* ω 指令限幅, 兼作初始阶跃/失控缓冲 */
 #endif
@@ -369,7 +377,7 @@ static void Gimbal_DriveYawVelFF(float yaw_deg, float yaw_rate_ff_deg_s){
     }
     float yaw_est_deg = yaw_fb_deg + s_yaw_velff_prev_omega_deg_s * dt_s;
 
-    float omega = yaw_rate_ff_deg_s +
+    float omega = GIMBAL_YAW_RATE_FF_GAIN * yaw_rate_ff_deg_s +
                   GIMBAL_YAW_VELFF_KP * (yaw_target_deg - yaw_est_deg);
     if (omega > GIMBAL_YAW_VELFF_MAX_DEG_S){
         omega = GIMBAL_YAW_VELFF_MAX_DEG_S;
@@ -483,6 +491,9 @@ BSP_STATUS Gimbal_HoldOnTargetLost(void){
     if (!Gimbal_PitchReady()){
         return Gimbal_Stop();
     }
+    /* yaw 必须显式发 0: 速度模式下不发就保持最后 RPM 永转
+     * (实测: 低帧率视觉丢失后云台单向不停旋转的根因)。 */
+    Gimbal_DriveYaw(0.0f);
     Gimbal_DrivePitchHold();
     return BSP_STATUS_OK;
 }
@@ -529,6 +540,24 @@ GIMBAL_SPEED Gimbal_GetSpeed(void){
     };
 
     return speed;
+}
+
+int16_t Gimbal_GetYawCommandRpm(void){
+    return s_gimbal.last_yaw_rpm;
+}
+
+float Gimbal_ReadYawFeedbackDeg(void){
+    volatile BLDC_MotorData_t *yaw = Gimbal_YawMotor();
+    uint32_t start_count = yaw->multi_angle_frame_count;
+    uint32_t start_ms = BSP_Time_GetMs();
+
+    /* 请求并等待"新"反馈帧 (按帧计数判新, 避免读到陈旧角); 典型 2~5ms 到达。 */
+    BLDC_ReqFeedback(GIMBAL_YAW_ADDR, FB_MULTI_ANGLE);
+    while ((yaw->multi_angle_frame_count == start_count) &&
+           ((BSP_Time_GetMs() - start_ms) < 100U)){
+        BSP_DelayMs(5U);
+    }
+    return GIMBAL_YAW_DIR * (float)yaw->multi_angle / 10.0f;
 }
 
 void Gimbal_ResetPosition(void){
