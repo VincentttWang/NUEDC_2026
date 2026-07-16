@@ -53,6 +53,15 @@ extern "C" {
 #define AIM_SOLVER_DEFAULT_LASER_LATERAL_OFFSET_M 0.0f
 /** pitch 机械零位补偿: 加到解算 pitch 上, 单位 deg。 */
 #define AIM_SOLVER_DEFAULT_PITCH_ZERO_OFFSET_DEG 0.0f
+/** pitch 光束角/电机角传动比 k (光束每 1° 电机角变化多少度)。pitch 有减速时
+ *  k>1: 几何仰角是【光束角】, 而指令/零位是【电机角】, 命令必须按 1/k 折算:
+ *    pitch_cmd = pitch_zero + atan2(dz, r)/k
+ *  k 填 1 时退化为旧"电机角=光束角"模型 (斜率错 k 倍 → 随距离漂移, 实测 ±3°)。
+ *  标定: 两个距离(0.5m/1.6m)分别让激光竖直正中靶心, 记电机角 m1/m2,
+ *  k = [atan2(dz,r1) − atan2(dz,r2)] / (m1 − m2)。 */
+#define AIM_SOLVER_DEFAULT_PITCH_BEAM_PER_MOTOR 1.0f
+/** 激光束线相对 pitch 转轴的竖直偏移, 单位 m (束线在转轴上方为正); 见结构体注释。 */
+#define AIM_SOLVER_DEFAULT_LASER_VERTICAL_OFFSET_M 0.0f
 /** E3 画圆半径, 单位 m (赛题 6cm 红色圆弧)。 */
 #define AIM_SOLVER_DEFAULT_CIRCLE_RADIUS_M 0.06f
 
@@ -83,8 +92,14 @@ typedef struct {
     float yaw_zero_offset_deg;
     /** 激光束线相对 yaw 转轴的垂直横向偏移, 单位 m (左正; 见宏注释)。 */
     float laser_lateral_offset_m;
-    /** pitch 机械零位补偿, 单位 deg。 */
+    /** pitch 机械零位补偿, 单位 deg (电机角)。 */
     float pitch_zero_offset_deg;
+    /** pitch 光束角/电机角传动比 k (>0; 1=直驱)。见宏注释。 */
+    float pitch_beam_per_motor;
+    /** 激光束线相对 pitch 转轴的竖直偏移, 单位 m (束线在转轴上方为正)。
+     *  yaw 偏轴的竖直版: 束线不过 pitch 轴时命中仰角 = atan2(dz,r) − asin(ℓp/r),
+     *  误差 ∝1/r (实测 pitch 漂移 ~-1.9°·m/r 即 ~3cm 级)。 */
+    float laser_vertical_offset_m;
     /** E3 画圆半径, 单位 m。 */
     float circle_radius_m;
 } AIM_SOLVER_CONFIG;

@@ -19,6 +19,8 @@ AIM_SOLVER_CONFIG AimSolver_DefaultConfig(void){
         .yaw_zero_offset_deg = AIM_SOLVER_DEFAULT_YAW_ZERO_OFFSET_DEG,
         .laser_lateral_offset_m = AIM_SOLVER_DEFAULT_LASER_LATERAL_OFFSET_M,
         .pitch_zero_offset_deg = AIM_SOLVER_DEFAULT_PITCH_ZERO_OFFSET_DEG,
+        .pitch_beam_per_motor = AIM_SOLVER_DEFAULT_PITCH_BEAM_PER_MOTOR,
+        .laser_vertical_offset_m = AIM_SOLVER_DEFAULT_LASER_VERTICAL_OFFSET_M,
         .circle_radius_m = AIM_SOLVER_DEFAULT_CIRCLE_RADIUS_M,
     };
 
@@ -90,8 +92,19 @@ AIM_SOLVER_RESULT AimSolver_Solve(KINEMATICS_POSE pose,
                                                      - lateral_corr_deg
                                                      - s_aim_config.yaw_zero_offset_deg);
 
-    /* pitch (2D 简化): 仰角 = atan2(高差, 水平距离) + 机械零位补偿。 */
-    float pitch_cmd_deg = KINEMATICS_RAD_TO_DEG(atan2f(dz_m, horizontal))
+    /* pitch (2D 简化): 几何仰角是【光束角】, 指令/零位是【电机角】, pitch 有
+     * 减速时须按 1/k 折算 (k=光束角/电机角), 否则斜率错 k 倍 → 随距离漂移。
+     * 竖直偏轴修正: 束线不过 pitch 转轴时, 命中仰角 = atan2 − asin(ℓp/r) (光束角域)。 */
+    float beam_ratio = (s_aim_config.pitch_beam_per_motor > 0.0f)
+                           ? s_aim_config.pitch_beam_per_motor
+                           : 1.0f;
+    float beam_pitch_deg = KINEMATICS_RAD_TO_DEG(atan2f(dz_m, horizontal));
+    if (s_aim_config.laser_vertical_offset_m != 0.0f){
+        float vratio = s_aim_config.laser_vertical_offset_m / horizontal;
+        vratio = Kinematics_Clamp(vratio, -0.5f, 0.5f);
+        beam_pitch_deg -= KINEMATICS_RAD_TO_DEG(asinf(vratio));
+    }
+    float pitch_cmd_deg = beam_pitch_deg / beam_ratio
                           + s_aim_config.pitch_zero_offset_deg;
 
     AIM_SOLVER_RESULT result = {

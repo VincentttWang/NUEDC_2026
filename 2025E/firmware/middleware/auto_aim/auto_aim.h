@@ -42,12 +42,21 @@ extern "C" {
  * 0 = 不门控。出弯后再滞留 HOLD 帧, 挡掉延迟(~60-100ms)拖尾的弯中测量。 */
 #define AUTO_AIM_DEFAULT_VISION_FREEZE_OMEGA_DEG_S 40.0f
 #define AUTO_AIM_VISION_FREEZE_HOLD_FRAMES 5U
+/* 画圆相位限速 (deg/s): 角点 snap 会让 lap_progress 跳变 → 圆相位突跳 → 靶纸
+ * 留径向划痕。限速把跳变摊平成短暂追赶 (名义相位速率 ~360°/17s ≈ 21°/s,
+ * 限 90°/s 时 30° 的 snap 跳变 ~0.4s 内追平, 划痕变成弧内小弯)。 */
+#define AUTO_AIM_CIRCLE_PHASE_SLEW_DEG_S 90.0f
 #define AUTO_AIM_DEFAULT_VISION_YAW_SIGN -1.0f
 #define AUTO_AIM_DEFAULT_VISION_PITCH_SIGN 1.0f
 #define AUTO_AIM_DEFAULT_CIRCLE_PHASE0_DEG 0.0f
 /* 陀螺 yaw-rate 符号: 使 ω 与航向变化率同号 (左转 yaw 增大时 ω>0)。
  * 实测本机 gz 与航向反号, 故默认 -1; 用于速率前馈与车心速度重构。 */
 #define AUTO_AIM_DEFAULT_GYRO_Z_SIGN -1.0f
+/* IMU 融合航向的陀螺前推时间, 单位 s: heading_used = 融合航向 + ω·lead。
+ * JY61P 融合航向在快速旋转时滞后 (弯中 ω≈100°/s 时每 10ms 滞后 = 1° 命令误差,
+ * 实测弯中 visErr 均值反算 τ≈25ms)。前推同时改善弯中定位积分。0 = 不前推。
+ * 整定: 看弯中(st=2) visErr 均值 -> 0; 过大表现为弯中反向偏。 */
+#define AUTO_AIM_DEFAULT_HEADING_GYRO_LEAD_S 0.0f
 /* pitch 速率前馈 lead 时间, 单位 s: pitch 位置指令叠加 rate·lead 补偿位置模式执行延迟。
  * 0 = 纯静态前馈。(yaw 的执行延迟已由 gimbal 层 velff 内建, 故 yaw 无此 lead。) */
 #define AUTO_AIM_DEFAULT_PITCH_RATE_LEAD_S 0.0f
@@ -86,6 +95,8 @@ typedef struct {
     float rate_ff_v_tau_s;
     /** 陀螺 yaw-rate 符号 (使 ω 与航向变化率同号); 实测本机反号取 -1。 */
     float gyro_z_sign;
+    /** IMU 融合航向陀螺前推时间 (s), 补快速旋转时的融合滞后; 0=不前推。 */
+    float heading_gyro_lead_s;
     AIM_SOLVER_CONFIG solver;
 } AUTO_AIM_CONFIG;
 
@@ -114,6 +125,9 @@ typedef struct {
     float v_center_mps;
     /** 车体 yaw 角速度 (陀螺), 单位 deg/s。 */
     float gyro_z_deg_s;
+    /** 车体俯仰/侧倾姿态 (IMU 融合), 单位 deg; 供遥测诊断 pitch 漂移与姿态耦合。 */
+    float body_pitch_deg;
+    float body_roll_deg;
     /** yaw 速率前馈量, 单位 deg/s。 */
     float yaw_rate_ff_deg_s;
     /** pitch 速率前馈量, 单位 deg/s。 */

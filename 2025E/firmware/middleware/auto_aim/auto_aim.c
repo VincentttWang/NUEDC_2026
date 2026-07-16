@@ -13,6 +13,8 @@ static float s_last_wheel_distance_m;
 static float s_heading_offset_deg;
 static float s_v_ratef_lpf;       /* 速率前馈用的低通 v 状态 (m/s), 去里程混叠尖峰 */
 static uint32_t s_vision_freeze_hold;  /* ω 门控出弯滞留帧计数 (挡延迟拖尾毒帧) */
+static float s_circle_phase_deg;       /* 限速后的画圆相位 (snap 跳变摊平) */
+static bool s_circle_phase_init;
 static bool s_initialized;
 
 AUTO_AIM_CONFIG AutoAim_DefaultConfig(void){
@@ -40,6 +42,7 @@ AUTO_AIM_CONFIG AutoAim_DefaultConfig(void){
         .pitch_rate_lead_s = AUTO_AIM_DEFAULT_PITCH_RATE_LEAD_S,
         .rate_ff_v_tau_s = AUTO_AIM_DEFAULT_RATE_FF_V_TAU_S,
         .gyro_z_sign = AUTO_AIM_DEFAULT_GYRO_Z_SIGN,
+        .heading_gyro_lead_s = AUTO_AIM_DEFAULT_HEADING_GYRO_LEAD_S,
         .solver = AimSolver_DefaultConfig(),
     };
     return config;
@@ -93,6 +96,7 @@ BSP_STATUS AutoAim_Start(AUTO_AIM_MODE mode){
     AutoAim_ResetVisionBias();
     s_state.startup_align = false;
     s_vision_freeze_hold = 0U;
+    s_circle_phase_init = false;
 
     s_last_wheel_distance_m = Chassis_GetDistance();
     Localization_Init(s_config.start_pose,
@@ -167,8 +171,12 @@ BSP_STATUS AutoAim_Update(float dt_s){
         omega_deg_s,
         s_config.encoder_lateral_offset_m,
         dt_s);
+    /* 融合航向陀螺前推: JY61P 融合输出在快速旋转时滞后, 弯中 ω·τ 直接变成
+     * yaw 命令误差 (实测 ~25ms)。前推后的航向同时供定位积分与瞄准解算。 */
     heading_deg = Kinematics_NormalizeAngleDeg(imu.attitude_deg.yaw +
-                                                s_heading_offset_deg);
+                                                s_heading_offset_deg +
+                                                omega_deg_s *
+                                                    s_config.heading_gyro_lead_s);
     Localization_UpdateDelta(s_state.last_center_delta_m, heading_deg);
     s_state.pose = Localization_GetPose();
     s_state.lap_progress = Localization_GetLapProgress();
@@ -214,9 +222,19 @@ BSP_STATUS AutoAim_Update(float dt_s){
     AIM_POINT2F target_xy;
     float target_dz;
     if (s_state.mode == AUTO_AIM_MODE_CIRCLE){
-        float phase_deg = AimSolver_ProgressToPhaseDeg(s_state.lap_progress,
-                                                       s_config.circle_phase0_deg);
-        AimSolver_CirclePoint(phase_deg, &target_xy, &target_dz);
+        /* 相位限速: 角点 snap 使 lap_progress 跳变, 直接用会在靶纸留径向划痕;
+         * 限速后跳变摊平成短暂追赶 (同步误差判据 1/4 圈 ≫ 追赶量, 无碍)。 */
+        float phase_target = AimSolver_ProgressToPhaseDeg(s_state.lap_progress,
+                                                          s_config.circle_phase0_deg);
+        if (!s_circle_phase_init){
+            s_circle_phase_init = true;
+            s_circle_phase_deg = phase_target;
+        }
+        float dphi = Kinematics_AngleDiffDeg(phase_target, s_circle_phase_deg);
+        float max_step = AUTO_AIM_CIRCLE_PHASE_SLEW_DEG_S * dt_s;
+        dphi = Kinematics_Clamp(dphi, -max_step, max_step);
+        s_circle_phase_deg = Kinematics_NormalizeAngleDeg(s_circle_phase_deg + dphi);
+        AimSolver_CirclePoint(s_circle_phase_deg, &target_xy, &target_dz);
     } else{
         target_xy = solver_cfg.target_center;
         target_dz = solver_cfg.height_diff_m;
@@ -227,6 +245,8 @@ BSP_STATUS AutoAim_Update(float dt_s){
      * yaw_rate 直接作为 velff 的解析速度前馈下发 (闭式运动学, 无差分噪声,
      * 免疫角点 snap 命令跳变); pitch 侧仍经 pitch lead 叠加 (默认 0)。 */
     s_state.gyro_z_deg_s = omega_deg_s;   /* 原始 ω: 遥测/上报与车心重构用 */
+    s_state.body_pitch_deg = imu.attitude_deg.pitch;   /* 车体姿态: 遥测诊断用 */
+    s_state.body_roll_deg = imu.attitude_deg.roll;
     s_state.v_center_mps = s_state.last_center_delta_m / dt_s;
     /* v 单独低通: 去掉里程更新慢于/差拍于循环导致的 v=Δs/dt 混叠尖峰(0↔~1m/s)。
      * ω 不低通: 低噪声真实自转, 速度内环需实时 1:1 反转补偿(含蛇形), 滤了引入相位滞后。 */
