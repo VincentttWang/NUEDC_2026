@@ -3,11 +3,16 @@
 APP_E_CALIBRATION_CONFIG AppE_GetCalibrationConfig(void){
     AUTO_AIM_CONFIG aim = AutoAim_DefaultConfig();
 
-    /* 1. 场地与规定起点：世界系原点=AB 中点，+X=A->B，+Y 指向靶。 */
+    /* 1. 场地与规定起点：世界系原点=AB 中点，+X=A->B，+Y 指向靶。
+     *    起点位姿指【轮轴中点】(定位原点), 不是车前沿!
+     *    摆车方式 = 前沿对齐 AB 线、车头朝 A->C (-Y): 前沿到轮轴实测 0.18m,
+     *    故轴心在 AB 线后方 +Y 侧 0.18m 处。此项漏配会让起点前馈错 ~10°,
+     *    且被起步视觉对齐冻结进 bias、第一个角点 snap 后全圈倒灌(实测教训)。
+     *    若摆车基准改变(如按轴心对线), 同步改 y_m。 */
     aim.start_pose = (KINEMATICS_POSE){
         .x_m = -0.500f,
-        .y_m = 0.000f,
-        .heading_deg = -90.0f, /* 默认从 A 沿 A->C。 */
+        .y_m = 0.180f,
+        .heading_deg = -90.0f, /* 从 A 沿 A->C。 */
     };
     aim.track_side_m = 1.000f; /* 填黑线中心线之间的实测平均边长。 */
 
@@ -42,6 +47,12 @@ APP_E_CALIBRATION_CONFIG AppE_GetCalibrationConfig(void){
      *    故只需比 home 低 ~10° 即可下压到位。命令落 ~141~143° 仍在 [135,165] 内。
      *    重标: 让车静瞄靶, 增/减该值直到激光竖直方向正中靶心 (增大→pitch 指令增大→光束上抬)。 */
     aim.solver.yaw_zero_offset_deg = 0.000f;
+    /* 激光束线到 yaw 转轴的垂直横向距离 (m): 沿出光方向看, 光束在转轴左侧为正。
+     * 机械上激光不过转轴 → 命中修正 asin(ℓ/r) 随距离变化 (0.035m: 远边 1.8m
+     * 处 ≈1.1°, 近边 0.55m 处 ≈3.7°)。幅值实测 3.5cm; 符号由数据判定为左(+):
+     * 历次起步锚定恒为负(均值~-6°), 与 ℓ=+0.035 在起点贡献 -3.2° 同向。
+     * ⚠ 上板验证: 若近边 visErr 反而变差 → 翻成 -0.035。 */
+    aim.solver.laser_lateral_offset_m = 0.035f;
     aim.solver.pitch_zero_offset_deg = 140.000f;
 
     /* 5. 视觉 bias (衰减增益, 逐轴): 第 n 个有效帧增益 g(n)=max(gain_min, gain0/(1+n))。
@@ -53,11 +64,17 @@ APP_E_CALIBRATION_CONFIG AppE_GetCalibrationConfig(void){
      *         行程仅 home±15°, 限幅收紧到 2°。
      *    测量质量(平滑/野值/丢帧预测/延迟前推)由 K230 侧 Kalman 负责, 此处无门控。
      *    上板首验: 若某轴误差越校越大(激光越修越偏), 只翻转对应 sign。 */
+    /* 视觉稳态增益按实测残差节奏整定 (2026-07-16):
+     *   yaw gain_min=0.10 @30fps τ≈0.35s —— 残差随边变化(~2-3s/边), 0.05 追有滞后
+     *   (直线段 std 3.9°), 抬到 0.10 收紧; 若出现与视觉噪声合拍的抖动则回落。
+     *   pitch gain_min=0.03 τ≈1.1s —— 0.01 太慢, 实测 seg 级 -3.7° 持续残留。
+     * 量程 8° 覆盖起步锚定的摆车级残差。诊断需要"纯观测"时把增益临时置 0 即可
+     * (起步交接 SetStartupBias 是直写, 不经增益, 不受影响)。 */
     aim.vision_yaw = (AIM_VISION_GAIN){
-        .gain0 = 0.500f, .gain_min = 0.020f, .limit_deg = 3.000f,
+        .gain0 = 0.500f, .gain_min = 0.100f, .limit_deg = 8.000f,
     };
     aim.vision_pitch = (AIM_VISION_GAIN){
-        .gain0 = 0.250f, .gain_min = 0.010f, .limit_deg = 2.000f,
+        .gain0 = 0.250f, .gain_min = 0.030f, .limit_deg = 2.000f,
     };
     /* 起步静态对齐限幅(逐轴): 倒计时窗口内一次性吸收静态总偏差 (含光轴统一假设下
      * 的相机-激光偏差, yaw 实测基线 ~9° 故给 ±10°; pitch 行程小给 ±5°)。开跑即冻结。
@@ -66,7 +83,11 @@ APP_E_CALIBRATION_CONFIG AppE_GetCalibrationConfig(void){
      * 若对齐期间校正量打到限幅且激光越转越偏 → 翻对应 vision_*_sign。 */
     aim.vision_yaw_startup_limit_deg = 10.000f;
     aim.vision_pitch_startup_limit_deg = 5.000f;
-    aim.vision_yaw_sign = -1.000f;
+    /* yaw 符号实测定为 +1 (2026-07-15 两次运行差分定罪: 原 -1 下加大校正量
+     * 误差同向增大 d(visErr)/d(bias)≈-1.2, 即校正反向、bias 必然单向贴限幅)。
+     * 注意: 对准伺服(gimbal_tracking.yaw_output_sign)与本符号是两条独立链,
+     * 伺服收敛不能为此符号作证。pitch 符号尚未经同法验证, 待实测。 */
+    aim.vision_yaw_sign = 1.000f;
     aim.vision_pitch_sign = 1.000f;
 
     /* 6. F3：0°=靶心右侧，90°=上方。 */

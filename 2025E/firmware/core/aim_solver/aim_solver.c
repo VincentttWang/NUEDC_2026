@@ -17,6 +17,7 @@ AIM_SOLVER_CONFIG AimSolver_DefaultConfig(void){
         .mount_x_m = AIM_SOLVER_DEFAULT_MOUNT_X_M,
         .mount_y_m = AIM_SOLVER_DEFAULT_MOUNT_Y_M,
         .yaw_zero_offset_deg = AIM_SOLVER_DEFAULT_YAW_ZERO_OFFSET_DEG,
+        .laser_lateral_offset_m = AIM_SOLVER_DEFAULT_LASER_LATERAL_OFFSET_M,
         .pitch_zero_offset_deg = AIM_SOLVER_DEFAULT_PITCH_ZERO_OFFSET_DEG,
         .circle_radius_m = AIM_SOLVER_DEFAULT_CIRCLE_RADIUS_M,
     };
@@ -71,12 +72,22 @@ AIM_SOLVER_RESULT AimSolver_Solve(KINEMATICS_POSE pose,
         horizontal = AIM_SOLVER_HORIZONTAL_EPS;
     }
 
-    /* 世界系绝对方位角 (激光在水平面内应指向的方向)。 */
+    /* 世界系绝对方位角 (支点→目标方向)。 */
     float world_bearing_deg = KINEMATICS_RAD_TO_DEG(atan2f(dy, dx));
 
-    /* 转到车体/云台系: 减去车航向与机械零位补偿。 */
+    /* 激光束线不过 yaw 转轴的偏轴修正: 光束平行于云台指向、横向平移 ℓ (左正),
+     * 命中条件 yaw = bearing − asin(ℓ/r), 修正量随距离 1/r 变化。 */
+    float lateral_corr_deg = 0.0f;
+    if (s_aim_config.laser_lateral_offset_m != 0.0f){
+        float ratio = s_aim_config.laser_lateral_offset_m / horizontal;
+        ratio = Kinematics_Clamp(ratio, -0.5f, 0.5f);   /* 病态近距保护 (≤30°) */
+        lateral_corr_deg = KINEMATICS_RAD_TO_DEG(asinf(ratio));
+    }
+
+    /* 转到车体/云台系: 减去车航向、偏轴修正与机械零位补偿。 */
     float yaw_cmd_deg = Kinematics_NormalizeAngleDeg(world_bearing_deg
                                                      - pose.heading_deg
+                                                     - lateral_corr_deg
                                                      - s_aim_config.yaw_zero_offset_deg);
 
     /* pitch (2D 简化): 仰角 = atan2(高差, 水平距离) + 机械零位补偿。 */

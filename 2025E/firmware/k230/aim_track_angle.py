@@ -131,12 +131,17 @@ V_FOV_DEG = 35.0
 H_TAN_HALF_FOV = math.tan(math.radians(H_FOV_DEG / 2.0))
 V_TAN_HALF_FOV = math.tan(math.radians(V_FOV_DEG / 2.0))
 
-# ===== 激光-相机偏移: S7 同轴假设先置零, 待 S10 光点标定填入 =====
-TARGET_HEIGHT_CM = 17.3     # 靶实际高度 (cm), 供 CALIB_OFFSET 的像素换算; 偏移为 0 时不生效
-CALIB_OFFSET_X_CM = 0.0     # 激光相对相机横向平移 (cm); 同轴=0
-CALIB_OFFSET_Y_CM = 0.0     # 激光相对相机纵向平移 (cm); 同轴=0
-IDEAL_YAW_DEG = 0.0         # 激光在图像中的理想指向 yaw (同轴=图像中心=0)
-IDEAL_PITCH_DEG = 0.0       # 激光在图像中的理想指向 pitch (同轴=图像中心=0)
+# ===== 激光-相机偏移: S10 光点标定实测值 (laser_offset_calib.py, 2026-07-15) =====
+# 实测: yaw 光斑角恒定 -1.86°(无视差); pitch 随距离 1.66(远)~3.16(近) -> 竖直视差,
+# 尺量镜头中心-出光口竖直间距 ~1.5cm(与反解量级吻合, 采信物理量测)。
+TARGET_HEIGHT_CM = 17.3     # 靶实际高度 (cm), 供 CALIB_OFFSET 的像素换算
+CALIB_OFFSET_X_CM = 0.0     # 横向: yaw 无视差, 保持 0
+CALIB_OFFSET_Y_CM = -1.5    # 竖直视差 1.5cm; 符号经镜像链推导(补偿加在镜像前的原始
+                            # 坐标, MIRROR_180 翻转其作用方向)。上板验证: 近距(0.5m)
+                            # 收敛后光斑若竖直偏离靶心且越近越偏 -> 翻此符号。
+IDEAL_YAW_DEG = -1.86       # 光斑 yaw 纯角度偏置 (无距离依赖)
+IDEAL_PITCH_DEG = 1.25      # 光斑 pitch 纯角度偏置: 由 d_y=1.5cm 从近端(1.44)/远端
+                            # (1.09)双向锚定取中; 残差 <0.4° 由视觉 bias 吸收
 
 # ===== UART1 (GPIO3/4, 对接 MSPM0 UART2) =====
 UART_TX_PIN, UART_RX_PIN = 3, 4

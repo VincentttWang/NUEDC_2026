@@ -47,6 +47,10 @@ extern "C" {
 #define AIM_SOLVER_DEFAULT_MOUNT_Y_M 0.00f
 /** yaw 机械零位补偿: yaw_cmd=0 时激光相对车体 +X 前向的夹角, 单位 deg。 */
 #define AIM_SOLVER_DEFAULT_YAW_ZERO_OFFSET_DEG 0.0f
+/** 激光束线相对 yaw 转轴的垂直横向偏移, 单位 m (沿出光方向看, 光束在转轴
+ *  左侧为正)。光束不过转轴时命中条件是 yaw = bearing - asin(ℓ/r), 修正量
+ *  ∝1/距离 (0.03m 在 0.5m 处 ≈3.4°, 在 1.8m 处 ≈1°), 机械尺量填入。 */
+#define AIM_SOLVER_DEFAULT_LASER_LATERAL_OFFSET_M 0.0f
 /** pitch 机械零位补偿: 加到解算 pitch 上, 单位 deg。 */
 #define AIM_SOLVER_DEFAULT_PITCH_ZERO_OFFSET_DEG 0.0f
 /** E3 画圆半径, 单位 m (赛题 6cm 红色圆弧)。 */
@@ -77,6 +81,8 @@ typedef struct {
     float mount_y_m;
     /** yaw 机械零位补偿, 单位 deg。 */
     float yaw_zero_offset_deg;
+    /** 激光束线相对 yaw 转轴的垂直横向偏移, 单位 m (左正; 见宏注释)。 */
+    float laser_lateral_offset_m;
     /** pitch 机械零位补偿, 单位 deg。 */
     float pitch_zero_offset_deg;
     /** E3 画圆半径, 单位 m。 */
