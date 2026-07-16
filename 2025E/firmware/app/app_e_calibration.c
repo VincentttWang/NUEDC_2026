@@ -83,6 +83,10 @@ APP_E_CALIBRATION_CONFIG AppE_GetCalibrationConfig(void){
      * 若对齐期间校正量打到限幅且激光越转越偏 → 翻对应 vision_*_sign。 */
     aim.vision_yaw_startup_limit_deg = 10.000f;
     aim.vision_pitch_startup_limit_deg = 5.000f;
+    /* 弯中毒帧 ω 门控 (2026-07-16 实测教训): 高稳态增益(0.1)下弯中瞬态帧 8 帧
+     * 即把 bias 打到限幅, 近靶边被 1/r 放大成 ~10° 尖峰。|gz|>40°/s 冻结慢 bias
+     * (转弯 80-120, 直线蛇形 <30, 分界清晰), 出弯再滞留 5 帧挡延迟拖尾。 */
+    aim.vision_freeze_omega_deg_s = 40.000f;
     /* yaw 符号实测定为 +1 (2026-07-15 两次运行差分定罪: 原 -1 下加大校正量
      * 误差同向增大 d(visErr)/d(bias)≈-1.2, 即校正反向、bias 必然单向贴限幅)。
      * 注意: 对准伺服(gimbal_tracking.yaw_output_sign)与本符号是两条独立链,

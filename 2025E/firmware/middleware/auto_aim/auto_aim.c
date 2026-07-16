@@ -12,6 +12,7 @@ static AUTO_AIM_STATE s_state;
 static float s_last_wheel_distance_m;
 static float s_heading_offset_deg;
 static float s_v_ratef_lpf;       /* 速率前馈用的低通 v 状态 (m/s), 去里程混叠尖峰 */
+static uint32_t s_vision_freeze_hold;  /* ω 门控出弯滞留帧计数 (挡延迟拖尾毒帧) */
 static bool s_initialized;
 
 AUTO_AIM_CONFIG AutoAim_DefaultConfig(void){
@@ -32,6 +33,7 @@ AUTO_AIM_CONFIG AutoAim_DefaultConfig(void){
         },
         .vision_yaw_startup_limit_deg = AUTO_AIM_DEFAULT_VISION_YAW_STARTUP_LIMIT_DEG,
         .vision_pitch_startup_limit_deg = AUTO_AIM_DEFAULT_VISION_PITCH_STARTUP_LIMIT_DEG,
+        .vision_freeze_omega_deg_s = AUTO_AIM_DEFAULT_VISION_FREEZE_OMEGA_DEG_S,
         .vision_yaw_sign = AUTO_AIM_DEFAULT_VISION_YAW_SIGN,
         .vision_pitch_sign = AUTO_AIM_DEFAULT_VISION_PITCH_SIGN,
         .circle_phase0_deg = AUTO_AIM_DEFAULT_CIRCLE_PHASE0_DEG,
@@ -90,6 +92,7 @@ BSP_STATUS AutoAim_Start(AUTO_AIM_MODE mode){
     /* bias 与帧计数清零: 每次任务从首帧快收敛重新开始。 */
     AutoAim_ResetVisionBias();
     s_state.startup_align = false;
+    s_vision_freeze_hold = 0U;
 
     s_last_wheel_distance_m = Chassis_GetDistance();
     Localization_Init(s_config.start_pose,
@@ -175,6 +178,21 @@ BSP_STATUS AutoAim_Update(float dt_s){
         s_state.vision_yaw_error_deg = yaw_error_deg;
         s_state.vision_pitch_error_deg = pitch_error_deg;
     }
+    /* 弯中毒帧 ω 门控: 高角速度期间(及出弯后数帧, 挡测量延迟拖尾)视觉帧只观测
+     * 不吸收。弯中帧含跟踪瞬态, 高稳态增益下会把 bias 打到限幅、再被近靶 1/r
+     * 放大成尖峰 (实测)。仅作用于慢跟踪 bias; 起步对齐窗口(车静止)不受影响。 */
+    bool vision_absorb = s_state.vision_valid;
+    if (s_config.vision_freeze_omega_deg_s > 0.0f){
+        float abs_omega = (omega_deg_s < 0.0f) ? -omega_deg_s : omega_deg_s;
+        if (abs_omega > s_config.vision_freeze_omega_deg_s){
+            s_vision_freeze_hold = AUTO_AIM_VISION_FREEZE_HOLD_FRAMES;
+            vision_absorb = false;
+        } else if (s_vision_freeze_hold > 0U){
+            s_vision_freeze_hold--;
+            vision_absorb = false;
+        }
+    }
+
     /* 视觉帧路由: 起步对齐窗口内喂大量程 startup_bias (吸收静态总偏差),
      * 窗口外喂慢跟踪 vision_bias (只管运动中漂移)。 */
     if (s_state.vision_correction_enabled){
@@ -187,7 +205,7 @@ BSP_STATUS AutoAim_Update(float dt_s){
             AimVisionBias_Update(&s_state.vision_bias,
                                  s_config.vision_yaw_sign * yaw_error_deg,
                                  s_config.vision_pitch_sign * pitch_error_deg,
-                                 s_state.vision_valid);
+                                 vision_absorb);
         }
     }
 

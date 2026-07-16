@@ -36,6 +36,12 @@ extern "C" {
  * 增益复用上面各轴的 gain0/gain_min。 */
 #define AUTO_AIM_DEFAULT_VISION_YAW_STARTUP_LIMIT_DEG 10.0f
 #define AUTO_AIM_DEFAULT_VISION_PITCH_STARTUP_LIMIT_DEG 5.0f
+/* 弯中毒帧 ω 门控: |陀螺 yaw-rate| 超此阈值时视觉帧只观测不吸收 (慢 bias 冻结)。
+ * 弯中帧含跟踪瞬态+测量延迟, 高稳态增益(0.1)下 8 帧即可把 bias 打到限幅, 再被
+ * 近靶 1/r 放大成 ~10° 尖峰 (实测教训)。转弯 ω≈80-120, 直线蛇形 <30, 40 分界清晰。
+ * 0 = 不门控。出弯后再滞留 HOLD 帧, 挡掉延迟(~60-100ms)拖尾的弯中测量。 */
+#define AUTO_AIM_DEFAULT_VISION_FREEZE_OMEGA_DEG_S 40.0f
+#define AUTO_AIM_VISION_FREEZE_HOLD_FRAMES 5U
 #define AUTO_AIM_DEFAULT_VISION_YAW_SIGN -1.0f
 #define AUTO_AIM_DEFAULT_VISION_PITCH_SIGN 1.0f
 #define AUTO_AIM_DEFAULT_CIRCLE_PHASE0_DEG 0.0f
@@ -69,6 +75,8 @@ typedef struct {
     /** 起步静态对齐限幅, 逐轴, 单位 deg (增益复用各轴 vision_* 的 gain0/gain_min)。 */
     float vision_yaw_startup_limit_deg;
     float vision_pitch_startup_limit_deg;
+    /** 弯中毒帧 ω 门控阈值, 单位 deg/s; 0=不门控 (见宏注释)。 */
+    float vision_freeze_omega_deg_s;
     float vision_yaw_sign;
     float vision_pitch_sign;
     float circle_phase0_deg;

@@ -57,7 +57,7 @@ int main(void){
     assert(AutoAim_Start(AUTO_AIM_MODE_CENTER) == BSP_STATUS_OK);
 
     s_distance_m = 0.1f;
-    s_imu.gyro_deg_s.z = 90.0f;
+    s_imu.gyro_deg_s.z = 30.0f;   /* < ω 门控阈值 40: 视觉正常吸收 */
     s_angle_data.status = CANMV_STATUS_OK;
     s_angle_data.count = 2U;
     s_angle_data.value[0] = (uint16_t)(int16_t)100;
@@ -128,6 +128,17 @@ int main(void){
     assert(Near(state.startup_bias.pitch_bias_deg, -3.25f, 0.001f));
     assert(state.startup_bias.frame_count == 1U);
     assert(state.vision_bias.frame_count >= 25U);
+
+    /* ω 门控: |gz| 超阈值时视觉帧只观测不吸收 (弯中毒帧防护)。 */
+    s_imu.gyro_deg_s.z = 90.0f;   /* > 阈值 40 */
+    float gated_yaw = AutoAim_GetState().vision_bias.yaw_bias_deg;
+    s_angle_data.value[0] = (uint16_t)(int16_t)400;
+    s_angle_data.value[1] = (uint16_t)(int16_t)400;
+    g_canmv_uart_angle_frame_count = 4U;
+    assert(AutoAim_Update(0.1f) == BSP_STATUS_OK);
+    state = AutoAim_GetState();
+    assert(state.vision_valid);                     /* 帧仍被消费(遥测可见) */
+    assert(Near(state.vision_bias.yaw_bias_deg, gated_yaw, 0.001f));  /* 但不吸收 */
 
     AutoAim_AnchorCorner(LOCALIZATION_CORNER_B, 1.0f);
     state = AutoAim_GetState();
