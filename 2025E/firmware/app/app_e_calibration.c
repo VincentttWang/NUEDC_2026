@@ -23,6 +23,10 @@ APP_E_CALIBRATION_CONFIG AppE_GetCalibrationConfig(void){
     /* 陀螺 yaw-rate 符号：实测本机 gz 与航向反号 → -1（左转时 head 增而 gz 负）。
      * 影响速率前馈与车心重构，符号错会让转弯前馈反向、越快越滞后。 */
     aim.gyro_z_sign = -1.000f;
+    /* IMU 融合航向陀螺前推 (s): JY61P 融合输出在快速旋转时滞后, 弯中 ω·τ 直接
+     * 变 yaw 命令误差 (脱靶主因之一)。实测剂量-效果线性: 0→-2.2°, 25ms→-1.15°,
+     * 50ms→+0.89°, 过零点 ≈38ms。整定: 弯中(st=2) visErr 均值 → 0。 */
+    aim.heading_gyro_lead_s = 0.038f;
 
     /* 3. 靶心世界水平坐标与云台转轴相对车体定位原点的安装位置。 */
     aim.solver.target_center = (AIM_POINT2F){
@@ -41,11 +45,10 @@ APP_E_CALIBRATION_CONFIG AppE_GetCalibrationConfig(void){
     aim.solver.mount_y_m = 0.000f; /* 车体左侧为正。 */
 
     /* 4. 云台机械零位：增大 yaw offset 会减小 yaw 指令；pitch 反之。
-     *    pitch_zero_offset = "激光水平(0 仰角)时的 pitch 电机角"。
-     *    solver 输出 pitch_cmd = atan2(高差,水平距离) + 该 offset; 电机限位 [135,165](home150±15)。
-     *    实测标定 = 140 (光束正中靶心); pitch 轴有减速比, 电机每度对应光束多度,
-     *    故只需比 home 低 ~10° 即可下压到位。命令落 ~141~143° 仍在 [135,165] 内。
-     *    重标: 让车静瞄靶, 增/减该值直到激光竖直方向正中靶心 (增大→pitch 指令增大→光束上抬)。 */
+     *    pitch 完整模型: pitch_cmd = z0 + [atan2(高差,r) − asin(ℓp/r)]/k
+     *    (z0=光束0仰角时电机角, k=光束/电机传动比, ℓp=束线-pitch轴竖直偏距)。
+     *    电机限位 [135,165](home150±15); 当前命令域 ~138.5~140.2, 余量充足。
+     *    重标走静态两距离法 (见下方 pitch 三元组注释), 单点重标只能动 z0。 */
     aim.solver.yaw_zero_offset_deg = 0.000f;
     /* 激光束线到 yaw 转轴的垂直横向距离 (m): 沿出光方向看, 光束在转轴左侧为正。
      * 机械上激光不过转轴 → 命中修正 asin(ℓ/r) 随距离变化 (0.035m: 远边 1.8m
@@ -53,7 +56,22 @@ APP_E_CALIBRATION_CONFIG AppE_GetCalibrationConfig(void){
      * 历次起步锚定恒为负(均值~-6°), 与 ℓ=+0.035 在起点贡献 -3.2° 同向。
      * ⚠ 上板验证: 若近边 visErr 反而变差 → 翻成 -0.035。 */
     aim.solver.laser_lateral_offset_m = 0.035f;
-    aim.solver.pitch_zero_offset_deg = 140.000f;
+    /* pitch 零位与传动比 (2026-07-16 静态两距离标定: Aim track 锁定后读 OLED
+     * 的 Pit 电机角): 0.5m 命中 m1=140.14, 1.5m 命中 m2=138.67。
+     * 含 ℓp=-0.04 偏轴项的命中光束角 beam(0.5)=8.03° / beam(1.5)=2.67°:
+     *   k = Δbeam/Δm = 5.35/1.47 = 3.64 (光束°/电机°)
+     *   z0 双点独立反解均为 137.94 (自洽 ✓)
+     * (z0, k, ℓp) 是联合标定的三元组, 任何一个变动需整套重标。
+     * ⚠ z0 不跨上电存活: pitch 角度基准 = 上电瞬间机械静止位, 断电后头部垂落
+     * 位置不同则整个基准漂移 (实测跨会话 ±6°)。起步视觉对齐会自动吸收
+     * (startup pitch bias 五六度属正常, 不是 bug); 仅"视觉未锁定的降级起步"
+     * 会带着该漂移跑, 竖直可能偏数厘米, 为降级模式已知代价。 */
+    aim.solver.pitch_zero_offset_deg = 137.940f;
+    aim.solver.pitch_beam_per_motor = 3.640f;
+    /* 激光束线到 pitch 转轴的竖直距离 (m, 束线在轴上方为正): yaw 偏轴的竖直版,
+     * 误差 ∝1/r。尺量 |ℓp|≈4cm; 符号实测判定为负 (+0.04 时近距漂移 -3.68→-4.07
+     * 反而变大, 2026-07-16)。相机-轴距离不进模型 (视觉误差是激光系相对量)。 */
+    aim.solver.laser_vertical_offset_m = -0.040f;
 
     /* 5. 视觉 bias (衰减增益, 逐轴): 第 n 个有效帧增益 g(n)=max(gain_min, gain0/(1+n))。
      *    yaw: gain0=0.5 -> 首帧吃掉一半残差, ~3 帧完成主收敛;

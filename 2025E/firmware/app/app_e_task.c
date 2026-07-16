@@ -36,8 +36,12 @@
 #define APP_E_UI_REFRESH_MS 400U
 /* CSV 调试遥测周期(ms): 供 aim_tune_viz.py 整定用; 每条 printf ~5ms 占循环, 比赛可加大或设 0 关。 */
 #define APP_E_TELEMETRY_INTERVAL_MS 20U
-/* 瞄准任务起步前的最短几何预定位时间；此后按视觉锁定事件起步，不设总时限。 */
+/* 瞄准任务起步前的最短几何预定位时间；此后按视觉锁定事件起步。 */
 #define APP_E_AIM_GEOMETRY_SETTLE_MS 1000U
+/* 视觉对准阶段总时限(ms): 超时未锁定则纯前馈降级起步(无起步对齐, 慢 bias 照常,
+ * 视觉恢复后自动接管)。竞赛兜底: 视觉故障时"跑起来拿部分分"优于永不起步。
+ * 0 = 无限等待(调试时用, 保留"按状态起步"原语义)。 */
+#define APP_E_AIM_ALIGN_TIMEOUT_MS 15000U
 /* 更新同步遥测抽取: 每 N 次传感器更新记一条 (带 SysTick 时间戳还原真实时序)。 */
 #define APP_E_AIM_LOG_EVERY_FRAMES 1U   /* Aim: 每 N 个 CanMV 视觉帧 */
 #define APP_E_LINE_LOG_EVERY_SCANS 10U  /* E1: 每 N 次灰度扫描 */
@@ -334,10 +338,16 @@ static void AppE_RunLineTask(uint8_t lap_count, APP_E_AIM_MODE aim_mode){
         align_last_ms = BSP_Time_GetMs();
         align_ui_ms = align_last_ms;
         uint32_t align_last_vf = g_canmv_uart_angle_frame_count;
-        DebugUart_Puts("[E1] AimTrack visual-align begin (no timeout)\r\n");
+        uint32_t align_begin_ms = BSP_Time_GetMs();
+        DebugUart_Puts("[E1] AimTrack visual-align begin\r\n");
         Ui_UpdateContentLine(0U, "Vision aligning");
 
         while (!align_lock.locked){
+            if ((APP_E_AIM_ALIGN_TIMEOUT_MS != 0U) &&
+                ((uint32_t)(BSP_Time_GetMs() - align_begin_ms) >=
+                 APP_E_AIM_ALIGN_TIMEOUT_MS)){
+                break;   /* 超时: 走纯前馈降级起步 */
+            }
             uint32_t now_ms = BSP_Time_GetMs();
             float dt_s = (float)(now_ms - align_last_ms) / 1000.0f;
             align_last_ms = now_ms;
@@ -394,16 +404,25 @@ static void AppE_RunLineTask(uint8_t lap_count, APP_E_AIM_MODE aim_mode){
          * velff 首拍的就近对齐/位置外环吃到新鲜角, 消除起步甩动瞬态。
          * pitch 无此问题: pitch_deg 即真实下发的位置设定点(电机角)。
          */
-        float aligned_yaw_deg = Gimbal_ReadYawFeedbackDeg();
-        GIMBAL_ANGLE aligned_angle = Gimbal_GetAngle();
-        AIM_SOLVER_RESULT start_ff =
-            (aim_mode == APP_E_AIM_MODE_CIRCLE_FEEDFORWARD)
-                ? AimSolver_SolveCircle(calibration.auto_aim.start_pose,
-                                        calibration.auto_aim.circle_phase0_deg)
-                : AimSolver_SolveCenter(calibration.auto_aim.start_pose);
-        float startup_yaw_bias = Kinematics_AngleDiffDeg(aligned_yaw_deg,
-                                                         start_ff.yaw_cmd_deg);
-        float startup_pitch_bias = aligned_angle.pitch_deg - start_ff.pitch_cmd_deg;
+        float startup_yaw_bias = 0.0f;
+        float startup_pitch_bias = 0.0f;
+        if (align_lock.locked){
+            float aligned_yaw_deg = Gimbal_ReadYawFeedbackDeg();
+            GIMBAL_ANGLE aligned_angle = Gimbal_GetAngle();
+            AIM_SOLVER_RESULT start_ff =
+                (aim_mode == APP_E_AIM_MODE_CIRCLE_FEEDFORWARD)
+                    ? AimSolver_SolveCircle(calibration.auto_aim.start_pose,
+                                            calibration.auto_aim.circle_phase0_deg)
+                    : AimSolver_SolveCenter(calibration.auto_aim.start_pose);
+            startup_yaw_bias = Kinematics_AngleDiffDeg(aligned_yaw_deg,
+                                                       start_ff.yaw_cmd_deg);
+            startup_pitch_bias = aligned_angle.pitch_deg - start_ff.pitch_cmd_deg;
+            DebugUart_Printf(
+                "[E1] vision LOCK aligned=%.2f,%.2f ff=%.2f,%.2f bias=%.2f,%.2f\r\n",
+                aligned_yaw_deg, aligned_angle.pitch_deg,
+                start_ff.yaw_cmd_deg, start_ff.pitch_cmd_deg,
+                startup_yaw_bias, startup_pitch_bias);
+        }
 
         (void)GimbalTracking_Stop();
         AutoAim_Init(&calibration.auto_aim);
@@ -416,16 +435,17 @@ static void AppE_RunLineTask(uint8_t lap_count, APP_E_AIM_MODE aim_mode){
             AppE_WaitBack();
             return;
         }
-        AutoAim_SetStartupAlign(true);
-        AutoAim_SetStartupBias(startup_yaw_bias, startup_pitch_bias);
-        AutoAim_SetStartupAlign(false);
+        if (align_lock.locked){
+            AutoAim_SetStartupAlign(true);
+            AutoAim_SetStartupBias(startup_yaw_bias, startup_pitch_bias);
+            AutoAim_SetStartupAlign(false);
+        } else{
+            /* 视觉未锁定超时: 纯前馈降级起步 (无起步对齐基准);
+             * 视觉恢复后慢 bias 自动接管修残差, 不阻塞任务。 */
+            DebugUart_Puts("[E1] align TIMEOUT -> pure feedforward start\r\n");
+        }
         AutoAim_SetVisionCorrectionEnabled(true);
-        DebugUart_Printf(
-            "[E1] vision LOCK aligned=%.2f,%.2f ff=%.2f,%.2f bias=%.2f,%.2f motion start\r\n",
-            aligned_yaw_deg, aligned_angle.pitch_deg,
-            start_ff.yaw_cmd_deg, start_ff.pitch_cmd_deg,
-            startup_yaw_bias, startup_pitch_bias);
-        Ui_UpdateContentLine(0U, "Running...");
+        Ui_UpdateContentLine(0U, align_lock.locked ? "Running..." : "Run (no lock)");
     }
     start_ms = BSP_Time_GetMs();
     last_ms = start_ms;
@@ -457,7 +477,7 @@ static void AppE_RunLineTask(uint8_t lap_count, APP_E_AIM_MODE aim_mode){
          *   A,t_ms,lineState,gz,vCenter,heading,yawCmd,yawRateFF,yawActX10,
          *     yawBias,visErrY,startupBias,steadyBias,visValid,visStatus,
          *     visionFrame,bldcAngleFrame,yawOmegaCmd,yawRpmCmd,pitchBias,visErrP,
-         *     poseX,poseY
+         *     poseX,poseY,bodyPitch,bodyRoll
          *   line_state: 0=FOLLOW 1=CORNER_FWD 2=CORNER_ARC
          *   yawActX10 : F32C 上报 yaw 多圈角(0.1°); 逻辑角=-yawActX10/10 (GIMBAL_YAW_DIR=-1)
          *   yawBias   : 视觉总校正 = startupBias + steadyBias (deg)
@@ -469,6 +489,8 @@ static void AppE_RunLineTask(uint8_t lap_count, APP_E_AIM_MODE aim_mode){
          *   pitchBias : pitch 视觉总校正 = 起步对齐 + 慢跟踪 (deg, 电机角)
          *   visErrP   : 最近有效视觉帧 pitch 误差 (deg, 光束角; 验 pitch 符号用)
          *   poseX/Y   : 定位位姿 (m, 世界系; 供离线回归确定性残差的几何来源)
+         *   bodyPitch/Roll: 车体姿态 (deg, IMU 融合; 诊断加减速俯仰/弯中侧倾
+         *                   对光束竖直方向的耦合 —— 云台 yaw≈90° 时 roll≈光束pitch)
          *   注: yawAct 因请求-响应异步约滞后一个采样(~20ms)。
          */
         if ((aim_mode != APP_E_AIM_MODE_NONE) && (APP_E_TELEMETRY_INTERVAL_MS > 0U)){
@@ -479,7 +501,8 @@ static void AppE_RunLineTask(uint8_t lap_count, APP_E_AIM_MODE aim_mode){
                 GIMBAL_SPEED gimbal_speed = Gimbal_GetSpeed();
                 DebugUart_Printf(
                     "A,%lu,%d,%.1f,%.2f,%.1f,%.1f,%.1f,%ld,%.2f,%.2f,"
-                    "%.2f,%.2f,%u,%d,%lu,%lu,%.1f,%d,%.2f,%.2f,%.3f,%.3f\r\n",
+                    "%.2f,%.2f,%u,%d,%lu,%lu,%.1f,%d,%.2f,%.2f,%.3f,%.3f,"
+                    "%.2f,%.2f\r\n",
                                  (unsigned long)now_ms, (int)line_state,
                                  aim_st.gyro_z_deg_s, aim_st.v_center_mps,
                                  aim_st.pose.heading_deg, aim_st.yaw_command_deg,
@@ -499,7 +522,8 @@ static void AppE_RunLineTask(uint8_t lap_count, APP_E_AIM_MODE aim_mode){
                                  aim_st.startup_bias.pitch_bias_deg +
                                      aim_st.vision_bias.pitch_bias_deg,
                                  aim_st.vision_pitch_error_deg,
-                                 aim_st.pose.x_m, aim_st.pose.y_m);
+                                 aim_st.pose.x_m, aim_st.pose.y_m,
+                                 aim_st.body_pitch_deg, aim_st.body_roll_deg);
                 BLDC_ReqFeedback(BLDC_ADDR_1, FB_MULTI_ANGLE);   /* 请求下次 yaw 实际角 */
             }
         }
@@ -740,13 +764,16 @@ void AppE_RunContinuousAim(void){
                                       &calibration);
 
         if ((uint32_t)(now_ms - last_display_ms) >= APP_E_UI_REFRESH_MS){
+            GIMBAL_ANGLE ui_ang = Gimbal_GetAngle();
             last_display_ms = now_ms;
             snprintf(line0, sizeof(line0), "Vision:%s",
                      vision_lock.locked ? "LOCK" : (vision_ready ? "TRACK" : "WAIT"));
             snprintf(line1, sizeof(line1), "Err:%0.1f,%0.1f",
                      state.error.x, state.error.y);
-            snprintf(line2, sizeof(line2), "Speed:%0.1f,%0.1f",
-                     state.yaw_speed, state.pitch_speed);
+            /* Pit = pitch 位置设定点(电机角): 静态两距离标定 k 的读数来源
+             * (锁定后设定点≈实际角, 记 0.5m/1.5m 两处读数求 k)。 */
+            snprintf(line2, sizeof(line2), "Pit:%0.2f Y:%0.0f",
+                     ui_ang.pitch_deg, state.yaw_speed);
             Ui_UpdateContentLine(1U, line0);
             Ui_UpdateContentLine(2U, line1);
             Ui_UpdateContentLine(3U, line2);
@@ -758,15 +785,18 @@ void AppE_RunContinuousAim(void){
             if (vf != last_vf){
                 last_vf = vf;
                 if (++vf_div >= APP_E_AIM_LOG_EVERY_FRAMES){
+                    GIMBAL_ANGLE log_ang = Gimbal_GetAngle();
                     vf_div = 0U;
                     DebugUart_Printf(
-                        "[AIM] t=%lu vv=%u lk=%u ey=%0.2f ep=%0.2f vy=%0.2f vp=%0.2f ya=%ld vf=%lu\r\n",
+                        "[AIM] t=%lu vv=%u lk=%u ey=%0.2f ep=%0.2f vy=%0.2f vp=%0.2f "
+                        "ya=%ld pit=%0.2f vf=%lu\r\n",
                         (unsigned long)now_ms,
                         vision_ready ? 1U : 0U,
                         (unsigned)vision_lock.confirm_frames,
                         state.error.x, state.error.y,
                         state.yaw_speed, state.pitch_speed,
                         (long)BLDC_Motor1.multi_angle,
+                        log_ang.pitch_deg,
                         (unsigned long)vf);
                 }
             }
