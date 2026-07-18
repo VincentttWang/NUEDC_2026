@@ -2,6 +2,7 @@
 
 #include "chassis.h"
 #include "kinematics/kinematics.h"
+#include "wit_sdk.h"
 
 #include <stddef.h>
 
@@ -54,6 +55,11 @@ static LINE_TRACKING_CONFIG LineTracking_DefaultConfig(void){
             .output_limit = LINE_TRACKING_DEFAULT_CORRECTION_LIMIT,
             .mode = PID_MODE_POSITION,
         },
+        .gyro_stab_enabled = LINE_TRACKING_DEFAULT_GYRO_STAB_ENABLED,
+        .gyro_line_kp = LINE_TRACKING_DEFAULT_GYRO_LINE_KP,
+        .gyro_stab_kp = LINE_TRACKING_DEFAULT_GYRO_STAB_KP,
+        .omega_ref_limit = LINE_TRACKING_DEFAULT_OMEGA_REF_LIMIT,
+        .gyro_z_sign = LINE_TRACKING_DEFAULT_GYRO_Z_SIGN,
     };
 
     return config;
@@ -105,7 +111,20 @@ BSP_STATUS LineTracking_Update(float dt_s){
         return status;
     }
 
-    status = LineTracking_Compute(&sensor, dt_s, &s_line_tracking_output);
+    /*
+     * 读车体航向角速度 gz。JY61P 挂 I2C0、由 SysTick ISR 全局轮询, WitGetData 随时
+     * 可取新鲜值, 所以【所有巡线任务(E1/F1/F2)都自动接入】陀螺增稳, 无需各任务改动。
+     * 增稳关闭或 IMU 读失败 → omega=0, Compute 退化为纯位置控制 (无阻尼, 但不崩)。
+     */
+    float omega_deg_s = 0.0f;
+    if (s_line_tracking_config.gyro_stab_enabled){
+        WIT_IMU_DATA imu;
+        if (WitGetData(&imu) == WIT_HAL_OK){
+            omega_deg_s = s_line_tracking_config.gyro_z_sign * imu.gyro_deg_s.z;
+        }
+    }
+
+    status = LineTracking_Compute(&sensor, dt_s, omega_deg_s, &s_line_tracking_output);
     if (status != BSP_STATUS_OK){
         return status;
     }
@@ -124,6 +143,7 @@ BSP_STATUS LineTracking_Update(float dt_s){
 
 BSP_STATUS LineTracking_Compute(const LINE_FOLLOW_SENSOR_STATE *sensor,
                                 float dt_s,
+                                float omega_deg_s,
                                 LINE_TRACKING_OUTPUT *out){
     if ((sensor == NULL) || (out == NULL)){
         return BSP_STATUS_NULL;
@@ -174,7 +194,24 @@ BSP_STATUS LineTracking_Compute(const LINE_FOLLOW_SENSOR_STATE *sensor,
         (pid_error < LINE_TRACKING_ERROR_DEADBAND)){
         pid_error = 0.0f;
     }
-    out->correction = PID_Update(&s_line_tracking_pid, pid_error, 0.0f, dt_s);
+
+    /*
+     * 陀螺增稳串级 (补偿"等占空比不直行"的硬件不对称 + 阻尼蛇形):
+     *   外环: 灰度偏差 pid_error → 期望航向角速度 ω_ref (限幅);
+     *   内环: correction = gyro_stab_kp · (ω_ref − gz), gz=omega_deg_s (已带符号)。
+     * 居中时 ω_ref=0 → 内环把实际 gz 压向 0 → 自动补偿不对称直行, 且 gz 是航向阻尼项。
+     * 关闭增稳(或无 IMU 传 0)则退回纯位置 PID 旧行为。
+     */
+    if (s_line_tracking_config.gyro_stab_enabled){
+        float omega_ref = Kinematics_Clamp(
+            s_line_tracking_config.gyro_line_kp * pid_error,
+            -s_line_tracking_config.omega_ref_limit,
+            s_line_tracking_config.omega_ref_limit);
+        out->correction = s_line_tracking_config.gyro_stab_kp *
+                          (omega_ref - omega_deg_s);
+    } else{
+        out->correction = PID_Update(&s_line_tracking_pid, pid_error, 0.0f, dt_s);
+    }
 
     /*
      * 巡线时左右轮差值为 2 * correction。这里单独限制 correction，
