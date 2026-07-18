@@ -45,6 +45,9 @@
 /* 更新同步遥测抽取: 每 N 次传感器更新记一条 (带 SysTick 时间戳还原真实时序)。 */
 #define APP_E_AIM_LOG_EVERY_FRAMES 1U   /* Aim: 每 N 个 CanMV 视觉帧 */
 #define APP_E_LINE_LOG_EVERY_SCANS 10U  /* E1: 每 N 次灰度扫描 */
+/* E3 扫描瞄准: yaw 单向扫描角速度(deg/s)。越大越快找到靶标但越易冲过靶面,
+ * 需与 K230 出帧率折中 (可试 45~90)。方向由子菜单 Scan +/- 选定。 */
+#define APP_E_SCAN_YAW_SPEED_DEG_S 60.0f
 
 typedef enum {
     APP_E_LINE_STATE_FOLLOW = 0,
@@ -830,6 +833,7 @@ static void AppE_RunVisualAim2s(void){
     char line2[24];
     uint32_t start_ms = BSP_Time_GetMs();
     uint32_t last_ms = start_ms;
+    uint32_t last_ui_ms = start_ms;
     uint8_t lock_frames = 0U;
     bool shot = false;
     APP_E_CALIBRATION_CONFIG calibration = AppE_GetCalibrationConfig();
@@ -875,14 +879,19 @@ static void AppE_RunVisualAim2s(void){
             shot = true;
         }
 
-        snprintf(line0, sizeof(line0), "Laser:%s", shot ? "SHOT" : "WAIT");
-        snprintf(line1, sizeof(line1), "Err:%0.0f,%0.0f", state.error.x, state.error.y);
-        snprintf(line2, sizeof(line2), "Time:%lu.%01lu",
-                 (unsigned long)(AppE_ElapsedMs(start_ms) / 1000U),
-                 (unsigned long)((AppE_ElapsedMs(start_ms) / 100U) % 10U));
-        Ui_UpdateContentLine(1U, line0);
-        Ui_UpdateContentLine(2U, line1);
-        Ui_UpdateContentLine(3U, line2);
+        /* UI 降频到 400ms: OLED 每轮刷 3 行 I2C 慢写会把控制环拖到 ~14Hz, 拖慢瞄准响应;
+         * 与 Aim Track 一致节流, 把控制率还给视觉闭环。激光发射由 lock_frames 决定, 与刷屏无关。 */
+        if ((uint32_t)(now_ms - last_ui_ms) >= APP_E_UI_REFRESH_MS){
+            last_ui_ms = now_ms;
+            snprintf(line0, sizeof(line0), "Laser:%s", shot ? "SHOT" : "WAIT");
+            snprintf(line1, sizeof(line1), "Err:%0.0f,%0.0f", state.error.x, state.error.y);
+            snprintf(line2, sizeof(line2), "Time:%lu.%01lu",
+                     (unsigned long)(AppE_ElapsedMs(start_ms) / 1000U),
+                     (unsigned long)((AppE_ElapsedMs(start_ms) / 100U) % 10U));
+            Ui_UpdateContentLine(1U, line0);
+            Ui_UpdateContentLine(2U, line1);
+            Ui_UpdateContentLine(3U, line2);
+        }
 
         if (AppE_IsBackEvent()){
             Key_ClearAllEvents();
@@ -903,79 +912,113 @@ void AppE_RunAimCenter2s(void){
     AppE_RunVisualAim2s();
 }
 
-void AppE_RunKnownPoseAim4s(void){
+void AppE_RunScanAim(APP_E_SCAN_DIR scan_dir){
     char line0[24];
     char line1[24];
-    char line2[24];
-    uint32_t start_ms = BSP_Time_GetMs();
-    uint32_t last_ms = start_ms;
-    uint8_t lock_frames = 0U;
+    uint32_t last_ms = BSP_Time_GetMs();
+    uint32_t last_ui_ms = last_ms;
     bool shot = false;
     APP_E_CALIBRATION_CONFIG calibration = AppE_GetCalibrationConfig();
+    APP_E_AIM_TRACK_LOCK vision_lock;
+    /* 方向由子菜单选定: 负向取反, 正向不变。yaw 无角度限位, 可连续多圈搜索。 */
+    float scan_speed = (scan_dir == APP_E_SCAN_DIR_NEGATIVE)
+                           ? -APP_E_SCAN_YAW_SPEED_DEG_S
+                           : APP_E_SCAN_YAW_SPEED_DEG_S;
+    const char *dir_text = (scan_dir == APP_E_SCAN_DIR_NEGATIVE) ? "Scan:-" : "Scan:+";
 
+    /*
+     * E3 扫描瞄准: 靶标初始位置未知。
+     *   阶段1: 按选定方向单向匀速扫描 yaw, 直到 K230 角度协议报告发现靶标;
+     *   阶段2: 停止扫描, 切入两轴角度速度闭环追踪; 连续锁定确认后发射一次,
+     *          之后激光常亮并继续追踪, 长按 K2 退出。
+     * 不设总超时(扫到为止); pitch 扫描期间传 0 保持开机抬升的工作仰角。
+     */
     AppE_PrepareTaskInput();
     (void)Chassis_Brake();
     AppE_SetLaserEnabled(false);
     Gimbal_EnsurePitchReady();
-    AutoAim_Init(&calibration.auto_aim);
-    if (AutoAim_Start(AUTO_AIM_MODE_CENTER) != BSP_STATUS_OK){
-        Ui_RenderStatusPage("E3 Geo aim", UI_STATUS_WARN, "IMU not ready", "K2 long:back");
-        AppE_WaitBack();
-        return;
-    }
-    Ui_RenderLines("E3 Geo aim",
-                   "Feedforward",
-                   "Laser:WAIT",
+    GimbalTracking_Init(NULL);
+    GimbalTracking_Reset();
+    AppE_AimTrackLock_Reset(&vision_lock);
+    Ui_RenderLines("E3 Scan aim",
+                   dir_text,
+                   "Target:SEARCH",
                    "Err:0.0,0.0",
-                   "Time:0.0",
                    "K2 long:stop",
+                   NULL,
                    NULL);
+    DebugUart_Printf("[E3] scan start dir=%s\r\n", dir_text);
 
-    while (AppE_ElapsedMs(start_ms) < 4000U){
+    /* 阶段1: 单向连续扫描, 直到有【新角度帧且 status OK】才判为发现靶标(避免陈旧 OK 误判)。 */
+    uint32_t scan_last_vf = g_canmv_uart_angle_frame_count;
+    bool found = false;
+    while (!found){
+        (void)Gimbal_SetSpeed(scan_speed, 0.0f);
+        uint32_t vf = g_canmv_uart_angle_frame_count;
+        if (vf != scan_last_vf){
+            scan_last_vf = vf;
+            if (CanMvUart_GetStatus(CANMV_TARGET_ANGLE) == CANMV_STATUS_OK){
+                found = true;
+            }
+        }
+        if (AppE_IsBackEvent()){
+            (void)GimbalTracking_Stop();
+            AppE_SetLaserEnabled(false);
+            Key_ClearAllEvents();
+            return;
+        }
+        BSP_DelayMs(APP_E_LOOP_DELAY_MS);
+    }
+
+    /* 发现靶标: 停扫描并复位追踪 PID, 无跳变切入角度闭环。 */
+    (void)Gimbal_Stop();
+    GimbalTracking_Reset();
+    last_ms = BSP_Time_GetMs();
+    last_ui_ms = last_ms;
+    uint32_t lock_last_vf = g_canmv_uart_angle_frame_count;
+    DebugUart_Puts("[E3] target FOUND -> track\r\n");
+    Ui_UpdateContentLine(1U, "Target:TRACK");
+
+    /* 阶段2: 角度闭环追踪 + 锁定发射(仅一次) + 之后常亮继续追踪。锁定判据复用 Aim Track:
+     * 只在新有效角度帧到达时累计确认帧, 明确 LOST/越界才清零, 抗帧间抖动。 */
+    while (1){
         uint32_t now_ms = BSP_Time_GetMs();
         float dt_s = (float)(now_ms - last_ms) / 1000.0f;
-        last_ms = now_ms;
         if (dt_s <= 0.0f){
             dt_s = 0.001f;
         }
+        last_ms = now_ms;
 
-        if (AutoAim_Update(dt_s) != BSP_STATUS_OK){
-            (void)AutoAim_Stop();
-            AppE_SetLaserEnabled(false);
-            Ui_RenderStatusPage("E3 Geo aim", UI_STATUS_WARN, "IMU lost", "K2 long:back");
-            AppE_WaitBack();
-            return;
+        (void)GimbalTracking_UpdateAngle(dt_s);
+        GIMBAL_TRACKING_STATE state = GimbalTracking_GetState();
+        bool vision_ready = state.target_valid && !state.link_timeout;
+        uint32_t current_vf = g_canmv_uart_angle_frame_count;
+        bool new_angle_frame = current_vf != lock_last_vf;
+        if (new_angle_frame){
+            lock_last_vf = current_vf;
         }
-        AUTO_AIM_STATE state = AutoAim_GetState();
+        bool locked = AppE_AimTrackLock_Update(&vision_lock,
+                                               new_angle_frame && vision_ready,
+                                               CanMvUart_GetStatus(CANMV_TARGET_ANGLE),
+                                               state.error.x, state.error.y,
+                                               &calibration);
 
-        if (state.vision_valid &&
-            AppE_IsAimLocked(state.vision_yaw_error_deg,
-                             state.vision_pitch_error_deg,
-                             &calibration)){
-            if (lock_frames < calibration.aim_lock_confirm_frames){
-                lock_frames++;
-            }
-        } else if (!state.vision_valid){
-            /* 没有新视觉帧时保留连续帧计数；明确收到偏差超限才清零。 */
-        } else{
-            lock_frames = 0U;
-        }
-
-        if (!shot && ((lock_frames >= calibration.aim_lock_confirm_frames) ||
-                      (AppE_ElapsedMs(start_ms) >= calibration.e3_force_shot_ms))){
-            AppE_PulseLaser(calibration.laser_pulse_ms);
+        if (!shot && locked){
+            AppE_PulseLaser(calibration.laser_pulse_ms);   /* 发射一次 */
+            AppE_SetLaserEnabled(true);                     /* 之后常亮继续追踪 */
             shot = true;
+            DebugUart_Puts("[E3] SHOT -> keep tracking\r\n");
         }
 
-        snprintf(line0, sizeof(line0), "Laser:%s", shot ? "SHOT" : "WAIT");
-        snprintf(line1, sizeof(line1), "Err:%0.1f,%0.1f",
-                 state.vision_yaw_error_deg, state.vision_pitch_error_deg);
-        snprintf(line2, sizeof(line2), "Time:%lu.%01lu",
-                 (unsigned long)(AppE_ElapsedMs(start_ms) / 1000U),
-                 (unsigned long)((AppE_ElapsedMs(start_ms) / 100U) % 10U));
-        Ui_UpdateContentLine(1U, line0);
-        Ui_UpdateContentLine(2U, line1);
-        Ui_UpdateContentLine(3U, line2);
+        /* UI 降频到 400ms: 避免每轮 OLED I2C 慢写拖低控制率、拖慢瞄准响应。 */
+        if ((uint32_t)(now_ms - last_ui_ms) >= APP_E_UI_REFRESH_MS){
+            last_ui_ms = now_ms;
+            snprintf(line0, sizeof(line0), "Target:%s",
+                     shot ? "SHOT" : (vision_ready ? "TRACK" : "LOST"));
+            snprintf(line1, sizeof(line1), "Err:%0.1f,%0.1f", state.error.x, state.error.y);
+            Ui_UpdateContentLine(1U, line0);
+            Ui_UpdateContentLine(2U, line1);
+        }
 
         if (AppE_IsBackEvent()){
             Key_ClearAllEvents();
@@ -986,8 +1029,8 @@ void AppE_RunKnownPoseAim4s(void){
     }
 
     AppE_SetLaserEnabled(false);
-    (void)AutoAim_Stop();
-    Ui_RenderStatusPage("E3 Geo aim", shot ? UI_STATUS_OK : UI_STATUS_WARN,
-                        shot ? "Shot finished" : "Stopped", "K2 long:back");
+    (void)GimbalTracking_Stop();
+    Ui_RenderStatusPage("E3 Scan aim", shot ? UI_STATUS_OK : UI_STATUS_WARN,
+                        shot ? "Shot done" : "Stopped", "K2 long:back");
     AppE_WaitBack();
 }

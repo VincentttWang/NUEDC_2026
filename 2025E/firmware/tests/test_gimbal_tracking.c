@@ -69,17 +69,29 @@ static int Near(float actual, float expected){
 int main(void){
     GimbalTracking_Init(NULL);
 
-    /* 纯 P + 两轴独立方向：yaw=-6*error，pitch=+2*error。 */
+    /* P+I 首拍(积分很小)+ 两轴独立方向: yaw=-(6*err + 2*err*dt), pitch=+(2*err + 0.8*err*dt)。 */
+    GimbalTracking_Reset();
     assert(GimbalTracking_TrackAngleErrors(1.0f, -1.0f, 0.02f) == BSP_STATUS_OK);
-    assert(Near(s_yaw_speed, -6.0f));
-    assert(Near(s_pitch_speed, -2.0f));
+    assert(Near(s_yaw_speed, -(6.0f * 1.0f + 2.0f * (1.0f * 0.02f))));
+    assert(Near(s_pitch_speed, (2.0f * -1.0f + 0.8f * (-1.0f * 0.02f))));
 
-    /* 0.75° 死区内两轴必须完全停住。 */
+    /* 无死区: 小误差(旧 0.75° 死区内)也持续输出、指向减小误差方向, 由 I 收敛到中心。 */
+    GimbalTracking_Reset();
     assert(GimbalTracking_TrackAngleErrors(0.5f, -0.5f, 0.02f) == BSP_STATUS_OK);
-    assert(Near(s_yaw_speed, 0.0f));
-    assert(Near(s_pitch_speed, 0.0f));
+    assert(s_yaw_speed < 0.0f);
+    assert(s_pitch_speed < 0.0f);
+    assert(Near(s_yaw_speed, -(6.0f * 0.5f + 2.0f * (0.5f * 0.02f))));
+    assert(Near(s_pitch_speed, (2.0f * -0.5f + 0.8f * (-0.5f * 0.02f))));
 
-    /* 大误差受各轴输出限幅约束。 */
+    /* I 项在持续同号误差下累积, 第二拍 |输出| 应大于第一拍(验证积分生效)。 */
+    GimbalTracking_Reset();
+    GimbalTracking_TrackAngleErrors(1.0f, 0.0f, 0.02f);
+    float first_yaw = s_yaw_speed;
+    GimbalTracking_TrackAngleErrors(1.0f, 0.0f, 0.02f);
+    assert(fabsf(s_yaw_speed) > fabsf(first_yaw));
+
+    /* 大误差受各轴输出限幅约束(积分限幅后仍饱和)。 */
+    GimbalTracking_Reset();
     assert(GimbalTracking_TrackAngleErrors(100.0f, 100.0f, 0.02f) == BSP_STATUS_OK);
     assert(Near(s_yaw_speed, -120.0f));
     assert(Near(s_pitch_speed, 60.0f));

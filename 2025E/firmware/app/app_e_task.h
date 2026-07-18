@@ -8,6 +8,14 @@
 #include <stdint.h>
 
 /**
+ * @brief E3 扫描瞄准的 yaw 初始扫描方向。
+ */
+typedef enum {
+    APP_E_SCAN_DIR_POSITIVE = 0, /**< 正向扫描 (yaw 速度取正)。 */
+    APP_E_SCAN_DIR_NEGATIVE      /**< 负向扫描 (yaw 速度取负)。 */
+} APP_E_SCAN_DIR;
+
+/**
  * @brief 执行指定圈数的巡线任务。
  * @param lap_count 目标圈数。
  */
@@ -36,8 +44,11 @@ void AppE_RunContinuousAim(void);
 void AppE_RunAimCenter2s(void);
 
 /**
- * @brief 基本要求(3)：从规定起点用几何前馈瞄准靶心，视觉慢校正。
+ * @brief 基本要求(3)：靶标位置未知，按选定方向扫描 yaw 找到靶标后锁定追踪。
+ * @param scan_dir 初始 yaw 扫描方向。
+ * @note 发现靶标即切入角度闭环追踪；连续锁定后发射一次，之后激光常亮继续追踪，
+ *       长按 K2 退出。不设总超时。
  */
-void AppE_RunKnownPoseAim4s(void);
+void AppE_RunScanAim(APP_E_SCAN_DIR scan_dir);
 
 #endif /* APP_E_TASK_H */

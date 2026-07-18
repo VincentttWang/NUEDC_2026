@@ -95,8 +95,11 @@
 #define GIMBAL_PITCH_HOME_POLL_MS     50U
 
 /* 归位后 pitch 限位收紧到 home±range (归位阶段仍用全量程从 0° travel 到 home)。
- * 瞄靶命令 ~141~143°(offset 140 + 几何仰角), 落在 [135,165] 内, ±15° 足够。 */
-#define GIMBAL_PITCH_RANGE_X10        150     /* ±15° -> [135,165] */
+ * 视觉追踪时目标竖直偏差随车-靶距离变化可超 ±15°, 窗口太窄会顶限位把 pitch 钳死。
+ * 放宽到 ±30° -> [120,180] 覆盖更大俯仰。硬件极限 [0,180]: home(150)+30=180 正好到上限,
+ * 这是以 home 为中心【对称】放宽的最大值。若还需更大【俯角】(向 <120° 方向), 需改用
+ * 非对称限位(下压到如 90°, 上仍 ≤180°), 而不是继续加大对称 range(会超硬件上限)。 */
+#define GIMBAL_PITCH_RANGE_X10        300     /* ±30° -> [120,180] */
 #define GIMBAL_PITCH_HOME_DEG         ((float)GIMBAL_PITCH_HOME_X10 / 10.0f)
 #define GIMBAL_PITCH_RANGE_DEG        ((float)GIMBAL_PITCH_RANGE_X10 / 10.0f)
 

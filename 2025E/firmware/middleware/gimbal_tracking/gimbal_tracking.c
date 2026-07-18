@@ -41,9 +41,11 @@ static GIMBAL_TRACKING_CONFIG GimbalTracking_DefaultConfig(void){
     yaw_angle_pid_config.kp = GIMBAL_TRACKING_DEFAULT_ANGLE_YAW_PID_KP;
     yaw_angle_pid_config.ki = GIMBAL_TRACKING_DEFAULT_ANGLE_YAW_PID_KI;
     yaw_angle_pid_config.kd = GIMBAL_TRACKING_DEFAULT_ANGLE_YAW_PID_KD;
+    yaw_angle_pid_config.integral_limit = GIMBAL_TRACKING_DEFAULT_ANGLE_YAW_PID_INTEGRAL_LIMIT;
     pitch_angle_pid_config.kp = GIMBAL_TRACKING_DEFAULT_ANGLE_PITCH_PID_KP;
     pitch_angle_pid_config.ki = GIMBAL_TRACKING_DEFAULT_ANGLE_PITCH_PID_KI;
     pitch_angle_pid_config.kd = GIMBAL_TRACKING_DEFAULT_ANGLE_PITCH_PID_KD;
+    pitch_angle_pid_config.integral_limit = GIMBAL_TRACKING_DEFAULT_ANGLE_PITCH_PID_INTEGRAL_LIMIT;
     GIMBAL_TRACKING_CONFIG config = {
         .yaw_pid = yaw_pid_config,
         .pitch_pid = pitch_pid_config,
@@ -105,6 +107,11 @@ static BSP_STATUS GimbalTracking_HandleTargetNotReady(void){
     /* 丢失目标: yaw 停转, pitch 停在当前位置保持。 */
     (void)Gimbal_HoldOnTargetLost();
     s_gimbal_tracking_state.pitch_speed = Gimbal_GetSpeed().pitch_deg_s;
+
+    /* 清零角度 PID 积分: 丢失期间不再累积, 重获目标从新鲜误差起步, 避免陈旧积分甩动。
+     * (像素模式不用这两个控制器, 清零无副作用。) */
+    s_yaw_angle_pid.state.integral = 0.0f;
+    s_pitch_angle_pid.state.integral = 0.0f;
     return BSP_STATUS_NOT_READY;
 }
 
@@ -421,20 +428,17 @@ BSP_STATUS GimbalTracking_TrackAngleErrors(float yaw_error_deg,
     pitch_output = PID_Update(&s_pitch_angle_pid, pitch_error_deg, 0.0f, dt_s);
     yaw_speed = s_gimbal_tracking_config.yaw_output_sign * yaw_output;
     pitch_speed = s_gimbal_tracking_config.pitch_output_sign * pitch_output;
-    /* 角度模式不能复用像素死区；在小于约 0.75° 时明确停止两轴。 */
-    if ((yaw_error_deg >= -GIMBAL_TRACKING_DEFAULT_ANGLE_DEADBAND_DEG) &&
-        (yaw_error_deg <= GIMBAL_TRACKING_DEFAULT_ANGLE_DEADBAND_DEG)){
-        yaw_speed = 0.0f;
-    } else if ((yaw_speed > 0.0f) &&
-               (yaw_speed < GIMBAL_TRACKING_DEFAULT_MIN_MOVE_YAW_DEG_S)){
+    /*
+     * 不设角度死区: 由 I 项把稳态误差持续调零(死区会让 I 卡在边缘无法收敛)。
+     * yaw 仅保留最小速度地板越过整数 RPM 台阶, 且只在输出【非零】时抬升——
+     * 误差/输出恰为 0 时保持 0, 不会自造中心极限环。pitch 位置模式不加地板。
+     */
+    if ((yaw_speed > 0.0f) &&
+        (yaw_speed < GIMBAL_TRACKING_DEFAULT_MIN_MOVE_YAW_DEG_S)){
         yaw_speed = GIMBAL_TRACKING_DEFAULT_MIN_MOVE_YAW_DEG_S;
     } else if ((yaw_speed < 0.0f) &&
                (yaw_speed > -GIMBAL_TRACKING_DEFAULT_MIN_MOVE_YAW_DEG_S)){
         yaw_speed = -GIMBAL_TRACKING_DEFAULT_MIN_MOVE_YAW_DEG_S;
-    }
-    if ((pitch_error_deg >= -GIMBAL_TRACKING_DEFAULT_ANGLE_DEADBAND_DEG) &&
-        (pitch_error_deg <= GIMBAL_TRACKING_DEFAULT_ANGLE_DEADBAND_DEG)){
-        pitch_speed = 0.0f;
     }
     s_gimbal_tracking_state.yaw_speed = yaw_speed;
     s_gimbal_tracking_state.pitch_speed = pitch_speed;

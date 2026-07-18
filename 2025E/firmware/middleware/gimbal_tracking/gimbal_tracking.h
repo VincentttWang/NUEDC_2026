@@ -40,16 +40,22 @@ extern "C" {
 #define GIMBAL_TRACKING_DEFAULT_PITCH_PID_OUTPUT_LIMIT 60.0f
 
 /* 角度协议纯视觉闭环 (Aim track): 输入 deg、输出 deg/s。
- * 首轮只用 P，避免 K230 已做 Kalman/速度预测后 MCU 的 D 再次放大动态噪声，也避免
- * 目标丢失或输出饱和时 I 项累积。先实测方向与 P，再按需要加入很小的 I/D。
- * yaw 直接驱动 F32C 速度模式；pitch 速度在 gimbal 层积分成受限位置目标，且机械
- * 减速比使等效增益更高，因此 pitch Kp 取 yaw 的约 1/3。 */
+ * P+I（无 D，D 会放大 K230 Kalman 后的动态噪声）：P 提供响应，I 把稳态误差(含机械零偏、
+ * pitch 重力下垂、光轴/相机轴常量失配)持续调零。不设角度死区，让 I 能一直收敛到中心。
+ * 积分限幅按“有效 I 贡献 = Ki*integral_limit”整定，防输出饱和时积分狂涨造成解饱和滞后/过冲。
+ * yaw 直接驱动 F32C 速度模式；pitch 速度在 gimbal 层积分成受限位置目标，且机械减速比使
+ * 等效增益更高，因此 pitch Kp/Ki 取 yaw 的约 1/3。以下均为实机起调初值。 */
 #define GIMBAL_TRACKING_DEFAULT_ANGLE_YAW_PID_KP 6.0f
-#define GIMBAL_TRACKING_DEFAULT_ANGLE_YAW_PID_KI 0.0f
+#define GIMBAL_TRACKING_DEFAULT_ANGLE_YAW_PID_KI 2.0f
 #define GIMBAL_TRACKING_DEFAULT_ANGLE_YAW_PID_KD 0.0f
+/* 原始积分和限幅(未乘 Ki); 有效 I 贡献上限 = Ki*该值。yaw: 2.0*20 = 40 deg/s。 */
+#define GIMBAL_TRACKING_DEFAULT_ANGLE_YAW_PID_INTEGRAL_LIMIT 20.0f
 #define GIMBAL_TRACKING_DEFAULT_ANGLE_PITCH_PID_KP 2.0f
-#define GIMBAL_TRACKING_DEFAULT_ANGLE_PITCH_PID_KI 0.0f
+#define GIMBAL_TRACKING_DEFAULT_ANGLE_PITCH_PID_KI 0.8f
 #define GIMBAL_TRACKING_DEFAULT_ANGLE_PITCH_PID_KD 0.0f
+/* pitch: 0.8*25 = 20 deg/s 有效 I 贡献上限。 */
+#define GIMBAL_TRACKING_DEFAULT_ANGLE_PITCH_PID_INTEGRAL_LIMIT 25.0f
+/* 已弃用: 角度模式不再使用死区(改由 I 项收敛到中心)。保留仅为兼容旧引用。 */
 #define GIMBAL_TRACKING_DEFAULT_ANGLE_DEADBAND_DEG 0.75f
 /* yaw 速度模式整数 RPM 的理论最小台阶约 6deg/s，但直接设 6 会在死区边缘形成极限环；
  * 当前保持 1deg/s 作为软件下限，实际量化由 F32C 链路决定。pitch 不使用速度地板。 */
