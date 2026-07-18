@@ -38,8 +38,13 @@ from media.media import *
 from machine import Pin, FPIOA, UART
 
 # ===== 图像 (与主程序一致) =====
-DETECT_WIDTH = 320
-DETECT_HEIGHT = 240
+# 传感器工作在原生 1920x1080(16:9) 全阵列, 处理分辨率 480x270(÷4): 与 aim_track_angle.py
+# 保持一致的 FOV 与缩放比。光轴偏置必须在与生产程序【相同 FOV】下标定, 否则像素↔角度
+# 映射不一致会标错。Sensor(320,240) 会落到 1280x960 裁剪模式丢失约 1/3 水平 FOV。
+SENSOR_WIDTH = 1920
+SENSOR_HEIGHT = 1080
+DETECT_WIDTH = 480
+DETECT_HEIGHT = 270
 IMG_CX = DETECT_WIDTH // 2
 IMG_CY = DETECT_HEIGHT // 2
 CVLITE_SHAPE = [DETECT_HEIGHT, DETECT_WIDTH]
@@ -228,7 +233,9 @@ def poll_laser_command():
 
 def camera_init():
     global sensor, uart, laser, display_img
-    sensor = Sensor(width=DETECT_WIDTH, height=DETECT_HEIGHT)
+    # 用原生全阵列构造 (1920x1080 全 FOV), 再由 ISP 缩放到处理分辨率; 直接用
+    # DETECT_WIDTH/HEIGHT 构造会落到 1280x960 裁剪模式而丢失水平 FOV。
+    sensor = Sensor(width=SENSOR_WIDTH, height=SENSOR_HEIGHT)
     sensor.reset()
     sensor.set_framesize(width=DETECT_WIDTH, height=DETECT_HEIGHT)
     sensor.set_pixformat(Sensor.GRAYSCALE)

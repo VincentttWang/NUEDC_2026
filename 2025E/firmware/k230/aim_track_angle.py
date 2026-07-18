@@ -21,8 +21,15 @@ from media.media import *
 from machine import Pin, FPIOA, UART
 
 # ===== 图像与矩形检测 =====
-DETECT_WIDTH = 320
-DETECT_HEIGHT = 240
+# 传感器工作在原生 1920x1080(16:9) 全阵列: 避免 1280x960(4:3) 裁剪丢失约 1/3 水平 FOV
+# (Sensor(320,240) 会落到 1280x960 裁剪模式)。处理分辨率取 16:9 的 480x270:
+#   - 与 H/V_FOV(60x35, 本就是 16:9 全 FOV) 自洽, FOV/角度常量无需改;
+#   - 缩放比 1920/480 = 1080/270 = 4, 与旧 1280x960->320x240 的 ÷4 相同, 靶像素
+#     面积/ROI/跳变等检测阈值(1280x960 为裁剪窗、像素节距不变)维持原标定不必重调。
+SENSOR_WIDTH = 1920
+SENSOR_HEIGHT = 1080
+DETECT_WIDTH = 480
+DETECT_HEIGHT = 270
 IMG_CX = DETECT_WIDTH // 2
 IMG_CY = DETECT_HEIGHT // 2
 CVLITE_SHAPE = [DETECT_HEIGHT, DETECT_WIDTH]
@@ -139,8 +146,8 @@ CALIB_OFFSET_X_CM = 0.0     # 横向: yaw 无视差, 保持 0
 CALIB_OFFSET_Y_CM = -1.5    # 竖直视差 1.5cm; 符号经镜像链推导(补偿加在镜像前的原始
                             # 坐标, MIRROR_180 翻转其作用方向)。上板验证: 近距(0.5m)
                             # 收敛后光斑若竖直偏离靶心且越近越偏 -> 翻此符号。
-IDEAL_YAW_DEG = -2.69       # 光斑 yaw 纯角度偏置 (无距离依赖)
-IDEAL_PITCH_DEG = 2.335      # 光斑 pitch 纯角度偏置: 由 d_y=1.5cm 从近端(1.44)/远端
+IDEAL_YAW_DEG = -1.52       # 光斑 yaw 纯角度偏置 (无距离依赖)
+IDEAL_PITCH_DEG = 1.94      # 光斑 pitch 纯角度偏置: 由 d_y=1.5cm 从近端(1.44)/远端
                             # (1.09)双向锚定取中; 残差 <0.4° 由视觉 bias 吸收
 
 # ===== UART1 (GPIO3/4, 对接 MSPM0 UART2) =====
@@ -411,7 +418,9 @@ def poll_laser_command():
 
 def camera_init():
     global sensor, uart, laser, display_img
-    sensor = Sensor(width=DETECT_WIDTH, height=DETECT_HEIGHT)
+    # 用原生全阵列构造 (1920x1080 全 FOV), 再由 ISP 缩放到处理分辨率; 若直接用
+    # DETECT_WIDTH/HEIGHT 构造会落到 1280x960 裁剪模式而丢失水平 FOV。
+    sensor = Sensor(width=SENSOR_WIDTH, height=SENSOR_HEIGHT)
     sensor.reset()
     sensor.set_framesize(width=DETECT_WIDTH, height=DETECT_HEIGHT)
     sensor.set_pixformat(Sensor.GRAYSCALE)
