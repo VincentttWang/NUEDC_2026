@@ -142,8 +142,14 @@ int main(void){
 
     AutoAim_AnchorCorner(LOCALIZATION_CORNER_B, 1.0f);
     state = AutoAim_GetState();
-    assert(Near(state.pose.x_m, 0.5f, 0.001f));
+    /* 渐变锚定: 弧长/进度立即重锚; 位置逐帧收敛(停转后多拍 Update 收敛到 B.x=0.5)。 */
     assert(Near(state.lap_progress, 0.25f, 0.001f));
+    s_imu.gyro_deg_s.z = 0.0f;   /* 停止转弯, 位置只受渐变锚定收敛 */
+    for (int i = 0; i < 40; i++){
+        (void)AutoAim_Update(0.02f);
+    }
+    state = AutoAim_GetState();
+    assert(Near(state.pose.x_m, 0.5f, 0.01f));
     assert(AutoAim_Stop() == BSP_STATUS_OK);
     puts("auto aim tests passed");
     return 0;

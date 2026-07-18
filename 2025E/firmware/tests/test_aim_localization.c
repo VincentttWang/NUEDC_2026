@@ -19,11 +19,15 @@ static void TestStraightAndCornerAnchor(void){
     assert(Near(pose.y_m, 0.0f, 0.0001f));
 
     Localization_ResetToCornerAtTravel(LOCALIZATION_CORNER_B, 1.0f);
+    /* 渐变锚定: 弧长/进度立即重锚, 位置逐帧收敛到角点。 */
+    assert(Near(Localization_GetTravelled(), 1.0f, 0.0001f));
+    assert(Near(Localization_GetLapProgress(), 0.25f, 0.0001f));
+    for (int i = 0; i < 40; i++){
+        Localization_UpdateDelta(0.0f, 0.0f);
+    }
     pose = Localization_GetPose();
     assert(Near(pose.x_m, 0.5f, 0.0001f));
     assert(Near(pose.y_m, 0.0f, 0.0001f));
-    assert(Near(Localization_GetTravelled(), 1.0f, 0.0001f));
-    assert(Near(Localization_GetLapProgress(), 0.25f, 0.0001f));
 }
 
 static void TestSingleWheelCorrection(void){

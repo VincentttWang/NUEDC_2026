@@ -97,14 +97,19 @@ static void L5_ResetToCorner(void){
     ExpectNear("L5.travelled", Localization_GetTravelled(), 0.3f, TOL);
 }
 
-/* L6 ResetToCornerAtTravel: snap + 重锚弧长 → progress */
+/* L6 ResetToCornerAtTravel: 渐变锚定(弧长立即重锚, 位置逐帧收敛到角点) */
 static void L6_ResetAtTravel(void){
     Localization_Init(Pose(0, 0, 0), 1.0f, 0.0f);
     Localization_ResetToCornerAtTravel(LOCALIZATION_CORNER_B, 1.0f);
-    KINEMATICS_POSE p = Localization_GetPose();
-    ExpectNear("L6.x", p.x_m, 0.5f, TOL);
+    /* 弧长/进度立即重锚。 */
     ExpectNear("L6.travelled", Localization_GetTravelled(), 1.0f, TOL);
     ExpectNear("L6.progress", Localization_GetLapProgress(), 0.25f, TOL);
+    /* 位置渐变: 多拍 UpdateDelta(0) 后收敛到 B.x=0.5。 */
+    for (int i = 0; i < 40; i++){
+        Localization_UpdateDelta(0.0f, 0.0f);
+    }
+    KINEMATICS_POSE p = Localization_GetPose();
+    ExpectNear("L6.x", p.x_m, 0.5f, TOL);
 }
 
 /* L7 满周长环绕: progress 回 0, lap_count=1 */

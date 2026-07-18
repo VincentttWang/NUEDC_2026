@@ -27,6 +27,16 @@ extern "C" {
 /** 正方形赛道边长默认值, 单位 m。 */
 #define LOCALIZATION_DEFAULT_TRACK_SIDE_M 1.00f
 
+/*
+ * 渐变锚定系数: 角点校正不再一帧 snap 位姿, 而是把"目标角点 − 当前估计"存为待修正量,
+ * 由每次 UpdateDelta 施加该比例 (指数收敛)。1.0 = 立即(旧突变行为); 越小越平滑但收敛越慢。
+ * 目的: 低占空比轮打滑使里程累积 5~9cm 误差, anchor 一帧 snap 会让几何 yaw 指令阶跃、
+ * 云台被猛甩过冲; 摊平成 ~5~8 拍(~100~200ms)的平滑追赶即可消除该阶跃。
+ */
+#ifndef LOCALIZATION_ANCHOR_BLEND_ALPHA
+#define LOCALIZATION_ANCHOR_BLEND_ALPHA 0.35f
+#endif
+
 /**
  * @brief 赛道角点标识 (世界坐标由边长推出)。
  *
@@ -58,6 +68,9 @@ typedef struct {
     float travelled_m;
     /** 最近一次车心位移增量, 单位 m (供 S3 求 v_center=Δ/dt 与遥测)。 */
     float last_center_delta_m;
+    /** 渐变锚定待施加的位置修正 (x/y, m): anchor 存, UpdateDelta 逐帧摊平, 防位姿突变。 */
+    float pending_corr_x_m;
+    float pending_corr_y_m;
     /** 是否已初始化。 */
     bool initialized;
 } LOCALIZATION_STATE;

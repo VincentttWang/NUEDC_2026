@@ -18,6 +18,8 @@ void Localization_Init(KINEMATICS_POSE start_pose,
     s_loc.perimeter_m = 4.0f * s_loc.track_side_m;
     s_loc.last_distance_m = initial_distance_m;
     s_loc.travelled_m = 0.0f;
+    s_loc.pending_corr_x_m = 0.0f;
+    s_loc.pending_corr_y_m = 0.0f;
     s_loc.initialized = true;
 }
 
@@ -49,6 +51,14 @@ void Localization_UpdateDelta(float center_delta_m, float heading_deg){
 
     /* 圈进度按行进路程累加 (前进为主, 用绝对值累计避免抖动倒扣)。 */
     s_loc.travelled_m += (center_delta_m < 0.0f) ? -center_delta_m : center_delta_m;
+
+    /* 渐变锚定: 逐帧摊平 anchor 存下的位置修正 (指数收敛), 避免位姿一帧突变。 */
+    float apply_x = s_loc.pending_corr_x_m * LOCALIZATION_ANCHOR_BLEND_ALPHA;
+    float apply_y = s_loc.pending_corr_y_m * LOCALIZATION_ANCHOR_BLEND_ALPHA;
+    s_loc.pose.x_m += apply_x;
+    s_loc.pose.y_m += apply_y;
+    s_loc.pending_corr_x_m -= apply_x;
+    s_loc.pending_corr_y_m -= apply_y;
 }
 
 float Localization_CorrectWheelDelta(float wheel_delta_m,
@@ -112,6 +122,9 @@ void Localization_ResetToCorner(LOCALIZATION_CORNER corner){
     CORE_POINT2F p = Localization_CornerPoint(corner);
     s_loc.pose.x_m = p.x;
     s_loc.pose.y_m = p.y;
+    /* 立即 snap: 清掉未完成的渐变待修正量。 */
+    s_loc.pending_corr_x_m = 0.0f;
+    s_loc.pending_corr_y_m = 0.0f;
 }
 
 void Localization_ResetToCornerAtTravel(LOCALIZATION_CORNER corner,
@@ -120,7 +133,14 @@ void Localization_ResetToCornerAtTravel(LOCALIZATION_CORNER corner,
         return;
     }
 
-    Localization_ResetToCorner(corner);
+    /*
+     * 渐变锚定: 弧长立即重锚 (供圈进度/画圆相位); 位置修正存为待施加量, 由 UpdateDelta
+     * 逐帧摊平, 避免位姿一帧突变 → 几何 yaw 指令阶跃 → 云台被 snap 猛甩过冲。
+     * (若需旧的立即 snap: 令 LOCALIZATION_ANCHOR_BLEND_ALPHA=1.0, 或改调 ResetToCorner。)
+     */
+    CORE_POINT2F p = Localization_CornerPoint(corner);
+    s_loc.pending_corr_x_m = p.x - s_loc.pose.x_m;
+    s_loc.pending_corr_y_m = p.y - s_loc.pose.y_m;
     s_loc.travelled_m = travelled_m;
 }
 
