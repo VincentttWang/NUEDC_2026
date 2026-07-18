@@ -20,9 +20,10 @@
 #endif
 #define DEBUG_UART_TX_MASK (DEBUG_UART_TX_BUF_LEN - 1U)
 
-/* 单条 Printf 格式化上限。 */
+/* 单条 Printf 格式化上限。瞄准遥测行(A,...)加 pitch 环+转弯占空比后 ~150 字符,
+ * 128 会截断, 提到 256 留裕量 (115200 下 150 字符 ~13ms/20ms, 1KB 环形缓冲不溢出)。 */
 #ifndef DEBUG_UART_PRINTF_MAX
-#define DEBUG_UART_PRINTF_MAX 128U
+#define DEBUG_UART_PRINTF_MAX 256U
 #endif
 
 static uint8_t s_tx_buf[DEBUG_UART_TX_BUF_LEN];

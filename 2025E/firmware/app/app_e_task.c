@@ -24,8 +24,12 @@
 #define APP_E_LINE_TIMEOUT_MS 20000U
 #define APP_E_LINE_LOST_GRACE_MS 1000U
 #define APP_E_LINE_EDGE_MIN_DISTANCE_M 0.15f
-#define APP_E_CORNER_TURN_LEFT_DUTY_PERCENT -12.0f
-#define APP_E_CORNER_TURN_RIGHT_DUTY_PERCENT 12.0f
+/* CORNER_ARC 原地转弯占空比: ±9→±11 适当提速防超时。±9 转弯慢约一倍(CORNER_ARC 帧数翻倍);
+ * 现有陀螺增稳(压航向蛇形) + differential_limit 16(出弯刹车权限) + anchor 位姿渐变(消 snap
+ * 阶跃) 三重保护已把出弯云台过冲压到 ~5.7°, 可承受更快转弯。±11 提速明显但不满打(原 ±12)。
+ * 若出弯过冲又变大就回调 ±10; 若仍超时可试 ±12。 */
+#define APP_E_CORNER_TURN_LEFT_DUTY_PERCENT -11.0f
+#define APP_E_CORNER_TURN_RIGHT_DUTY_PERCENT 11.0f
 #define APP_E_CORNER_FORWARD_DISTANCE_M 0.09f
 #define APP_E_CORNER_FORWARD_DUTY_PERCENT 15.0f
 #define APP_E_CORNER_ENTER_CONFIRM_COUNT 2U
@@ -480,7 +484,8 @@ static void AppE_RunLineTask(uint8_t lap_count, APP_E_AIM_MODE aim_mode){
          *   A,t_ms,lineState,gz,vCenter,heading,yawCmd,yawRateFF,yawActX10,
          *     yawBias,visErrY,startupBias,steadyBias,visValid,visStatus,
          *     visionFrame,bldcAngleFrame,yawOmegaCmd,yawRpmCmd,pitchBias,visErrP,
-         *     poseX,poseY,bodyPitch,bodyRoll
+         *     poseX,poseY,bodyPitch,bodyRoll,
+         *     pitchCmd,pitchActX10,pitchRateFF,dutyL,dutyR
          *   line_state: 0=FOLLOW 1=CORNER_FWD 2=CORNER_ARC
          *   yawActX10 : F32C 上报 yaw 多圈角(0.1°); 逻辑角=-yawActX10/10 (GIMBAL_YAW_DIR=-1)
          *   yawBias   : 视觉总校正 = startupBias + steadyBias (deg)
@@ -494,7 +499,11 @@ static void AppE_RunLineTask(uint8_t lap_count, APP_E_AIM_MODE aim_mode){
          *   poseX/Y   : 定位位姿 (m, 世界系; 供离线回归确定性残差的几何来源)
          *   bodyPitch/Roll: 车体姿态 (deg, IMU 融合; 诊断加减速俯仰/弯中侧倾
          *                   对光束竖直方向的耦合 —— 云台 yaw≈90° 时 roll≈光束pitch)
-         *   注: yawAct 因请求-响应异步约滞后一个采样(~20ms)。
+         *   pitchCmd    : pitch 位置指令 (deg, 电机角; 供 pitch 环数字孪生/辨识)
+         *   pitchActX10 : F32C 上报 pitch 多圈角(0.1°); 电机实际角 = pitchActX10/10
+         *   pitchRateFF : pitch 解析速率前馈 (deg/s)
+         *   dutyL/dutyR : 底盘左右轮当前占空比(%); 转弯段用于建模航向过冲(治本用)
+         *   注: yawAct/pitchAct 因请求-响应异步约滞后一个采样(~20ms)。
          */
         if ((aim_mode != APP_E_AIM_MODE_NONE) && (APP_E_TELEMETRY_INTERVAL_MS > 0U)){
             static uint32_t s_dbg_last_ms;
@@ -502,10 +511,11 @@ static void AppE_RunLineTask(uint8_t lap_count, APP_E_AIM_MODE aim_mode){
                 s_dbg_last_ms = now_ms;
                 AUTO_AIM_STATE aim_st = AutoAim_GetState();
                 GIMBAL_SPEED gimbal_speed = Gimbal_GetSpeed();
+                CHASSIS_DUTY tlm_duty = Chassis_GetDuty();
                 DebugUart_Printf(
                     "A,%lu,%d,%.1f,%.2f,%.1f,%.1f,%.1f,%ld,%.2f,%.2f,"
                     "%.2f,%.2f,%u,%d,%lu,%lu,%.1f,%d,%.2f,%.2f,%.3f,%.3f,"
-                    "%.2f,%.2f\r\n",
+                    "%.2f,%.2f,%.2f,%ld,%.1f,%.0f,%.0f\r\n",
                                  (unsigned long)now_ms, (int)line_state,
                                  aim_st.gyro_z_deg_s, aim_st.v_center_mps,
                                  aim_st.pose.heading_deg, aim_st.yaw_command_deg,
@@ -526,8 +536,13 @@ static void AppE_RunLineTask(uint8_t lap_count, APP_E_AIM_MODE aim_mode){
                                      aim_st.vision_bias.pitch_bias_deg,
                                  aim_st.vision_pitch_error_deg,
                                  aim_st.pose.x_m, aim_st.pose.y_m,
-                                 aim_st.body_pitch_deg, aim_st.body_roll_deg);
+                                 aim_st.body_pitch_deg, aim_st.body_roll_deg,
+                                 aim_st.pitch_command_deg,
+                                 (long)BLDC_Motor2.multi_angle,
+                                 aim_st.pitch_rate_ff_deg_s,
+                                 tlm_duty.left_percent, tlm_duty.right_percent);
                 BLDC_ReqFeedback(BLDC_ADDR_1, FB_MULTI_ANGLE);   /* 请求下次 yaw 实际角 */
+                BLDC_ReqFeedback(BLDC_ADDR_2, FB_MULTI_ANGLE);   /* 请求下次 pitch 实际角 */
             }
         }
 

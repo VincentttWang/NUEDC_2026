@@ -42,7 +42,6 @@ plt.rcParams["font.sans-serif"] = [_FONT, "sans-serif"] if _FONT else ["sans-ser
 plt.rcParams["axes.unicode_minus"] = False
 
 STATE_NAME = {0: "FOLLOW", 1: "CORNER_FWD", 2: "CORNER_ARC"}
-NCOL = 25   # A 行字段数 (含 'A' 标记)
 
 
 def norm180(a):
@@ -50,31 +49,38 @@ def norm180(a):
     return (np.asarray(a) + 180.0) % 360.0 - 180.0
 
 
+# A 行 'A' 之后的数值列名。旧格式=前 24 列; 新格式尾部追加 5 列(pitch 环+转弯占空比)。
+# 兼容两种: 不足的尾列补 NaN, 超出截断。
+CSV_COLS = ["t_ms", "state", "gz", "v", "heading", "yawCmd", "yawRateFF",
+            "yawActX10", "yawBias", "visErrY", "startupBias", "steadyBias",
+            "visValid", "visStatus", "visionFrame", "bldcAngleFrame",
+            "yawOmegaCmd", "yawRpmCmd", "pitchBias", "visErrP",
+            "poseX", "poseY", "bodyPitch", "bodyRoll",
+            "pitchCmd", "pitchActX10", "pitchRateFF", "dutyL", "dutyR"]
+CSV_MIN_COLS = 24   # 至少要有的基础(yaw)数值列数
+
+
 def load_csv(path: Path):
-    """鲁棒解析: 忽略二进制噪声, 只取 25 字段的 A 行, 逐字段 float 容错。"""
+    """鲁棒解析: 忽略二进制噪声, 只取 A 行, 逐字段 float 容错; 兼容 24/29 值两种列数。"""
     rows = []
     text = path.read_text(encoding="utf-8", errors="ignore")
     for line in text.splitlines():
         line = line.strip().strip("\x00")
         if not line.startswith("A,"):
             continue
-        parts = line.split(",")
-        if len(parts) < NCOL:
-            continue
+        parts = line.split(",")[1:1 + len(CSV_COLS)]   # 跳过 'A', 最多取 len(CSV_COLS) 个
         try:
-            vals = [float(p) for p in parts[1:NCOL]]   # 跳过 'A' 标记, 取 24 个数
+            vals = [float(p) for p in parts]           # float() 自动去尾部 \r 等空白
         except ValueError:
             continue
+        if len(vals) < CSV_MIN_COLS:
+            continue
+        vals += [float("nan")] * (len(CSV_COLS) - len(vals))   # 尾列补 NaN
         rows.append(vals)
     if not rows:
         raise SystemExit(f"未在 {path} 中找到有效的 'A,' 遥测行")
     a = np.array(rows, dtype=float)
-    cols = ["t_ms", "state", "gz", "v", "heading", "yawCmd", "yawRateFF",
-            "yawActX10", "yawBias", "visErrY", "startupBias", "steadyBias",
-            "visValid", "visStatus", "visionFrame", "bldcAngleFrame",
-            "yawOmegaCmd", "yawRpmCmd", "pitchBias", "visErrP",
-            "poseX", "poseY", "bodyPitch", "bodyRoll"]
-    return {c: a[:, i] for i, c in enumerate(cols)}
+    return {c: a[:, i] for i, c in enumerate(CSV_COLS)}
 
 
 def main():

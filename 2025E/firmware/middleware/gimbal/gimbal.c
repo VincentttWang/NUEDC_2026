@@ -63,7 +63,7 @@
  * ⚠ 速度模式无位置保持, MCU 若停更会失控空转(滑环下不撞机械, 但激光乱扫); 任务正常退出
  *   由 Gimbal_Stop 发 0 停住。 */
 #ifndef GIMBAL_YAW_VELFF_KP
-#define GIMBAL_YAW_VELFF_KP 6.0f            /* 位置外环增益 (deg/s per deg); 预估解锁后可试 6~8 */
+#define GIMBAL_YAW_VELFF_KP 7.0f            /* 位置外环增益 (deg/s per deg); 6→7 压出弯执行滞后(act-cmd 尖峰达 6~11°); 可试 6~8 */
 #endif
 #ifndef GIMBAL_YAW_RATE_FF_GAIN
 /*
