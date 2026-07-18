@@ -139,8 +139,8 @@ CALIB_OFFSET_X_CM = 0.0     # 横向: yaw 无视差, 保持 0
 CALIB_OFFSET_Y_CM = -1.5    # 竖直视差 1.5cm; 符号经镜像链推导(补偿加在镜像前的原始
                             # 坐标, MIRROR_180 翻转其作用方向)。上板验证: 近距(0.5m)
                             # 收敛后光斑若竖直偏离靶心且越近越偏 -> 翻此符号。
-IDEAL_YAW_DEG = -1.86       # 光斑 yaw 纯角度偏置 (无距离依赖)
-IDEAL_PITCH_DEG = 1.25      # 光斑 pitch 纯角度偏置: 由 d_y=1.5cm 从近端(1.44)/远端
+IDEAL_YAW_DEG = -2.69       # 光斑 yaw 纯角度偏置 (无距离依赖)
+IDEAL_PITCH_DEG = 2.335      # 光斑 pitch 纯角度偏置: 由 d_y=1.5cm 从近端(1.44)/远端
                             # (1.09)双向锚定取中; 残差 <0.4° 由视觉 bias 吸收
 
 # ===== UART1 (GPIO3/4, 对接 MSPM0 UART2) =====
