@@ -10,8 +10,8 @@
       <TargetName>NUEDC2025_MSPM0G3507</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
-      <pArmCC>6210000::V6.21::ARMCLANG</pArmCC>
-      <pCCUsed>6210000::V6.21::ARMCLANG</pCCUsed>
+      <pArmCC>6220000::V6.22::ARMCLANG</pArmCC>
+      <pCCUsed>6220000::V6.22::ARMCLANG</pCCUsed>
       <uAC6>1</uAC6>
       <TargetOption>
         <TargetCommonOption>
@@ -191,7 +191,7 @@
             <hadIRAM2>1</hadIRAM2>
             <hadIROM2>1</hadIROM2>
             <StupSel>0</StupSel>
-            <useUlib>0</useUlib>
+            <useUlib>1</useUlib>
             <EndSel>0</EndSel>
             <uLtcg>0</uLtcg>
             <nSecure>0</nSecure>
@@ -341,7 +341,7 @@
               <MiscControls></MiscControls>
               <Define>__MSPM0G3507__</Define>
               <Undefine></Undefine>
-              <IncludePath>..\..;..\..\app;..\..\core;..\..\core\common;..\..\core\geometry;..\..\core\gimbal_tracking;..\..\core\kinematics;..\..\core\line_tracking;..\..\core\motion;..\..\core\pid;..\..\core\rotation;..\..\middleware\chassis;..\..\middleware\fault;..\..\middleware\gimbal;..\..\middleware\line_follow;..\..\middleware\ui;..\..\bsp\canmv;..\..\bsp\common;..\..\bsp\grayscale_sensor;..\..\bsp\imu;..\..\bsp\key;..\..\bsp\motor;..\..\bsp\oled;..\..\bsp\step_motor;..\..\bsp\time;..\..\board\sys_config;D:\TI\mspm0_sdk_2_05_00_05\source;D:\TI\mspm0_sdk_2_05_00_05\source\third_party\CMSIS\Core\Include</IncludePath>
+              <IncludePath>..\..;..\..\app;..\..\core;..\..\core\aim_fusion;..\..\core\aim_solver;..\..\core\common;..\..\core\geometry;..\..\core\kinematics;..\..\core\localization;..\..\core\pid;..\..\core\rotation;..\..\middleware\chassis;..\..\middleware\fault;..\..\middleware\gimbal;..\..\middleware\gimbal_tracking;..\..\middleware\line_follow;..\..\middleware\line_tracking;..\..\middleware\motion;..\..\middleware\ui;..\..\bsp\canmv;..\..\bsp\common;..\..\bsp\debug_uart;..\..\bsp\grayscale_sensor;..\..\bsp\imu;..\..\bsp\key;..\..\bsp\motor;..\..\bsp\oled;..\..\bsp\time;..\..\bsp\bldc;..\..\board\sys_config;C:\ti\mspm0_sdk_2_10_00_04\source;C:\ti\mspm0_sdk_2_10_00_04\source\third_party\CMSIS\Core\Include</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -386,9 +386,24 @@
           <GroupName>App</GroupName>
           <Files>
             <File>
+              <FileName>app_e_calibration.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\app\app_e_calibration.c</FilePath>
+            </File>
+            <File>
+              <FileName>app_e_calibration_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\app\app_e_calibration_test.c</FilePath>
+            </File>
+            <File>
               <FileName>app_device_check.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\app\app_device_check.c</FilePath>
+            </File>
+            <File>
+              <FileName>app_debug_cmd.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\app\app_debug_cmd.c</FilePath>
             </File>
             <File>
               <FileName>app_e_task.c</FileName>
@@ -413,7 +428,7 @@
             <File>
               <FileName>driverlib.a</FileName>
               <FileType>4</FileType>
-              <FilePath>D:\TI\mspm0_sdk_2_05_00_05\source\ti\driverlib\lib\keil\m0p\mspm0g1x0x_g3x0x\driverlib.a</FilePath>
+              <FilePath>C:\ti\mspm0_sdk_2_10_00_04\source\ti\driverlib\lib\keil\m0p\mspm0g1x0x_g3x0x\driverlib.a</FilePath>
             </File>
           </Files>
         </Group>
@@ -421,14 +436,19 @@
           <GroupName>Core</GroupName>
           <Files>
             <File>
+              <FileName>aim_fusion.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\core\aim_fusion\aim_fusion.c</FilePath>
+            </File>
+            <File>
+              <FileName>aim_solver.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\core\aim_solver\aim_solver.c</FilePath>
+            </File>
+            <File>
               <FileName>geometry.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\core\geometry\geometry.c</FilePath>
-            </File>
-            <File>
-              <FileName>gimbal_tracking.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\core\gimbal_tracking\gimbal_tracking.c</FilePath>
             </File>
             <File>
               <FileName>kinematics.c</FileName>
@@ -436,14 +456,9 @@
               <FilePath>..\..\core\kinematics\kinematics.c</FilePath>
             </File>
             <File>
-              <FileName>line_tracking.c</FileName>
+              <FileName>localization.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\core\line_tracking\line_tracking.c</FilePath>
-            </File>
-            <File>
-              <FileName>motion.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\core\motion\motion.c</FilePath>
+              <FilePath>..\..\core\localization\localization.c</FilePath>
             </File>
             <File>
               <FileName>pid.c</FileName>
@@ -461,6 +476,11 @@
           <GroupName>MiddleWare</GroupName>
           <Files>
             <File>
+              <FileName>auto_aim.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\middleware\auto_aim\auto_aim.c</FilePath>
+            </File>
+            <File>
               <FileName>chassis.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\middleware\chassis\chassis.c</FilePath>
@@ -476,9 +496,24 @@
               <FilePath>..\..\middleware\gimbal\gimbal.c</FilePath>
             </File>
             <File>
+              <FileName>gimbal_tracking.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\middleware\gimbal_tracking\gimbal_tracking.c</FilePath>
+            </File>
+            <File>
               <FileName>line_follow.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\middleware\line_follow\line_follow.c</FilePath>
+            </File>
+            <File>
+              <FileName>line_tracking.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\middleware\line_tracking\line_tracking.c</FilePath>
+            </File>
+            <File>
+              <FileName>motion.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\middleware\motion\motion.c</FilePath>
             </File>
             <File>
               <FileName>ui.c</FileName>
@@ -516,6 +551,11 @@
               <FilePath>..\..\bsp\canmv\canmv_uart.c</FilePath>
             </File>
             <File>
+              <FileName>debug_uart.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\bsp\debug_uart\debug_uart.c</FilePath>
+            </File>
+            <File>
               <FileName>grayscale_sensor.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\bsp\grayscale_sensor\grayscale_sensor.c</FilePath>
@@ -546,14 +586,14 @@
               <FilePath>..\..\bsp\oled\oled.c</FilePath>
             </File>
             <File>
-              <FileName>step_motor.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\bsp\step_motor\step_motor.c</FilePath>
-            </File>
-            <File>
               <FileName>bsp_time.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\bsp\time\bsp_time.c</FilePath>
+            </File>
+            <File>
+              <FileName>f32c_bldc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\bsp\bldc\f32c_bldc.c</FilePath>
             </File>
           </Files>
         </Group>

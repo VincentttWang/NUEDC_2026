@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 #ifndef KEY1_PORT
-#define KEY1_PORT Key_PORT
+#define KEY1_PORT Key_PIN_1_PORT
 #endif
 
 #ifndef KEY1_PIN
@@ -23,6 +23,42 @@ extern "C" {
 
 #ifndef KEY1_ACTIVE_LOW
 #define KEY1_ACTIVE_LOW 1U
+#endif
+
+#ifndef KEY2_PORT
+#define KEY2_PORT Key_PIN_2_PORT
+#endif
+
+#ifndef KEY2_PIN
+#define KEY2_PIN Key_PIN_2_PIN
+#endif
+
+#ifndef KEY2_ACTIVE_LOW
+#define KEY2_ACTIVE_LOW 1U
+#endif
+
+#ifndef KEY3_PORT
+#define KEY3_PORT Key_PIN_3_PORT
+#endif
+
+#ifndef KEY3_PIN
+#define KEY3_PIN Key_PIN_3_PIN
+#endif
+
+#ifndef KEY3_ACTIVE_LOW
+#define KEY3_ACTIVE_LOW 1U
+#endif
+
+#ifndef KEY4_PORT
+#define KEY4_PORT Key_PIN_4_PORT
+#endif
+
+#ifndef KEY4_PIN
+#define KEY4_PIN Key_PIN_4_PIN
+#endif
+
+#ifndef KEY4_ACTIVE_LOW
+#define KEY4_ACTIVE_LOW 1U
 #endif
 
 #ifndef KEY_DEBOUNCE_MS
@@ -45,8 +81,12 @@ extern "C" {
  * @brief 按键编号。
  */
 typedef enum {
-    KEY_ID_1 = 0,
-    KEY_ID_MAX
+    KEY_ID_UP = 0,
+    KEY_ID_CALIB,
+    KEY_ID_ENTER,
+    KEY_ID_DOWN,
+    KEY_ID_MAX,
+    KEY_ID_1 = KEY_ID_ENTER
 } KEY_ID;
 
 /**

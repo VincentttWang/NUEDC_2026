@@ -127,6 +127,28 @@ void IT_JY61P(void);
 void GYROSCOPE_DATA_Decoder(uint8_t *buf);
 void JY61P_Init(UART_Regs *uart);
 
+/* ── JY61P I2C 驱动 (替代 UART 方式) ── */
+/*
+ * 硬件 I2C, 外设 I2C0 (SysConfig 分配): PA0=SDA, PA1=SCL, 400kHz
+ * 参考: MSPM0 SDK i2c_controller_rw_multibyte_fifo_poll
+ */
+
+/* ── JY61P I2C 地址与协议常量 ── */
+#define JY61P_I2C_ADDR_7BIT          0x50U
+#define JY61P_I2C_POLL_PERIOD_TICK   5U
+#define JY61P_I2C_REG_ANGLE          0x3DU
+#define JY61P_I2C_REG_GYRO           0x37U
+#define JY61P_I2C_REG_UNLOCK         0x69U
+#define JY61P_I2C_REG_SAVE           0x00U
+#define JY61P_I2C_REG_CALSW          0x01U
+
+void JY61P_I2C_Init(void);
+void JY61P_I2C_Poll(void);
+uint32_t JY61P_I2C_GetPollCount(void);
+uint32_t JY61P_I2C_GetErrorCount(void);
+uint32_t JY61P_I2C_GetNackCount(void);
+uint32_t JY61P_I2C_GetTimeoutCount(void);
+
 typedef struct {
     float x;
     float y;

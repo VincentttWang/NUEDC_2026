@@ -40,10 +40,25 @@ typedef struct {
 } KEY_STATE_CONTEXT;
 
 static const KEY_HW_CONFIG s_key_hw[KEY_ID_MAX] = {
-    [KEY_ID_1] = {
+    [KEY_ID_UP] = {
         .port = KEY1_PORT,
         .pin = KEY1_PIN,
         .active_low = (KEY1_ACTIVE_LOW != 0U),
+    },
+    [KEY_ID_CALIB] = {
+        .port = KEY2_PORT,
+        .pin = KEY2_PIN,
+        .active_low = (KEY2_ACTIVE_LOW != 0U),
+    },
+    [KEY_ID_ENTER] = {
+        .port = KEY3_PORT,
+        .pin = KEY3_PIN,
+        .active_low = (KEY3_ACTIVE_LOW != 0U),
+    },
+    [KEY_ID_DOWN] = {
+        .port = KEY4_PORT,
+        .pin = KEY4_PIN,
+        .active_low = (KEY4_ACTIVE_LOW != 0U),
     },
 };
 

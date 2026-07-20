@@ -1,0 +1,35 @@
+{
+  "generated_at": "2026-07-11T15:41:10+0800",
+  "note": "参数为上位机候选值；需手动写入 gimbal_tracking.c/h 后重新编译固件。",
+  "candidate_pid": {
+    "yaw_kp": 2.0,
+    "yaw_ki": 0.0,
+    "yaw_kd": 0.0,
+    "pitch_kp": 0.1,
+    "pitch_ki": 0.0,
+    "pitch_kd": 0.0,
+    "limit": 120.0,
+    "deadband": 4.0,
+    "yaw_min_speed": 6.0
+  },
+  "capture_device_ms": {
+    "start": null,
+    "end": null
+  },
+  "yaw_actual": {
+    "samples": 1074,
+    "rms_px": 7.991848733709576,
+    "iae_px_s": 402.513,
+    "peak_px": 29,
+    "zero_crossings": 6,
+    "saturated_pct": 0.0
+  },
+  "pitch_actual": {
+    "samples": 1074,
+    "rms_px": 2.7025059065701513,
+    "iae_px_s": 125.48,
+    "peak_px": 9,
+    "zero_crossings": 4,
+    "saturated_pct": 0.0
+  }
+}

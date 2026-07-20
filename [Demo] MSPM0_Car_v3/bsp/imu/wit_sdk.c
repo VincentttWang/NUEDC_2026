@@ -642,3 +642,185 @@ int32_t WitGetData(WIT_IMU_DATA *out)
     out->temperature_c = (float)GyroscopeChannelData[9];
     return WIT_HAL_OK;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * JY61P 硬件 I2C 驱动实现 (替代 UART 方式)
+ *
+ * 参考: MSPM0 SDK i2c_controller_rw_multibyte_fifo_poll (官方 FIFO 轮询模式)
+ *       MSPM0 SDK data_sensor_aggregator (多 I2C 传感器采集)
+ *
+ * 外设: I2C0 (SysConfig), PA0=SDA, PA1=SCL, 400kHz, 设备地址 0x50
+ * 轮询: SysTick ISR 中每 5ms 调用一次 JY61P_I2C_Poll()
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+#include "bsp_time.h"
+
+#define JY61P_I2C_INST          MPU6050_JY61P_Tracking_INST
+#define JY61P_I2C_TIMEOUT       100000U
+
+static volatile uint32_t s_jy61p_i2c_poll_count;
+static volatile uint32_t s_jy61p_i2c_error_count;
+static volatile uint32_t s_jy61p_i2c_nack_count;
+
+/* ═══════════════════ 硬件 I2C 底层 (MSPM0 SDK FIFO 轮询模式) ═══════════════ */
+
+static bool JY61P_I2C_WaitIdle(void)
+{
+    uint32_t timeout = JY61P_I2C_TIMEOUT;
+    while ((DL_I2C_getControllerStatus(JY61P_I2C_INST)
+            & DL_I2C_CONTROLLER_STATUS_IDLE) == 0U){
+        if (timeout-- == 0U){
+            /* 超时: 总线可能被损坏设备拉死, 强制复位控制器并发送 STOP */
+            DL_I2C_resetControllerTransfer(JY61P_I2C_INST);
+            return false;
+        }
+    }
+    return true;
+}
+
+/*
+ * I2C 写: START + DEVADDR(W) + REG + DATA[0..N] + STOP
+ */
+static bool JY61P_I2C_WriteRegs(uint8_t reg, const uint8_t *data, uint8_t len)
+{
+    uint8_t i;
+    uint32_t timeout;
+
+    if (!JY61P_I2C_WaitIdle()){ return false; }
+
+    DL_I2C_flushControllerTXFIFO(JY61P_I2C_INST);
+    DL_I2C_transmitControllerData(JY61P_I2C_INST, reg);
+    for (i = 0U; i < len; i++){
+        while (DL_I2C_isControllerTXFIFOFull(JY61P_I2C_INST)){}
+        DL_I2C_transmitControllerData(JY61P_I2C_INST, data[i]);
+    }
+
+    DL_I2C_startControllerTransfer(JY61P_I2C_INST, JY61P_I2C_ADDR_7BIT,
+        DL_I2C_CONTROLLER_DIRECTION_TX, (uint32_t)(len + 1U));
+    delay_cycles(10U);
+
+    timeout = JY61P_I2C_TIMEOUT;
+    while ((DL_I2C_getControllerStatus(JY61P_I2C_INST)
+            & DL_I2C_CONTROLLER_STATUS_BUSY) != 0U){
+        if (timeout-- == 0U){ return false; }
+    }
+
+    if ((DL_I2C_getControllerStatus(JY61P_I2C_INST)
+         & DL_I2C_CONTROLLER_STATUS_ERROR) != 0U){
+        DL_I2C_resetControllerTransfer(JY61P_I2C_INST);
+        return false;
+    }
+
+    return JY61P_I2C_WaitIdle();
+}
+
+/*
+ * I2C 读 (REPEATED START):
+ *   Phase 1: TX reg addr (STOP_DISABLE) → Phase 2: RX data (auto REPEATED START)
+ *
+ *   参考: TI E2E 论坛 "LP-MSPM0G3507: Repeated Start Condition Settings"
+ *   https://e2e.ti.com/support/microcontrollers/arm-based-microcontrollers-group/
+ *   arm-based-microcontrollers/f/arm-based-microcontrollers-forum/1416788/
+ *
+ *   协议序列 (与软件 I2C 完全一致):
+ *   START + DEVADDR(W) + REG + REPEATED_START + DEVADDR(R) + DATA[0..N] + STOP
+ */
+static bool JY61P_I2C_ReadRegs(uint8_t reg, uint8_t *data, uint8_t len)
+{
+    uint8_t i;
+    uint32_t timeout;
+
+    if (data == NULL || len == 0U){ return true; }
+
+    /* Phase 1: TX register address, STOP_DISABLE 抑制 STOP */
+    DL_I2C_flushControllerRXFIFO(JY61P_I2C_INST);
+    DL_I2C_flushControllerTXFIFO(JY61P_I2C_INST);
+
+    if (!JY61P_I2C_WaitIdle()){ return false; }
+
+    DL_I2C_transmitControllerData(JY61P_I2C_INST, reg);
+    DL_I2C_startControllerTransferAdvanced(JY61P_I2C_INST, JY61P_I2C_ADDR_7BIT,
+        DL_I2C_CONTROLLER_DIRECTION_TX, 1U,
+        DL_I2C_CONTROLLER_START_ENABLE,
+        DL_I2C_CONTROLLER_STOP_DISABLE,   /* <-- 关键: 不发 STOP */
+        DL_I2C_CONTROLLER_ACK_DISABLE);
+    delay_cycles(10U);
+
+    timeout = JY61P_I2C_TIMEOUT;
+    while ((DL_I2C_getControllerStatus(JY61P_I2C_INST)
+            & DL_I2C_CONTROLLER_STATUS_BUSY) != 0U){
+        if (timeout-- == 0U){ s_jy61p_i2c_nack_count++; return false; }
+    }
+
+    if ((DL_I2C_getControllerStatus(JY61P_I2C_INST)
+         & DL_I2C_CONTROLLER_STATUS_ERROR) != 0U){
+        s_jy61p_i2c_nack_count++;
+        DL_I2C_resetControllerTransfer(JY61P_I2C_INST);
+        return false;
+    }
+
+    /* Phase 2: RX, 硬件自动产生 REPEATED START (前一阶段未发 STOP) */
+    DL_I2C_startControllerTransfer(JY61P_I2C_INST, JY61P_I2C_ADDR_7BIT,
+        DL_I2C_CONTROLLER_DIRECTION_RX, len);
+    delay_cycles(10U);
+
+    for (i = 0U; i < len; i++){
+        timeout = JY61P_I2C_TIMEOUT;
+        while (DL_I2C_isControllerRXFIFOEmpty(JY61P_I2C_INST)){
+            if (timeout-- == 0U){ s_jy61p_i2c_nack_count++; return false; }
+        }
+        data[i] = DL_I2C_receiveControllerData(JY61P_I2C_INST);
+    }
+
+    return JY61P_I2C_WaitIdle();
+}
+/* ═══════════════════ 应用层接口 ═══════════════════════════════════════════ */
+
+static int16_t JY61P_I2C_ParseI16(const uint8_t *buf)
+{
+    return (int16_t)(((uint16_t)buf[1] << 8) | (uint16_t)buf[0]);
+}
+
+static float JY61P_I2C_ParseAngle(int16_t raw)
+{
+    float angle = (float)raw / 32768.0f * 180.0f;
+    if (angle > 180.0f)       { angle -= 360.0f; }
+    else if (angle < -180.0f) { angle += 360.0f; }
+    return angle;
+}
+
+void JY61P_I2C_Init(void)
+{
+    s_jy61p_i2c_poll_count  = 0U;
+    s_jy61p_i2c_error_count = 0U;
+    s_jy61p_i2c_nack_count  = 0U;
+    /* 校准已固化在 JY61P flash 中, 上电无需重复执行 */
+}
+
+void JY61P_I2C_Poll(void)
+{
+    uint8_t buf[6];
+    int16_t raw[3];
+
+    s_jy61p_i2c_poll_count++;
+
+    if (JY61P_I2C_ReadRegs(JY61P_I2C_REG_ANGLE, buf, 6U)){
+        GyroscopeChannelData[6] = (double)JY61P_I2C_ParseAngle(JY61P_I2C_ParseI16(&buf[0]));
+        GyroscopeChannelData[7] = (double)JY61P_I2C_ParseAngle(JY61P_I2C_ParseI16(&buf[2]));
+        GyroscopeChannelData[8] = (double)JY61P_I2C_ParseAngle(JY61P_I2C_ParseI16(&buf[4]));
+    } else{ s_jy61p_i2c_error_count++; }
+
+    if (JY61P_I2C_ReadRegs(JY61P_I2C_REG_GYRO, buf, 6U)){
+        raw[0] = JY61P_I2C_ParseI16(&buf[0]);
+        raw[1] = JY61P_I2C_ParseI16(&buf[2]);
+        raw[2] = JY61P_I2C_ParseI16(&buf[4]);
+        GyroscopeChannelData[3] = (double)raw[0] / 32768.0 * 2000.0;
+        GyroscopeChannelData[4] = (double)raw[1] / 32768.0 * 2000.0;
+        GyroscopeChannelData[5] = (double)raw[2] / 32768.0 * 2000.0;
+    } else{ s_jy61p_i2c_error_count++; }
+}
+
+uint32_t JY61P_I2C_GetPollCount(void)    { return s_jy61p_i2c_poll_count; }
+uint32_t JY61P_I2C_GetErrorCount(void)   { return s_jy61p_i2c_error_count; }
+uint32_t JY61P_I2C_GetNackCount(void)    { return s_jy61p_i2c_nack_count; }
+uint32_t JY61P_I2C_GetTimeoutCount(void) { return s_jy61p_i2c_nack_count; }
