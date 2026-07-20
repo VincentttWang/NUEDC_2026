@@ -17,6 +17,15 @@ static float s_circle_phase_deg;       /* 限速后的画圆相位 (snap 跳变�
 static bool s_circle_phase_init;
 static bool s_initialized;
 
+/* 纯视觉 pitch 伺服状态 (pitch_vision_only): 伺服位置指令(deg) + PID 内部积分/前误差。 */
+static float s_pitch_vis_cmd_deg;   /* 伺服累加得到的 pitch 位置指令 (deg) */
+static float s_pitch_vis_integral;  /* PID I 项积分 (deg·s) */
+static float s_pitch_vis_prev_err;  /* 上一有效帧带符号误差 (deg), 供 D 项 */
+static bool s_pitch_vis_seeded;     /* 首帧是否已用几何 pitch 播种起点 */
+/* pitch 纯视觉伺服的软限位 (deg): 对齐 gimbal 层 pitch 跟踪窗口, 防积分饱和越界。 */
+#define AUTO_AIM_PITCH_VISION_MIN_DEG 120.0f
+#define AUTO_AIM_PITCH_VISION_MAX_DEG 180.0f
+
 AUTO_AIM_CONFIG AutoAim_DefaultConfig(void){
     AUTO_AIM_CONFIG config = {
         /* 默认从 A 点沿 A->C 行驶；实机起点改变时只需覆盖此配置。 */
@@ -43,6 +52,11 @@ AUTO_AIM_CONFIG AutoAim_DefaultConfig(void){
         .rate_ff_v_tau_s = AUTO_AIM_DEFAULT_RATE_FF_V_TAU_S,
         .gyro_z_sign = AUTO_AIM_DEFAULT_GYRO_Z_SIGN,
         .heading_gyro_lead_s = AUTO_AIM_DEFAULT_HEADING_GYRO_LEAD_S,
+        .pitch_vision_only = AUTO_AIM_DEFAULT_PITCH_VISION_ONLY,
+        .pitch_vision_kp = AUTO_AIM_DEFAULT_PITCH_VISION_KP,
+        .pitch_vision_ki = AUTO_AIM_DEFAULT_PITCH_VISION_KI,
+        .pitch_vision_kd = AUTO_AIM_DEFAULT_PITCH_VISION_KD,
+        .pitch_vision_i_limit = AUTO_AIM_DEFAULT_PITCH_VISION_I_LIMIT,
         .solver = AimSolver_DefaultConfig(),
     };
     return config;
@@ -97,6 +111,11 @@ BSP_STATUS AutoAim_Start(AUTO_AIM_MODE mode){
     s_state.startup_align = false;
     s_vision_freeze_hold = 0U;
     s_circle_phase_init = false;
+    /* 纯视觉 pitch 伺服: 每次任务重置, 首帧再用几何 pitch 播种起点。 */
+    s_pitch_vis_cmd_deg = 0.0f;
+    s_pitch_vis_integral = 0.0f;
+    s_pitch_vis_prev_err = 0.0f;
+    s_pitch_vis_seeded = false;
 
     s_last_wheel_distance_m = Chassis_GetDistance();
     Localization_Init(s_config.start_pose,
@@ -270,10 +289,41 @@ BSP_STATUS AutoAim_Update(float dt_s){
     s_state.yaw_command_deg = s_state.feedforward.yaw_cmd_deg +
                               s_state.startup_bias.yaw_bias_deg +
                               s_state.vision_bias.yaw_bias_deg;
-    s_state.pitch_command_deg = s_state.feedforward.pitch_cmd_deg +
-                                s_state.startup_bias.pitch_bias_deg +
-                                s_state.vision_bias.pitch_bias_deg +
-                                rate.pitch_rate_deg_s * s_config.pitch_rate_lead_s;
+    /* pitch 几何前馈命令 (纯视觉关闭 / CIRCLE 模式下使用)。 */
+    float pitch_geom_cmd = s_state.feedforward.pitch_cmd_deg +
+                           s_state.startup_bias.pitch_bias_deg +
+                           s_state.vision_bias.pitch_bias_deg +
+                           rate.pitch_rate_deg_s * s_config.pitch_rate_lead_s;
+    if (s_config.pitch_vision_only && (s_state.mode == AUTO_AIM_MODE_CENTER)){
+        /* pitch 纯视觉伺服: 弃用几何前馈(消除光束模型系统误差), 首帧用几何 pitch 播种,
+         * 之后由视觉 pitch 误差经 PID 收敛。复用 aim_track 角度环结构: PID 输出=角速度,
+         * 积分进 pitch 位置指令(等效 aim_track 的"速度积分成位置")。 */
+        if (!s_pitch_vis_seeded){
+            s_pitch_vis_cmd_deg = s_state.feedforward.pitch_cmd_deg;
+            s_pitch_vis_seeded = true;
+        }
+        /* 仅在视觉可吸收帧(有效且非弯中毒帧)且允许校正时伺服; 否则保持指令
+         * (丢线/弯中锁 pitch), 与 aim_track "丢目标保持 pitch" 行为一致。 */
+        if (vision_absorb && s_state.vision_correction_enabled){
+            float err = s_config.vision_pitch_sign * s_state.vision_pitch_error_deg;
+            s_pitch_vis_integral += err * dt_s;
+            s_pitch_vis_integral = Kinematics_Clamp(s_pitch_vis_integral,
+                                                    -s_config.pitch_vision_i_limit,
+                                                    s_config.pitch_vision_i_limit);
+            float derr = (err - s_pitch_vis_prev_err) / dt_s;
+            s_pitch_vis_prev_err = err;
+            float pitch_vel = s_config.pitch_vision_kp * err +
+                              s_config.pitch_vision_ki * s_pitch_vis_integral +
+                              s_config.pitch_vision_kd * derr;
+            s_pitch_vis_cmd_deg += pitch_vel * dt_s;
+            s_pitch_vis_cmd_deg = Kinematics_Clamp(s_pitch_vis_cmd_deg,
+                                                   AUTO_AIM_PITCH_VISION_MIN_DEG,
+                                                   AUTO_AIM_PITCH_VISION_MAX_DEG);
+        }
+        s_state.pitch_command_deg = s_pitch_vis_cmd_deg;
+    } else{
+        s_state.pitch_command_deg = pitch_geom_cmd;
+    }
     return Gimbal_SetAngle(s_state.yaw_command_deg, s_state.pitch_command_deg,
                            s_state.yaw_rate_ff_deg_s);
 }

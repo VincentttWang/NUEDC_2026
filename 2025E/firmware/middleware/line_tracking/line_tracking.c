@@ -72,6 +72,10 @@ static void LineTracking_EnsureInitialized(void){
     }
 }
 
+LINE_TRACKING_CONFIG LineTracking_GetDefaultConfig(void){
+    return LineTracking_DefaultConfig();
+}
+
 void LineTracking_Init(const LINE_TRACKING_CONFIG *config){
     if (config == NULL){
         s_line_tracking_config = LineTracking_DefaultConfig();

@@ -82,6 +82,11 @@ typedef struct {
 } LINE_TRACKING_OUTPUT;
 
 /**
+ * @brief 获取默认巡线配置（供上层取默认后按需覆盖个别字段，如 base_duty）。
+ */
+LINE_TRACKING_CONFIG LineTracking_GetDefaultConfig(void);
+
+/**
  * @brief 初始化巡线控制器。
  * @param config 配置指针；传入 NULL 时使用默认配置。
  */

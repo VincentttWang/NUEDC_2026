@@ -192,15 +192,16 @@ def main():
         rb = math.radians(body_w[i]); cb, sb = math.cos(rb), math.sin(rb)
         q_body.set_offsets([[x, y]]); q_body.set_UVC([L * 0.7 * cb], [L * 0.7 * sb])
         ext_body.set_data([x, x + args.ext * cb], [y, y + args.ext * sb])
-        # 云台指令/实际: 箭头从支点; 延长线画【真实激光束】(平行于指向, 侧移 lat, 左正),
-        # 所以延长线在靶面的落点 = 真实命中点 (对准正确时应落在 A4 线段内)。
+        # 云台指令/实际: 箭头与延长线同为一条【真实激光束】线(共线), 从光束出射点(支点侧移
+        # lat, 左正)沿指向出射; 落在靶面 = 真实命中点(对准正确应落在 A4 线段内)。支点(×)标 yaw
+        # 轴, 光束出射点相对轴侧移 lat(≈3.5cm), 故光束起点与支点有一小段间距(物理真实)。
         for q, ext, ang, ln in ((q_cmd, ext_cmd, gim_cmd_w[i], L),
                                 (q_act, ext_act, gim_act_w[i], L * 0.85)):
             r = math.radians(ang)
             c, s = math.cos(r), math.sin(r)
-            q.set_offsets([[gxv, gyv]])
+            bx, by = gxv - args.lat * s, gyv + args.lat * c   # 光束出射点=支点+lat*左法向
+            q.set_offsets([[bx, by]])                         # 箭头也从出射点 -> 与延长线共线
             q.set_UVC([ln * c], [ln * s])
-            bx, by = gxv - args.lat * s, gyv + args.lat * c   # 光束原点=支点+lat*左法向
             ext.set_data([bx, bx + args.ext * c], [by, by + args.ext * s])
         st = int(d["state"][i])
         # 等宽面板用 ASCII 标签: 保住数字列对齐, 且避免等宽字体缺中文字形的告警。

@@ -109,6 +109,12 @@ BSP_STATUS Gimbal_SetSpeed(float yaw_deg_s, float pitch_deg_s);
 BSP_STATUS Gimbal_SetAngle(float yaw_deg, float pitch_deg, float yaw_rate_ff_deg_s);
 
 /**
+ * @brief 只设置 pitch 绝对目标角 (deg, 位置模式, 受软件限位); 不动 yaw。
+ * @note 供采集/look-up 抬升用 (如 F1 进入让相机先看到标靶)。
+ */
+BSP_STATUS Gimbal_SetPitchDeg(float pitch_deg);
+
+/**
  * @brief 停止云台两轴输出。
  */
 BSP_STATUS Gimbal_Stop(void);

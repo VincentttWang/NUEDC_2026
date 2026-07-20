@@ -32,6 +32,10 @@
 #define APP_E_CORNER_TURN_RIGHT_DUTY_PERCENT 11.0f
 #define APP_E_CORNER_FORWARD_DISTANCE_M 0.09f
 #define APP_E_CORNER_FORWARD_DUTY_PERCENT 15.0f
+/* F1 慢速稳定版参数: 全面降速 + 无总超时, 追求"稳"(不冲出/不脱靶)而非圈速。 */
+#define APP_E_SLOW_BASE_DUTY 22.0f            /* 直线循迹基础占空比 (常规 34) */
+#define APP_E_SLOW_CORNER_DUTY 8.0f           /* CORNER_ARC 原地转弯 ± (常规 11) */
+#define APP_E_SLOW_FORWARD_DUTY 12.0f         /* CORNER_FORWARD 前进 (常规 15) */
 #define APP_E_CORNER_ENTER_CONFIRM_COUNT 2U
 #define APP_E_CORNER_EXIT_CONFIRM_COUNT 3U
 #define APP_E_LOOP_DELAY_MS 10U
@@ -42,6 +46,10 @@
 #define APP_E_TELEMETRY_INTERVAL_MS 20U
 /* 瞄准任务起步前的最短几何预定位时间；此后按视觉锁定事件起步。 */
 #define APP_E_AIM_GEOMETRY_SETTLE_MS 1000U
+/* F1/F2/F3 进入视觉对准前, 把 pitch 在几何角基础上抬升该角(deg), 让相机先看到标靶再锁定;
+ * 锁定后由视觉 servo 回靶心。+ = 抬高电机角(视觉往上看); 若方向反了(相机反而朝下)改负值。
+ * 0 = 不抬升。受 pitch 软件限位约束。 */
+#define APP_E_AIM_ENTRY_PITCH_UP_DEG 5.0f
 /* 视觉对准阶段总时限(ms): 超时未锁定则纯前馈降级起步(无起步对齐, 慢 bias 照常,
  * 视觉恢复后自动接管)。竞赛兜底: 视觉故障时"跑起来拿部分分"优于永不起步。
  * 0 = 无限等待(调试时用, 保留"按状态起步"原语义)。 */
@@ -149,15 +157,45 @@ static void AppE_StopLineAim(APP_E_AIM_MODE aim_mode){
     }
 }
 
-static BSP_STATUS AppE_ApplyCornerTurn(APP_E_CORNER_DIR corner_dir){
+/* 巡线任务速度/超时档位: 正常版与慢速稳定版共用同一逻辑, 仅参数不同。 */
+typedef struct {
+    float line_base_duty;        /* 直线循迹基础占空比 (%) */
+    float corner_turn_duty;      /* CORNER_ARC 原地转弯 ± 占空比 (%) */
+    float corner_forward_duty;   /* CORNER_FORWARD 前进占空比 (%) */
+    float corner_forward_dist_m; /* CORNER_FORWARD 前进距离 (m) */
+    bool no_timeout;             /* 无总超时 (只按圈数完成/长按退出) */
+} APP_E_LINE_PROFILE;
+
+static APP_E_LINE_PROFILE AppE_LineProfileNormal(void){
+    APP_E_LINE_PROFILE p = {
+        .line_base_duty = LINE_TRACKING_DEFAULT_BASE_DUTY,
+        .corner_turn_duty = APP_E_CORNER_TURN_RIGHT_DUTY_PERCENT,
+        .corner_forward_duty = APP_E_CORNER_FORWARD_DUTY_PERCENT,
+        .corner_forward_dist_m = APP_E_CORNER_FORWARD_DISTANCE_M,
+        .no_timeout = false,
+    };
+    return p;
+}
+
+static APP_E_LINE_PROFILE AppE_LineProfileSlow(void){
+    APP_E_LINE_PROFILE p = {
+        .line_base_duty = APP_E_SLOW_BASE_DUTY,
+        .corner_turn_duty = APP_E_SLOW_CORNER_DUTY,
+        .corner_forward_duty = APP_E_SLOW_FORWARD_DUTY,
+        .corner_forward_dist_m = APP_E_CORNER_FORWARD_DISTANCE_M,
+        .no_timeout = true,
+    };
+    return p;
+}
+
+/* 原地转弯: 逆时针左转 = 左轮反、右轮正 (turn_duty 为幅值)。 */
+static BSP_STATUS AppE_ApplyCornerTurn(APP_E_CORNER_DIR corner_dir, float turn_duty){
     if (corner_dir == APP_E_CORNER_LEFT){
-        return Chassis_SetDuty(APP_E_CORNER_TURN_LEFT_DUTY_PERCENT,
-                               APP_E_CORNER_TURN_RIGHT_DUTY_PERCENT);
+        return Chassis_SetDuty(-turn_duty, turn_duty);
     }
 
     if (corner_dir == APP_E_CORNER_RIGHT){
-        return Chassis_SetDuty(APP_E_CORNER_TURN_RIGHT_DUTY_PERCENT,
-                               APP_E_CORNER_TURN_LEFT_DUTY_PERCENT);
+        return Chassis_SetDuty(turn_duty, -turn_duty);
     }
 
     return BSP_STATUS_INVALID_ARG;
@@ -235,13 +273,16 @@ static bool AppE_HasEnabledLineActive(const LINE_FOLLOW_SENSOR_STATE *sensor){
     return false;
 }
 
-static void AppE_RunLineTask(uint8_t lap_count, APP_E_AIM_MODE aim_mode){
+static void AppE_RunLineTask(uint8_t lap_count, APP_E_AIM_MODE aim_mode,
+                             const APP_E_LINE_PROFILE *profile){
     char line0[24];
     char line1[24];
     char line2[24];
+    APP_E_LINE_PROFILE prof = (profile != NULL) ? *profile : AppE_LineProfileNormal();
     uint8_t target_laps = AppE_NormalizeLapCount(lap_count);
     int32_t target_edges = (int32_t)(target_laps * APP_E_EDGES_PER_LAP);
-    uint32_t task_timeout_ms = APP_E_LINE_TIMEOUT_MS * target_laps;
+    uint32_t task_timeout_ms = prof.no_timeout ? UINT32_MAX
+                                               : (APP_E_LINE_TIMEOUT_MS * target_laps);
     uint32_t start_ms = BSP_Time_GetMs();
     uint32_t last_ms = start_ms;
     uint8_t gs_div = 0U;
@@ -253,6 +294,14 @@ static void AppE_RunLineTask(uint8_t lap_count, APP_E_AIM_MODE aim_mode){
     APP_E_LINE_STATE line_state = APP_E_LINE_STATE_FOLLOW;
     APP_E_CORNER_DIR corner_dir = APP_E_CORNER_NONE;
     uint8_t corner_enter_count = 0U;
+    /*
+     * 起步拐角 (仅发挥任务 F1/F2/F3): 规定摆位为"车身在 AB 段、车头前沿压 AC 线、车头朝 -X"
+     * (见 app_e_calibration.c start_pose)。启动后检测到的【第一个】拐角是在 A 处左拐进入
+     * A->C 首边——它不是一条已巡完的边, 不能计边数/锚定, 否则会把 A 误锚成序列首元素 C(位置
+     * 错 1m) 且整圈少巡一条边。跳过后 C/D/B/A 正常计为 4 条边、锚定 [C,D,B,A] 不变。
+     * E1(aim_mode==NONE, 摆位自定、车头朝 -Y 直接直行 A->C)不受影响。
+     */
+    bool initial_start_turn = (aim_mode != APP_E_AIM_MODE_NONE);
     uint8_t auto_aim_imu_fail_count = 0U;
     APP_E_CALIBRATION_CONFIG calibration = AppE_GetCalibrationConfig();
     MOTION_COMMAND line_follow_command = Motion_CommandLineFollow();
@@ -281,7 +330,9 @@ static void AppE_RunLineTask(uint8_t lap_count, APP_E_AIM_MODE aim_mode){
         AppE_SetLaserEnabled(true);
     }
     LineFollow_Reset();
-    LineTracking_Init(NULL);
+    LINE_TRACKING_CONFIG lt_cfg = LineTracking_GetDefaultConfig();
+    lt_cfg.base_duty = prof.line_base_duty;   /* 按档位覆盖直线基础速度 */
+    LineTracking_Init(&lt_cfg);
     Motion_Init();
     Ui_RenderLines("E1 Line",
                    "Running...",
@@ -342,6 +393,13 @@ static void AppE_RunLineTask(uint8_t lap_count, APP_E_AIM_MODE aim_mode){
         (void)AutoAim_Stop();
         GimbalTracking_Init(NULL);
         GimbalTracking_Reset();
+        /* 进入视觉对准前抬升 pitch: 在几何角基础上加 look-up 偏置, 让相机先看到标靶;
+         * GimbalTracking 无目标时保持该抬升角, 锁定后经视觉 servo 回靶心。 */
+        if (APP_E_AIM_ENTRY_PITCH_UP_DEG != 0.0f){
+            GIMBAL_ANGLE entry_ang = Gimbal_GetAngle();
+            (void)Gimbal_SetPitchDeg(entry_ang.pitch_deg +
+                                     APP_E_AIM_ENTRY_PITCH_UP_DEG);
+        }
         align_last_ms = BSP_Time_GetMs();
         align_ui_ms = align_last_ms;
         uint32_t align_last_vf = g_canmv_uart_angle_frame_count;
@@ -565,8 +623,17 @@ static void AppE_RunLineTask(uint8_t lap_count, APP_E_AIM_MODE aim_mode){
              */
             if (AppE_HasEnabledLineActive(&sensor)){
                 corner_enter_count = 0U;
-            } else if (corner_enter_count < APP_E_CORNER_ENTER_CONFIRM_COUNT){
-                corner_enter_count++;
+            } else{
+                if (corner_enter_count < APP_E_CORNER_ENTER_CONFIRM_COUNT){
+                    corner_enter_count++;
+                }
+                /*
+                 * 丢线即降到入弯前进速度: 直线提速(base_duty 34)后, 90° 弯是"线突然全丢",
+                 * 若在"全丢→2帧确认"窗口继续全速, 动量会把车顶过拐点直接冲出轨道。丢线瞬间
+                 * 降速(并让车减速)给检测留余量、限制冲过拐点的距离; 与随后 CORNER_FORWARD 同速无缝。
+                 */
+                status = Chassis_SetDuty(prof.corner_forward_duty,
+                                         prof.corner_forward_duty);
             }
 
             if (corner_enter_count >= APP_E_CORNER_ENTER_CONFIRM_COUNT){
@@ -575,7 +642,7 @@ static void AppE_RunLineTask(uint8_t lap_count, APP_E_AIM_MODE aim_mode){
                 corner_forward_start_distance = Chassis_GetDistance();
                 corner_enter_count = 0U;
                 corner_count++;
-                status = Chassis_SetDuty(APP_E_CORNER_FORWARD_DUTY_PERCENT, APP_E_CORNER_FORWARD_DUTY_PERCENT);
+                status = Chassis_SetDuty(prof.corner_forward_duty, prof.corner_forward_duty);
                 DebugUart_Printf("[E1] corner#%lu enter fwd t=%lu\r\n",
                                  (unsigned long)corner_count,
                                  (unsigned long)AppE_ElapsedMs(start_ms));
@@ -591,12 +658,12 @@ static void AppE_RunLineTask(uint8_t lap_count, APP_E_AIM_MODE aim_mode){
 
             float current_distance = Chassis_GetDistance();
             float distance_diff = current_distance - corner_forward_start_distance;
-            if ((distance_diff >= APP_E_CORNER_FORWARD_DISTANCE_M) || (distance_diff <= -APP_E_CORNER_FORWARD_DISTANCE_M)){
+            if ((distance_diff >= prof.corner_forward_dist_m) || (distance_diff <= -prof.corner_forward_dist_m)){
                 line_state = APP_E_LINE_STATE_CORNER_ARC;
-                status = AppE_ApplyCornerTurn(corner_dir);
+                status = AppE_ApplyCornerTurn(corner_dir, prof.corner_turn_duty);
             }
         } else{
-            status = AppE_ApplyCornerTurn(corner_dir);
+            status = AppE_ApplyCornerTurn(corner_dir, prof.corner_turn_duty);
             (void)LineFollow_UpdateSensor();
             (void)LineFollow_GetSensor(&sensor);
 
@@ -607,17 +674,25 @@ static void AppE_RunLineTask(uint8_t lap_count, APP_E_AIM_MODE aim_mode){
                 corner_dir = APP_E_CORNER_NONE;
                 line_lost_pending = false;
                 LineTracking_Reset();
-                LineFollow_IncrementEdge();
-                {
-                    int32_t ec = LineFollow_GetEdgeCount();
-                    if ((aim_mode != APP_E_AIM_MODE_NONE) && (ec > 0)){
-                        uint32_t edge_index = (uint32_t)(ec - 1) % APP_E_EDGES_PER_LAP;
-                        AutoAim_AnchorCorner(s_app_e_corner_sequence[edge_index],
-                                             (float)ec * calibration.auto_aim.track_side_m);
-                    }
-                    DebugUart_Printf("[E1] edge=%ld lap=%u t=%lu\r\n",
-                                     (long)ec, (unsigned)(ec / APP_E_EDGES_PER_LAP),
+                if (initial_start_turn){
+                    /* 起步在 A 处的左拐: 非巡完一条边, 不计边/不锚定 (见 initial_start_turn
+                     * 声明处注释)。清标志后 A->C 起为首条正常边。 */
+                    initial_start_turn = false;
+                    DebugUart_Printf("[E1] start-turn @A done (no edge) t=%lu\r\n",
                                      (unsigned long)AppE_ElapsedMs(start_ms));
+                } else{
+                    LineFollow_IncrementEdge();
+                    {
+                        int32_t ec = LineFollow_GetEdgeCount();
+                        if ((aim_mode != APP_E_AIM_MODE_NONE) && (ec > 0)){
+                            uint32_t edge_index = (uint32_t)(ec - 1) % APP_E_EDGES_PER_LAP;
+                            AutoAim_AnchorCorner(s_app_e_corner_sequence[edge_index],
+                                                 (float)ec * calibration.auto_aim.track_side_m);
+                        }
+                        DebugUart_Printf("[E1] edge=%ld lap=%u t=%lu\r\n",
+                                         (long)ec, (unsigned)(ec / APP_E_EDGES_PER_LAP),
+                                         (unsigned long)AppE_ElapsedMs(start_ms));
+                    }
                 }
             }
         }
@@ -713,15 +788,21 @@ static void AppE_RunLineTask(uint8_t lap_count, APP_E_AIM_MODE aim_mode){
 }
 
 void AppE_RunLineFollow(uint8_t lap_count){
-    AppE_RunLineTask(lap_count, APP_E_AIM_MODE_NONE);
+    AppE_RunLineTask(lap_count, APP_E_AIM_MODE_NONE, NULL);
 }
 
 void AppE_RunLineAim(uint8_t lap_count){
-    AppE_RunLineTask(lap_count, APP_E_AIM_MODE_CENTER_FEEDFORWARD);
+    AppE_RunLineTask(lap_count, APP_E_AIM_MODE_CENTER_FEEDFORWARD, NULL);
+}
+
+void AppE_RunLineAimSlow(uint8_t lap_count){
+    /* F1 慢速稳定版: 与 F1 同逻辑, 全面降速 + 无总超时, 追求"稳"。 */
+    APP_E_LINE_PROFILE slow = AppE_LineProfileSlow();
+    AppE_RunLineTask(lap_count, APP_E_AIM_MODE_CENTER_FEEDFORWARD, &slow);
 }
 
 void AppE_RunLineCircle(uint8_t lap_count){
-    AppE_RunLineTask(lap_count, APP_E_AIM_MODE_CIRCLE_FEEDFORWARD);
+    AppE_RunLineTask(lap_count, APP_E_AIM_MODE_CIRCLE_FEEDFORWARD, NULL);
 }
 
 void AppE_RunContinuousAim(void){

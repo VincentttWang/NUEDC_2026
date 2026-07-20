@@ -480,6 +480,13 @@ BSP_STATUS Gimbal_SetAngle(float yaw_deg, float pitch_deg, float yaw_rate_ff_deg
     return BSP_STATUS_OK;
 }
 
+BSP_STATUS Gimbal_SetPitchDeg(float pitch_deg){
+    /* 只置 pitch 绝对目标角(位置模式, 受软件限位), 不动 yaw。供 F1 进入抬升相机看靶等用;
+     * 之后 GimbalTracking 无目标时保持该角, 锁定后经视觉 servo 回靶心。 */
+    Gimbal_DrivePitchAbsolute(pitch_deg);
+    return BSP_STATUS_OK;
+}
+
 BSP_STATUS Gimbal_Stop(void){
     /* yaw 停转; pitch 位置模式自带保持力矩, 维持当前设定点即可, 不额外下发。 */
     Gimbal_DriveYaw(0.0f);

@@ -69,6 +69,17 @@ extern "C" {
  * 速度内环需要实时 1:1 反转补偿(含蛇形), 滤了反而引入转弯前馈相位滞后。
  * 车心里程重构(积分)与遥测仍用原始 Δs, 不受影响。0 = 不低通。fc≈1/(2π·τ); τ=0.133 -> ~1.2Hz。 */
 #define AUTO_AIM_DEFAULT_RATE_FF_V_TAU_S 0.0f
+/* pitch 纯视觉伺服 (仅 CENTER 模式): 弃用几何 pitch 前馈, 改由视觉 pitch 误差经 PID
+ * 直接伺服 pitch 位置指令。理由: yaw 随车运动大幅变化, 必须几何前馈(连续零滞后);
+ * pitch 几乎不动(靶高近固定, 只随距离变 ~1-3°), 几何前馈收益小却引入光束模型系统误差
+ * (实测 visErrP 常负漂)。纯视觉去掉该模型误差, 让 pitch 直接收敛到靶心。
+ * 复用 aim_track 角度环 pitch PID (KP=2/KI=0.8/KD=0), 按需把 P 适当调大加快收敛。
+ * PID 输出为角速度(deg/s), 积分进 pitch 位置指令(等效 aim_track 的"速度积分成位置")。 */
+#define AUTO_AIM_DEFAULT_PITCH_VISION_ONLY   true
+#define AUTO_AIM_DEFAULT_PITCH_VISION_KP     3.2f   /* aim_track 2.0 调大 (~1.6×) 加快收敛 */
+#define AUTO_AIM_DEFAULT_PITCH_VISION_KI     0.8f
+#define AUTO_AIM_DEFAULT_PITCH_VISION_KD     0.0f
+#define AUTO_AIM_DEFAULT_PITCH_VISION_I_LIMIT 25.0f
 
 typedef enum {
     AUTO_AIM_MODE_CENTER = 0,
@@ -100,6 +111,14 @@ typedef struct {
     float gyro_z_sign;
     /** IMU 融合航向陀螺前推时间 (s), 补快速旋转时的融合滞后; 0=不前推。 */
     float heading_gyro_lead_s;
+    /** CENTER 模式 pitch 是否纯视觉伺服 (弃用几何 pitch 前馈, 消除光束模型系统误差)。 */
+    bool pitch_vision_only;
+    /** 纯视觉 pitch 伺服 PID: 视觉 pitch 误差(deg)->pitch 角速度(deg/s); 复用 aim_track 角度环。 */
+    float pitch_vision_kp;
+    float pitch_vision_ki;
+    float pitch_vision_kd;
+    /** I 项积分限幅 (deg·s)。 */
+    float pitch_vision_i_limit;
     AIM_SOLVER_CONFIG solver;
 } AUTO_AIM_CONFIG;
 

@@ -18,6 +18,7 @@ typedef enum {
     APP_MENU_E2_AIM_2S,
     APP_MENU_E3_AUTO_AIM,
     APP_MENU_F1_LINE_AIM,
+    APP_MENU_F1_LINE_AIM_SLOW,
     APP_MENU_F2_LINE_AIM,
     APP_MENU_F3_LINE_CIRCLE,
     APP_MENU_CALIBRATION,
@@ -46,6 +47,7 @@ static const char *const s_app_menu_items[APP_MENU_COUNT] = {
     "E2 Aim",
     "E3 Scan aim",
     "F1 Line+aim",
+    "F1 slow",
     "F2 Line+aim",
     "F3 Line+circle",
     "Calibration",
@@ -206,6 +208,11 @@ static void App_RunMenuItem(APP_MENU_ITEM selected){
 
     if (selected == APP_MENU_F1_LINE_AIM){
         AppE_RunLineAim(1U);
+        return;
+    }
+
+    if (selected == APP_MENU_F1_LINE_AIM_SLOW){
+        AppE_RunLineAimSlow(1U);
         return;
     }
 

@@ -28,6 +28,12 @@ void AppE_RunLineFollow(uint8_t lap_count);
 void AppE_RunLineAim(uint8_t lap_count);
 
 /**
+ * @brief F1 慢速稳定版：与 AppE_RunLineAim 同逻辑，但全面降速且无总超时，追求稳定不脱靶/不冲出。
+ * @param lap_count 目标圈数。
+ */
+void AppE_RunLineAimSlow(uint8_t lap_count);
+
+/**
  * @brief 发挥部分：巡线一圈期间按里程相位在靶面画圆。
  */
 void AppE_RunLineCircle(uint8_t lap_count);
