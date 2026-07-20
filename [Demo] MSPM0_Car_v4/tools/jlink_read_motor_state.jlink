@@ -1,0 +1,7 @@
+connect
+h
+mem32 0x20200688 24
+mem32 0x202006B8 24
+regs
+g
+qc
