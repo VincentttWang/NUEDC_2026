@@ -1,0 +1,12 @@
+r
+loadfile E:\Learning\MSPM0_Car\project\keil\Objects\NUEDC2025_MSPM0G3507.hex
+r
+g
+Sleep 3000
+h
+mem32 0x202003b8 6
+mem32 0x202003d0 4
+mem32 0x2020056c 1
+mem32 0x20200068 20
+g
+q

@@ -1,0 +1,6 @@
+connect
+h
+loadfile E:\Learning\MSPM0_Car\Debug\NUEDC2025_MSPM0G3507_nortos_ticlang.out
+r
+g
+qc

@@ -1,0 +1,213 @@
+T8644 004:879.956   SEGGER J-Link V7.92k Log File
+T8644 004:880.306   DLL Compiled: Oct 18 2023 14:58:31
+T8644 004:880.345   Logging started @ 2026-06-01 06:09
+T8644 004:880.383   Process: D:\Application\Keil5\UV4\UV4.exe
+T8644 004:880.441 - 4880.428ms
+T8644 004:880.570 JLINK_SetWarnOutHandler(...)
+T8644 004:880.626 - 0.056ms
+T8644 004:880.667 JLINK_OpenEx(...)
+T8644 004:882.429   
+  ***** Error: 
+T8644 004:882.519   Cannot connect to J-Link.
+T8644 004:882.920 - 2.226ms returns "Cannot connect to J-Link."
+T8644 004:883.629 
+  ***** Warning: 
+T8644 004:883.713 API Error: API JLINK_GetHardwareVersion function called before JLINKARM_Open()
+T8644 004:883.780 JLINK_GetHardwareVersion()
+T8644 004:885.404   
+  ***** Error: 
+T8644 004:885.490   Cannot connect to J-Link.
+T8644 004:885.868 - 2.088ms
+T8644 006:496.736 JLINK_IsOpen()
+T8644 006:496.890 - 0.137ms returns 0x00
+T8644 006:496.934 JLINK_EMU_SelectByUSBSN(SerialNo = 0)
+T8644 006:498.474 - 1.542ms returns 0xFFFFFFFF
+T8644 006:498.530 JLINK_EnableLog(...)
+T8644 006:498.568 - 0.038ms
+T8644 006:498.612 JLINK_SetLogFile(...)
+T8644 006:498.650 - 0.043ms
+T8644 006:498.688 JLINK_SetWarnOutHandler(...)
+T8644 006:498.725 - 0.036ms
+T8644 006:498.763 JLINK_OpenEx(...)
+T8644 006:499.994   
+  ***** Error: 
+T8644 006:500.063   Cannot connect to J-Link.
+T8644 006:500.575 - 1.811ms returns "Cannot connect to J-Link."
+T8644 006:500.908 
+  ***** Warning: 
+T8644 006:500.976 API Error: API JLINK_GetHardwareVersion function called before JLINKARM_Open()
+T8644 006:501.036 JLINK_GetHardwareVersion()
+T8644 006:504.216   
+  ***** Error: 
+T8644 006:504.318   Cannot connect to J-Link.
+T8644 006:504.694 - 3.657ms
+T8644 007:862.443 JLINK_IsOpen()
+T8644 007:862.556 - 0.112ms returns 0x00
+T8644 007:862.597 JLINK_EMU_SelectByUSBSN(SerialNo = 0)
+T8644 007:863.993 - 1.395ms returns 0xFFFFFFFF
+T8644 007:864.062 JLINK_EnableLog(...)
+T8644 007:864.099 - 0.037ms
+T8644 007:864.139 JLINK_SetLogFile(...)
+T8644 007:864.177 - 0.038ms
+T8644 007:864.216 JLINK_SetWarnOutHandler(...)
+T8644 007:864.253 - 0.037ms
+T8644 007:864.292 JLINK_OpenEx(...)
+T8644 007:871.926   
+  ***** Error: 
+T8644 007:872.036   Cannot connect to J-Link.
+T8644 007:872.617 - 8.323ms returns "Cannot connect to J-Link."
+T8644 007:873.266 
+  ***** Warning: 
+T8644 007:873.340 API Error: API JLINK_GetHardwareVersion function called before JLINKARM_Open()
+T8644 007:873.401 JLINK_GetHardwareVersion()
+T8644 007:874.930   
+  ***** Error: 
+T8644 007:875.004   Cannot connect to J-Link.
+T8644 007:875.349 - 1.946ms
+T8644 009:438.201 JLINK_IsOpen()
+T8644 009:438.334 - 0.132ms returns 0x00
+T8644 009:438.375 JLINK_EMU_SelectByUSBSN(SerialNo = 0)
+T8644 009:439.995 - 1.619ms returns 0xFFFFFFFF
+T8644 009:440.067 JLINK_EnableLog(...)
+T8644 009:440.104 - 0.037ms
+T8644 009:440.143 JLINK_SetLogFile(...)
+T8644 009:440.182 - 0.039ms
+T8644 009:440.221 JLINK_SetWarnOutHandler(...)
+T8644 009:440.259 - 0.037ms
+T8644 009:440.298 JLINK_OpenEx(...)
+T8644 009:441.522   
+  ***** Error: 
+T8644 009:441.591   Cannot connect to J-Link.
+T8644 009:442.122 - 1.821ms returns "Cannot connect to J-Link."
+T8644 009:442.528 
+  ***** Warning: 
+T8644 009:442.596 API Error: API JLINK_GetHardwareVersion function called before JLINKARM_Open()
+T8644 009:442.655 JLINK_GetHardwareVersion()
+T8644 009:444.007   
+  ***** Error: 
+T8644 009:444.084   Cannot connect to J-Link.
+T8644 009:444.361 - 1.706ms
+T8644 010:880.143 JLINK_IsOpen()
+T8644 010:880.282 - 0.138ms returns 0x00
+T8644 010:880.323 JLINK_EMU_SelectByUSBSN(SerialNo = 0)
+T8644 010:881.895 - 1.570ms returns 0xFFFFFFFF
+T8644 010:881.957 JLINK_EnableLog(...)
+T8644 010:881.995 - 0.038ms
+T8644 010:882.035 JLINK_SetLogFile(...)
+T8644 010:882.073 - 0.038ms
+T8644 010:882.112 JLINK_SetWarnOutHandler(...)
+T8644 010:882.151 - 0.038ms
+T8644 010:882.190 JLINK_OpenEx(...)
+T8644 010:883.482   
+  ***** Error: 
+T8644 010:883.561   Cannot connect to J-Link.
+T8644 010:883.996 - 1.805ms returns "Cannot connect to J-Link."
+T8644 010:884.899 
+  ***** Warning: 
+T8644 010:885.209 API Error: API JLINK_GetHardwareVersion function called before JLINKARM_Open()
+T8644 010:886.009 JLINK_GetHardwareVersion()
+T8644 010:887.430   
+  ***** Error: 
+T8644 010:887.508   Cannot connect to J-Link.
+T8644 010:887.874 - 1.864ms
+T8644 012:411.415 JLINK_IsOpen()
+T8644 012:411.585 - 0.168ms returns 0x00
+T8644 012:411.636 JLINK_EMU_SelectByUSBSN(SerialNo = 0)
+T8644 012:413.610 - 1.972ms returns 0xFFFFFFFF
+T8644 012:413.693 JLINK_EnableLog(...)
+T8644 012:413.737 - 0.044ms
+T8644 012:413.788 JLINK_SetLogFile(...)
+T8644 012:413.836 - 0.048ms
+T8644 012:413.887 JLINK_SetWarnOutHandler(...)
+T8644 012:413.930 - 0.043ms
+T8644 012:413.979 JLINK_OpenEx(...)
+T8644 012:415.585   
+  ***** Error: 
+T8644 012:415.674   Cannot connect to J-Link.
+T8644 012:416.232 - 2.252ms returns "Cannot connect to J-Link."
+T8644 012:416.699 
+  ***** Warning: 
+T8644 012:416.854 API Error: API JLINK_GetHardwareVersion function called before JLINKARM_Open()
+T8644 012:416.923 JLINK_GetHardwareVersion()
+T8644 012:418.299   
+  ***** Error: 
+T8644 012:418.379   Cannot connect to J-Link.
+T8644 012:419.092 - 2.168ms
+T8644 013:765.116 JLINK_IsOpen()
+T8644 013:765.272 - 0.156ms returns 0x00
+T8644 013:765.313 JLINK_EMU_SelectByUSBSN(SerialNo = 0)
+T8644 013:767.013 - 1.699ms returns 0xFFFFFFFF
+T8644 013:767.100 JLINK_EnableLog(...)
+T8644 013:767.137 - 0.037ms
+T8644 013:767.176 JLINK_SetLogFile(...)
+T8644 013:767.214 - 0.037ms
+T8644 013:767.253 JLINK_SetWarnOutHandler(...)
+T8644 013:767.290 - 0.037ms
+T8644 013:767.328 JLINK_OpenEx(...)
+T8644 013:770.049   
+  ***** Error: 
+T8644 013:770.287   Cannot connect to J-Link.
+T8644 013:771.116 - 3.786ms returns "Cannot connect to J-Link."
+T8644 013:771.627 
+  ***** Warning: 
+T8644 013:771.699 API Error: API JLINK_GetHardwareVersion function called before JLINKARM_Open()
+T8644 013:771.757 JLINK_GetHardwareVersion()
+T8644 013:773.037   
+  ***** Error: 
+T8644 013:773.107   Cannot connect to J-Link.
+T8644 013:773.366 - 1.608ms
+T8644 019:469.716 JLINK_IsOpen()
+T8644 019:469.853 - 0.136ms returns 0x00
+T8644 019:469.893 JLINK_EMU_GetList(InterfaceMask = 0x00000001, MaxInfos = 0x00000010) 
+T8644 019:471.457 - 1.562ms returns 0
+T8644 020:204.426 JLINK_IsOpen()
+T8644 020:204.561 - 0.134ms returns 0x00
+T8644 020:204.607 JLINK_EMU_GetList(InterfaceMask = 0x00000001, MaxInfos = 0x00000010) 
+T8644 020:206.327 - 1.719ms returns 0
+T8644 020:581.975 JLINK_IsOpen()
+T8644 020:582.108 - 0.133ms returns 0x00
+T8644 020:582.148 JLINK_EMU_GetList(InterfaceMask = 0x00000001, MaxInfos = 0x00000010) 
+T8644 020:583.829 - 1.679ms returns 0
+T8644 022:376.657 JLINK_IsOpen()
+T8644 022:376.796 - 0.138ms returns 0x00
+T8644 022:376.838 JLINK_EMU_SelectByUSBSN(SerialNo = 0)
+T8644 022:378.376 - 1.538ms returns 0xFFFFFFFF
+T8644 022:378.434 JLINK_EnableLog(...)
+T8644 022:378.471 - 0.037ms
+T8644 022:378.511 JLINK_SetLogFile(...)
+T8644 022:378.549 - 0.038ms
+T8644 022:378.588 JLINK_SetWarnOutHandler(...)
+T8644 022:378.624 - 0.036ms
+T8644 022:378.663 JLINK_OpenEx(...)
+T8644 022:379.885   
+  ***** Error: 
+T8644 022:379.956   Cannot connect to J-Link.
+T8644 022:380.419 - 1.755ms returns "Cannot connect to J-Link."
+T8644 022:380.753 
+  ***** Warning: 
+T8644 022:380.822 API Error: API JLINK_GetHardwareVersion function called before JLINKARM_Open()
+T8644 022:380.880 JLINK_GetHardwareVersion()
+T8644 022:382.112   
+  ***** Error: 
+T8644 022:382.193   Cannot connect to J-Link.
+T8644 022:382.478 - 1.598ms
+T8644 023:222.760 JLINK_IsOpen()
+T8644 023:222.878 - 0.117ms returns 0x00
+T8644 023:222.918 JLINK_EMU_GetList(InterfaceMask = 0x00000001, MaxInfos = 0x00000010) 
+T8644 023:224.349 - 1.431ms returns 0
+T8644 023:748.054 JLINK_IsOpen()
+T8644 023:748.205 - 0.149ms returns 0x00
+T8644 023:748.250 JLINK_EMU_GetList(InterfaceMask = 0x00000001, MaxInfos = 0x00000010) 
+T8644 023:749.967 - 1.716ms returns 0
+T8644 023:930.404 JLINK_IsOpen()
+T8644 023:930.490 - 0.086ms returns 0x00
+T8644 023:930.531 JLINK_EMU_GetList(InterfaceMask = 0x00000001, MaxInfos = 0x00000010) 
+T8644 023:932.018 - 1.487ms returns 0
+T8644 025:768.808 JLINK_EMU_SelectIP()
+T8644 025:800.590 - 31.778ms returns 0xFFFFFFFF
+T8644 026:915.159 JLINK_EMU_SelectIP()
+T8644 026:941.977 - 26.816ms returns 0xFFFFFFFF
+T8644 028:878.195 JLINK_Close()
+T8644 028:878.644 - 0.449ms
+T8644 028:878.760   
+T8644 028:878.829   Closed

@@ -1,0 +1,137 @@
+# 变更记录
+
+## 未发布
+
+- 将 E3 拆分为 `E3 Yaw+` 和 `E3 Yaw-` 两个主菜单入口；矩形扫描识别成功后先停止云台约 `200ms`，随后直接复用 E2 的靶心瞄准逻辑，不再单独执行矩形中心跟踪。
+- 收紧 E1 与 Corner test 的转弯结束条件：中心 3/4 重新检测到轨道后需要连续确认 3 次，才刹车退出转弯。
+- 新增 `k230/rect_recognition.py` 与 MSPM0 的 UART 帧通信：按 `0x12 ... 0x5B` 固定帧发送目标中心、图像中心和矩形角点；考虑摄像头倒装，发送前对目标中心和矩形角点绕图像中心做中心对称修正，并在目标中心接近图像中心时开启 GPIO2 激光笔。
+- 调整 `core/gimbal_tracking` 对当前 K230 通信协议的坐标处理：K230 端已发送倒装修正后的图像坐标，MCU 侧直接使用目标中心和图像中心，不再额外翻转 y 轴；E2 因此按当前 `rect_recognition.py` 的激光段数据执行云台瞄准。
+- 为 `core/gimbal_tracking` 增加 K230 有效目标数据超时保护：默认约 `1000ms` 内没有新的有效目标数据时立即停止云台 yaw/pitch 输出，避免视觉链路断开或目标长时间丢失后云台继续按旧速度转动。
+- 修正视觉云台跟踪 yaw 输出方向，将默认 `yaw_output_sign` 调整为正向，解决 E2/E3 中水平步进电机跟踪方向反的问题。
+- 提高视觉云台跟踪默认速度响应：PID 比例系数调整为 `0.4`，输出限幅设为 `240 deg/s`；E2 改为持续调整云台，只有长按或连续约 `1000ms` 没有有效 K230 目标数据时才停止。
+- 整理 E3 扫描和跟踪流程：扫描阶段 `GimbalTracking_IsRectValid()` 只查询矩形有效性，不再触发视觉超时停机；E3 增加扫描超时保护，识别到矩形后立即停止扫描并进入矩形中心跟踪，跟踪阶段仍由有效目标数据超时保护停止云台。
+- 将 E3 云台扫描速度从 `120 deg/s` 降至 `60 deg/s`，并将扫描超时放宽到约 `8s`，保证慢速扫描时仍能覆盖最多一圈。
+- 将 `Corner test` 的原地差速转弯逻辑应用到 E1 直角弯：确认拐角后先刹车，再用左轮 `-25%`、右轮 `+25%` 转向，中心 3/4 连续确认后刹车并恢复循线。
+- E2/E3 进入任务后等待启动按键释放并清除事件，避免菜单长按残留导致任务刚启动就退出。
+- 将 `Corner test` 左转停止策略改为两段式捕线和停稳复检：先用 2/3/4/5 宽范围捕线，再低速微调到中心 3/4 连续确认，刹车等待约 `80ms` 后复检；若中心离线则继续微调。
+- 减小 E1 左转差速：转弯输出从内侧 `6%`、外侧 `30%` 调整为内侧 `12%`、外侧 `24%`，降低直角弯时的差速冲击。
+- 调整 `Corner test` 左转停止条件：左转过程中持续读取灰度，中心 3/4 重新识别到轨道时立即刹车停止。
+- 将 `Corner test` 从“识别拐角后立即刹车退出”扩展为“识别空线拐角后主动刹车，再开环原地左转约 90 度并刹车停住”，用于调试直角转弯动作参数。
+- 将 E1 与 `Corner test` 的拐角识别条件切换为 8 路灰度全部未检测到轨道并连续确认 2 次；该条件不携带左右方向，E1 暂按逆时针任务默认进入左转流程。
+- 主界面新增 `Corner test` 测试入口，进入后先循线运行，识别并连续确认到拐角后立即主动刹车并退出测试循环，用于单独验证拐角识别触发时机。
+- E1 识别并确认直角弯后新增非阻塞主动刹车段，默认刹车约 `120ms` 后再进入低速差速圆弧转弯，用于降低入弯惯性。
+- 灰度传感器更换完成后，恢复巡线控制为 8 路全通道参与：`LINE_TRACKING_ACTIVE_SENSOR_MASK` 改为 `0xFF`，E1 圆弧转弯重新捕线中心改回 3/4。
+- 调整 E1 直角弯控制代码表达方式：进入确认、当前转向和退出确认仍在主循环中显式维护，并补充注释，方便继续上板调试。
+- 优化 E1 直角弯状态机：外侧 0/1/2 或 5/6/7 需要同一方向连续确认 2 次才进入圆弧转弯；圆弧转弯退出为中心 3/4 连续确认 3 次，减少瞬时触发导致的误入弯或过早出弯。
+- 修复 E1 难以从循迹跳转到转弯的问题：拐角入口不再要求中心 3/4 未检测到线，只由外侧 0/1/2 或 5/6/7 触发；3/4 仅用于转弯结束后重新捕线。
+- 修正 E1 `Line lost` 判定：只要有效通道掩码内任意一路压线就不算丢线；拐角入口改为看外侧 0/1/2 或 5/6/7 中至少一路触发。
+- 将 E1 `Line lost` 连续丢线宽限时间延长到 `1000ms`，避免短时间离线或转弯瞬间状态变化过早触发丢线。
+- 优化 E1 `Line lost` 判定：丢线保护改用有效通道掩码判断，持续超过宽限时间才判定丢线。
+- 移除 `middleware/line_follow` 的整组轨道识别消抖，传感器读取后立即发布最新 8 路状态；同时放宽 E1 直角弯识别条件，中心丢线且某侧外侧至少一路触发即可进入对应圆弧转弯。
+- E1 `Line lost` 提示页新增转弯次数显示，进入直角弯圆弧状态时累加，用于定位丢线发生在第几次转弯之后。
+- 将 E1 直角弯流程从“刹车后原地转向”改为低速差速圆弧转弯，当前内侧轮 `6%`、外侧轮 `30%`，不再设置最小或最大转弯持续时间，降低转弯时灰度阵列离线概率。
+- 恢复 `middleware/line_follow` 的正常灰度传感器设计，移除逻辑通道 3 的坏道屏蔽和估计补偿，巡线与 Device Check 均直接使用 8 路真实读数。
+- 为 `core/line_tracking` 增加循迹差速限幅，默认将左右轮占空比差值限制在 `10%` 以内，只影响巡线 PID 输出路径，不影响其他底盘运动原语。
+- 放宽 E1 循线任务的丢线判定：普通循线状态下不再因单帧空线立即进入 `Line lost`，而是连续空线超过宽限时间后再刹车提示，降低灰度抖动和短暂离线导致的误停概率。
+- 新增 `core/motion` 底盘运动原语执行器，统一提供刹车、滑行、直行、倒车、原地左右转和循线命令到 `Chassis` / `LineTracking` 的转换；该模块不包含时间、距离、捕线或任务完成条件判断。
+- 将 E1 循迹任务的底盘运动输出切换为 `Motion_CommandLineFollow()` + `Motion_Apply()`，圈数、边线计数、丢线和超时判断仍保留在 app 任务流程中。
+- 为 E1 任务增加直角弯状态机：普通循线识别到中心丢线且外侧多路触发后，执行低速差速圆弧转弯，中心重新捕线后恢复循线；`core/line_tracking` 保持纯 PID 巡线职责。
+- 在 `Device Check` 中新增 `Yaw Hold` 页面，单击后锁定当前 IMU yaw 角并用云台 yaw 轴闭环保持该角度，再次单击停止；闭环激活时降低控制循环延迟并降低 OLED 刷新频率，减少测试界面对稳定响应的影响。
+- 将 `Yaw Hold` 控制律调整为 IMU yaw 角速度前馈加 yaw 角度 PID 修正，并增加最小起转速度补偿、`±240 deg/s` 输出限幅和速度变化率限幅，用于改善云台起转迟滞和速度突变问题。
+- 增大 `Yaw Hold` 角速度前馈和最小起转补偿，提高外部旋转初期的云台响应速度。
+- 在实验分支中将 `Yaw Hold` 更新触发改为 IMU 有效帧驱动：UART0 中断只更新 IMU 数据和计数，Device Check 主循环检测到新帧后立即执行 yaw 保持控制，减少固定周期轮询带来的额外等待。
+- 为 `bsp/canmv` 增加坐标字节序自动纠正和更严格的固定帧校验：当高字节在前解析得到明显异常的五位数、交换字节后落在合理图像坐标范围内时，采用交换后的坐标值；若帧长不匹配或坐标仍不合理，则拒绝整帧，避免随机串口数据被显示为有效 T/L 坐标。
+- 将 E3 改为“正方向扫描寻找矩形，识别到有效矩形立即停止扫描并跟踪矩形中心”的流程，新增 `GimbalTracking_UpdateRectCenter()` 和 `GimbalTracking_IsRectValid()`。
+- 将 `Device Check` 中 yaw/pitch 步进电机测试触发方式从短按释放恢复为普通单击，保持与其他模块测试交互一致。
+- 将 pitch 开环估计位置限位下沉到 `bsp/step_motor`，默认限制为 `-30 deg` 到 `+30 deg`，新增 `StepMotor_SetPitchLimit()` / `StepMotor_GetPitchLimit()`，并让 `middleware/gimbal` 的限位配置同步到底层，避免直接调用 `StepMotor_*` 时绕过 pitch 旋转限幅。
+- 新增 `k230/uart1_comm_test.py`，使用 K230 UART1（GPIO3 TX、GPIO4 RX）周期发送兼容旧 CanMV 协议的测试帧，用于验证 K230 与 MSPM0 之间的串口链路。
+- 在 `Device Check` 中新增 K230 通信检查页面，显示接收字节数、有效帧数、丢帧数、最后接收字节和解析出的目标/激光坐标。
+- 新增 `tools/k230_tool.py`，提供基于 pyserial/raw REPL 的 K230 脚本运行、写入和软复位辅助命令，并补充 `docs/k230-tool.md`。
+- 验证 K230 可通过 `COM15` 进入 MicroPython raw REPL、写入 `/sdcard` 文件并执行脚本；将 K230 工具默认写入路径调整为 `/sdcard/main.py`。
+- 为 `k230/rect_07.py` 增加 UART2 二进制帧发送，按旧 CanMV 协议向 MSPM0 回传靶心、图像中心和矩形角点。
+- 调整 `bsp/canmv` UART2 接收配置，关闭 TX 中断、保留 RX/RX timeout 中断并排空 RX FIFO，同时增加接收字节、有效帧和丢帧诊断变量。
+- 将 `core/gimbal_tracking` 默认图像高度调整为 `240`，对齐当前 K230 `320x240` 视觉输出。
+- 回退 `Corner test` 中两段式捕线和停稳复检逻辑，恢复为循线识别空线拐角后刹车，再以左轮负值、右轮正值的原地差速左转，便于单独验证直角转弯方向和响应。
+- 保留 `Corner test` 中心线检测逻辑：原地差速左转过程中中心 3/4 连续确认后立即刹车。
+- 将 `Corner test` 左转差速适当增大为左轮 `-15%`、右轮 `+15%`，提高直角转弯响应。
+- 移除 `Corner test` 左转阶段的固定时间兜底停止，转弯只由中心 3/4 连续确认或长按人工中止结束。
+- 调整 `Device check` 中 yaw/pitch 步进电机测试触发方式，短按释放消抖完成后立即执行点动，不再等待双击窗口超时。
+- 为 `bsp/key` 增加 `Key_IsShortRelease()` 即时释放事件接口，供低延迟测试动作使用。
+- 修复 `bsp/step_motor` 初始化未拉起 `EN1/EN2` 的问题，将 yaw/pitch 步进电机使能脚纳入硬件映射宏，并默认按旧版行为置高使能。
+- 收紧顶层启动菜单，将 E1 的 1 到 5 圈入口整合为 `E1 Line`，进入后在 E1 子菜单中选择具体圈数。
+- 重写 `Device check` 测试程序交互：双击切换模块，单击切换或触发模块内测试；电机模块提供停止、左轮、右轮和双轮测试，yaw/pitch 步进电机拆分为独立模块，灰度实时显示 8 位二进制状态，IMU 实时显示姿态角和角速度，暂不提供 K230 通讯测试页。
+- 重写 `app` 层为 2025 年电赛 E 题前三项任务入口，删除旧 `mode/menu/circle_list/mode_tree` 流程。
+- 将 `bsp/oled` 从 GPIO 软件 I2C 适配为 SysConfig 生成的硬件 I2C 控制器，使用 `OLED_INST` 和 SSD1306 7 位地址 `0x3C` 完成阻塞式显示写入。
+- 将 UART0/Debug 适配到 115200 波特率下的 JY61P 数据回传，IMU 接收从固定 33 字节组合帧改为 11 字节标准子帧滑动解析，并在设备检查页显示姿态角、角速度、加速度和接收状态；UART0 接收保持纯中断路径，并显式设置 1 字节 RX FIFO 中断阈值。
+- 更新 CCS projectspec 和 Keil uvprojx，使两套工程文件指向当前 `app/core/middleware/bsp/board` 源码树。
+- 验证 CCS/ticlang 直接交叉编译和 Keil/ArmClang rebuild 均通过。
+- 为 `bsp/step_motor` 增加统一速度限幅宏 `STEP_MOTOR_MAX_SPEED_DEG_S`，默认限制 yaw/pitch 步进电机速度到 `240 deg/s`。
+- 新增 `app/app_e_task.*`，提供寻迹 1 到 5 圈、2 秒靶心瞄准和 4 秒靶心瞄准任务。
+- 新增 `docs/interfaces/app_launcher.md`、`docs/interfaces/app_e_task.md` 和 `docs/interfaces/app_device_check.md`，记录应用层当前公开边界。
+- 新增 `app/app_device_check.*`，提供底盘、云台、灰度、视觉和 IMU 简化检查页面。
+- 重写 `app/main.c`，统一初始化 `Chassis`、`Gimbal`、`LineFollow`、`CanMvUart`、`Ui` 和按键。
+- 为 `middleware/line_follow` 增加 `LineFollow_GetActiveCount()`、空线、半线、十字和中心检测接口。
+- 删除已无引用的 `middleware/runtime/vision_state.h` 和 `middleware/runtime/project_build_config.h`。
+- 新增 `core/gimbal_tracking` 云台视觉跟踪模块，对接 `bsp/canmv`、`core/geometry`、`core/pid` 和 `middleware/gimbal`。
+- 删除旧 `core/step_motor_ctrl.*`，移除直接调用 `YP_SMotor_*` 的云台控制路径。
+- 旧 `Compute_excur()`、`getDistance()` 和 LED 调试逻辑不迁入 `gimbal_tracking`。
+- 新增 `core/line_tracking` 巡线控制模块，对接 `middleware/line_follow`、`core/pid`、`core/kinematics` 和 `middleware/chassis`。
+- 删除旧 `core/tracking.*`，移除 `PID_IR_Calc_Custom()` 和 `Motion_Car_Control()`。
+- 将 `app/mode.c` 中 `lineWalking_low()` 调用最小替换为 `LineTracking_Update()`。
+- 新增 `core/common/core_types.h`，将二维点和二维姿态类型迁移为 `CORE_POINT2F`、`CORE_ATTITUDE2F`。
+- 新增 `core/geometry` 二维平面映射模块，提供矩形插值、纸面到矩形映射和圆点计算接口。
+- 删除旧 `core/sensor_proc.*`，灰度巡线相关处理不再放入该模块，后续由 `core/line_tracking` 和 `middleware/line_follow` 承担。
+- 从 `bsp/common/bsp_common.h` 移除 `BSP_POINT2F` 和 `BSP_ATTITUDE2F`，BSP common 回归为 BSP 状态公共契约。
+- 重写 `core/rotation` 为独立子目录，使用 `ROTATION_EULER` 和 `ROTATION_MATRIX` 明确表达姿态角和旋转矩阵。
+- 移除旧 `rotation_matrix()`、`matrix_multiplication()`、`matrix_transpose()` 和 `matrix_to_angles()` 接口。
+- 为旋转数学模块补充中文接口文档 `docs/interfaces/core_rotation.md`。
+- 重写 `core/kinematics` 为独立子目录，保留纯运动学和几何计算接口，不再声明任务流程式动作接口。
+- 新增 `KINEMATICS_POSE`、`KINEMATICS_VELOCITY`、`KINEMATICS_DIFFERENTIAL_OUTPUT` 等运动学数据结构。
+- 为运动学模块补充中文接口文档 `docs/interfaces/core_kinematics.md`。
+- 重写 `core/pid` 为独立子目录，新增 `PID_MODE_POSITION` 和 `PID_MODE_INCREMENTAL` 两种控制模式。
+- 将 PID 接口改为 `PID_CONTROLLER` / `PID_CONFIG` / `PID_STATE`，`PID_Update()` 直接返回当前输出并统一处理积分和输出限幅。
+- 为 PID 控制器补充中文接口文档 `docs/interfaces/core_pid.md`。
+- 新增 `middleware/fault` 系统故障处理服务，公开 `SystemFault_*` 接口。
+- 故障停机时同步执行 `Chassis_Brake()` 和 `Gimbal_Stop()`，并通过 `Ui_RenderStatusPage()` 显示错误页。
+- 删除旧 `middleware/runtime/system_error_state.h` 和 `middleware/system/error_handler.*`。
+- 为系统故障处理服务补充中文接口文档 `docs/interfaces/middleware_system_fault.md`。
+- 新增 `middleware/ui` 轻量 OLED UI 渲染层，提供文本页、状态页、列表页和行刷新接口。
+- 为 UI 渲染层补充中文接口文档 `docs/interfaces/middleware_ui.md`。
+- 新增 `middleware/line_follow` 巡线运行状态服务，公开传感器快照、边线计数和转弯状态接口。
+- 删除旧 `middleware/runtime/tracking_runtime.h`，不再暴露 `Digital[]`、`edge`、`turning` 全局变量声明。
+- 明确旧 `sInedge` 和 `UpdateSInedge()` 不迁入 `line_follow`，后续在具体使用点重新设计阶段距离逻辑。
+- 为巡线运行状态服务补充中文接口文档 `docs/interfaces/middleware_line_follow.md`。
+- 新增 `middleware/gimbal` 云台组合服务，对接 `StepMotor_*`，公开 `Gimbal_*` 接口并只保留 pitch 软件限位。
+- 删除旧 `middleware/system/step_motor_system.*`。
+- 为云台组合服务补充中文接口文档 `docs/interfaces/middleware_gimbal.md`。
+- 新增 `middleware/chassis` 底盘组合服务，对接 `TB6612FNG_*` 与 `HallEncoder_*`，公开 `Chassis_*` 接口。
+- 删除旧 `middleware/system/motor_system.*`，不再在底盘模块中混放巡线状态和错误消息全局变量。
+- 为底盘组合服务补充中文接口文档 `docs/interfaces/middleware_chassis.md`。
+- 重写 `bsp/oled` 公开边界：头文件只保留显示接口和硬件宏，软件 I2C 与 SSD1306 低层写入函数收敛为内部实现。
+- 为 OLED 显示接口补充中文接口文档 `docs/interfaces/bsp_oled.md`。
+- 为 `bsp/imu/wit_sdk` 追加 `WitGetAcc()`、`WitGetGyro()`、`WitGetAttitude()` 和 `WitGetData()`，保留厂家驱动主体和命名风格不变。
+- 为 WitMotion IMU 读取接口补充中文接口文档 `docs/interfaces/bsp_wit_sdk.md`。
+- 将 `bsp/laser/laser_usart` 重写为 `bsp/canmv/canmv_uart`，公开 `CanMvUart_*` 接口并移除旧 `Laser_*` / `Rect_*` 全局状态接口。
+- 为 CanMV UART 协议解析补充中文接口文档 `docs/interfaces/bsp_canmv_uart.md`。
+- 重写 `bsp/step_motor`：公开 `StepMotor_*` 通道接口，支持 yaw/pitch 两路速度设置、阻塞运行指定时间、停止和开环估计位置维护。
+- 将步进电机位置接口命名为 `StepMotor_GetEstimatedPosition()` / `StepMotor_ResetEstimatedPosition()`，明确其不是物理归零或反馈位置。
+- 重写 `bsp/motor/hall_encoder`：公开 `HallEncoder_*` 接口，使用明确的编码器物理参数宏提供采样计数、方向、速度和距离估计。
+- 为霍尔编码器补充中文接口文档 `docs/interfaces/bsp_hall_encoder.md`，并记录后续上层从旧 `Encoder_*` 接口迁移。
+- 重写 `bsp/motor/tb6612fng`：移除旧 `Motor_*` 类型和速度换算接口，新增 `TB6612FNG_*` 通道接口，使用百分比占空比控制 IN1/IN2/PWM 输出。
+- 为 TB6612FNG 驱动补充可覆盖硬件映射宏和中文接口文档 `docs/interfaces/bsp_tb6612fng.md`。
+- 将 TB6612FNG 输出状态查询接口命名为 `TB6612FNG_GetOutputStatus()`，避免 `GetOutput()` 语义过宽。
+- 将 `bsp/tracking_sensor` 重命名并重写为 `bsp/grayscale_sensor`，公开 `GrayscaleSensor_Read()`、`GrayscaleSensor_ReadMask()` 和 `GrayscaleSensor_ReadSingle()`。
+- 为 8 路光敏灰度传感器补充可覆盖引脚宏和中文接口文档 `docs/interfaces/bsp_grayscale_sensor.md`。
+- 重写 `bsp/key`：公开类型改为 `KEY_ID`、`KEY_EVENT`，硬件映射改为可覆盖的 `KEY1_PORT`、`KEY1_PIN`、`KEY1_ACTIVE_LOW` 宏，并用内部配置表预留多按键扩展。
+- 将按键正式说明集中到 `docs/interfaces/bsp_key.md`，移除 `bsp/key` 目录下的旧说明文档。
+- 新增 `bsp/time`，统一提供 `BSP_Time_GetMs()`、`BSP_DelayUs()` 和 `BSP_DelayMs()`。
+- 删除 `middleware/system/delay.*` 和 `middleware/runtime/system_time.h`，系统时间与阻塞延时下沉到 BSP 层。
+- 将按键消抖和 OLED 软件 I2C 延时改为直接使用 `bsp/time`，移除对应 provider 注入接口。
+- 重写 `bsp/common` 公共契约：统一使用 SDK 风格的全大写类型名 `BSP_STATUS`。
+- 将 CanMV 状态码从 `bsp/common` 移入 CanMV UART 驱动，由对接 CanMV 的驱动自行维护。
+- 将工程源码重构为 `app`、`core`、`middleware`、`bsp` 四层结构。
+- 将自维护源码和目录统一为小写加下划线命名。
+- 将 SysConfig 和启动资源迁入 `board`，IDE 工程元数据迁入 `project`，脚本目录统一为 `tools`。
+- 移除 BSP 对上层的反向依赖：按键和 OLED 改为依赖 `bsp/time`，步进电机状态更新时间改为显式传参，视觉和 IMU 状态由 BSP 接口导出。
+- 更新 CCS 和 Keil 工程路径，使其指向新的分层源码树。
+- 为 `app`、`core`、`middleware`、`bsp` 主要公开头文件补充 Doxygen 风格中文注释，明确模块职责、结构体字段、函数参数、单位和调用约束。
