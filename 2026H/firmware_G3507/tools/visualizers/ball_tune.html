@@ -1,0 +1,1019 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>H3 滚球实时整定台</title>
+<style>
+  :root {
+    color-scheme: light;
+    --surface:      #F2F5F7;
+    --panel:        #FFFFFF;
+    --panel-sunk:   #E9EFF2;
+    --ink:          #14202A;
+    --ink-2:        #4F6070;
+    --ink-3:        #7B8B99;
+    --rule:         #DCE4E9;
+    --rule-soft:    #EAF0F3;
+    --s1: #BE7000;  /* 球 — 取自 pygame_linkage_visualizer 的 BALL 琥珀 */
+    --s2: #0089AD;  /* 水管 — PIPE_FILL 青 */
+    --s3: #B03A1E;  /* 执行器 — PRINTED 铁锈 */
+    --s4: #5257A8;  /* 参考/规划 */
+    --s5: #1C7A55;  /* 链路 */
+    --good:#1C7A55; --warn:#B57A05; --critical:#A8291B;
+    --shadow: 0 1px 2px rgba(20,32,42,.06), 0 4px 14px rgba(20,32,42,.05);
+    --ui: "Segoe UI Variable Text","Segoe UI",-apple-system,"Microsoft YaHei UI",
+          "PingFang SC",sans-serif;
+    --mono: ui-monospace,"Cascadia Mono","SF Mono",Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --surface:#0B141B; --panel:#101A22; --panel-sunk:#16222C;
+      --ink:#E4ECF1; --ink-2:#96A9B6; --ink-3:#647684;
+      --rule:#1F2E3A; --rule-soft:#182530;
+      --s1:#C98416; --s2:#1E96B5; --s3:#C9553A; --s4:#6E79C9; --s5:#2E9366;
+      --good:#2E9366; --warn:#C08B1C; --critical:#CD5548;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 20px rgba(0,0,0,.3);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--surface); color:var(--ink);
+         font-family:var(--ui); font-size:14px; line-height:1.5;
+         -webkit-font-smoothing:antialiased; }
+
+  header { display:flex; align-items:baseline; gap:16px; flex-wrap:wrap;
+           padding:14px 20px; border-bottom:2px solid var(--ink); }
+  h1 { margin:0; font-size:20px; font-weight:650; letter-spacing:-.01em; }
+  .eyebrow { font-family:var(--mono); font-size:10.5px; letter-spacing:.13em;
+             text-transform:uppercase; color:var(--ink-3); }
+  header .grow { flex:1; }
+
+  button { font-family:var(--ui); font-size:13px; font-weight:550; color:var(--ink);
+           background:var(--panel); border:1px solid var(--rule); border-radius:7px;
+           padding:6px 13px; cursor:pointer; }
+  button:hover:not(:disabled) { border-color:var(--ink-3); }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+  button:focus-visible { outline:2px solid var(--s2); outline-offset:2px; }
+  button.primary { background:var(--ink); color:var(--surface); border-color:var(--ink); }
+  /* 录制中：红底 + 呼吸，让人一眼看出串口正在被写进缓冲。 */
+  button.rec { background:var(--critical); color:#fff; border-color:var(--critical);
+               animation:recpulse 1.6s ease-in-out infinite; }
+  @keyframes recpulse { 0%,100% { opacity:1 } 50% { opacity:.72 } }
+  @media (prefers-reduced-motion:reduce) { button.rec { animation:none } }
+
+  .dot { width:8px; height:8px; border-radius:50%; background:var(--ink-3);
+         display:inline-block; margin-right:6px; }
+  .dot.on { background:var(--good); }
+  .dot.err { background:var(--critical); }
+  #status { font-family:var(--mono); font-size:12px; color:var(--ink-2); }
+
+  main { display:grid; grid-template-columns:400px 1fr; gap:12px;
+         padding:12px 20px 24px; align-items:start; }
+  @media (max-width:1100px){ main { grid-template-columns:1fr; } }
+
+  .panel { background:var(--panel); border:1px solid var(--rule); border-radius:10px;
+           box-shadow:var(--shadow); overflow:hidden; }
+  .phead { display:flex; align-items:baseline; gap:10px; padding:8px 13px 6px;
+           border-bottom:1px solid var(--rule-soft); }
+  .ptitle { font-size:14px; font-weight:650; }
+  .punit { font-family:var(--mono); font-size:10.5px; color:var(--ink-3); }
+  .phead .grow { flex:1; }
+
+  .help-note { margin:0 0 12px; padding:12px 16px; font-size:12.5px; line-height:1.6;
+               background:color-mix(in srgb, var(--s2) 8%, var(--panel));
+               border-left:3px solid var(--s2); border-radius:6px; color:var(--ink-2); }
+  .help-note b { color:var(--ink); font-weight:600; }
+  .help-note code { font-family:var(--mono); font-size:11.5px; padding:1px 4px;
+                    background:var(--panel-sunk); border-radius:3px; color:var(--s2); }
+
+  .group { border-top:1px solid var(--rule-soft); }
+  .group > summary { padding:9px 13px; font-size:12.5px; font-weight:630;
+                     color:var(--ink); cursor:pointer; user-select:none;
+                     background:var(--panel-sunk); transition:background .15s; }
+  .group > summary:hover { background:color-mix(in srgb, var(--panel-sunk) 92%, var(--ink)); }
+  .group > summary::marker { color:var(--ink-3); }
+
+  .row { display:grid; grid-template-columns:90px 1fr 84px; gap:8px;
+         align-items:center; padding:6px 13px; }
+  .row .name { font-family:var(--mono); font-size:11.5px; color:var(--ink);
+               font-weight:550; }
+  .row .name small { display:block; color:var(--ink-3); font-size:9.5px;
+                     letter-spacing:.02em; font-weight:normal; }
+  .row input[type=range] { width:100%; height:6px; accent-color:var(--s2); cursor:pointer; }
+  .row input[type=number] { width:100%; font-family:var(--mono); font-size:12px;
+        text-align:right; padding:5px 7px; border:1.5px solid var(--rule);
+        border-radius:6px; background:var(--panel); color:var(--ink);
+        font-variant-numeric:tabular-nums; font-weight:550; transition:all .15s; }
+  .row input[type=number]:focus { outline:none; border-color:var(--s2);
+        box-shadow:0 0 0 2.5px color-mix(in srgb, var(--s2) 20%, transparent); }
+  .row .toggle { width:18px; height:18px; margin:0; accent-color:var(--s2); cursor:pointer; }
+  .row .toggle-state { font-family:var(--mono); font-size:11px; color:var(--ink-2); }
+  .row.changed input[type=number] { border-color:var(--warn);
+        box-shadow:0 0 0 2.5px color-mix(in srgb, var(--warn) 22%, transparent); }
+  .row.rejected input[type=number] { border-color:var(--critical);
+        box-shadow:0 0 0 2.5px color-mix(in srgb, var(--critical) 25%, transparent);
+        animation:shake .4s; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)}
+                      75%{transform:translateX(4px)} }
+
+  #log { font-family:var(--mono); font-size:11px; height:130px; overflow:auto;
+         padding:7px 13px; border-top:1px solid var(--rule-soft);
+         white-space:pre-wrap; color:var(--ink-2); }
+  #log .ok  { color:var(--good); }
+  #log .bad { color:var(--critical); }
+
+  .charts { display:flex; flex-direction:column; gap:10px; }
+  canvas { display:block; width:100%; }
+  .legend { display:flex; gap:12px; flex-wrap:wrap; margin-left:auto; }
+  .lg { display:inline-flex; align-items:center; gap:5px; font-family:var(--mono);
+        font-size:11px; color:var(--ink-2); }
+  .sw { width:12px; height:3px; border-radius:2px; }
+
+  .tiles { display:grid; gap:8px; grid-template-columns:repeat(auto-fit,minmax(112px,1fr));
+           padding:9px 13px; }
+  .tile { background:var(--panel-sunk); border-radius:7px; padding:7px 9px; }
+  .tile .k { font-size:10.5px; color:var(--ink-3); }
+  .tile .v { font-family:var(--mono); font-size:16px; font-weight:600;
+             font-variant-numeric:tabular-nums; }
+
+  .note { margin:0; padding:10px 13px; font-size:12px; color:var(--ink-2);
+          border-top:1px solid var(--rule-soft); }
+  .note b { color:var(--ink); }
+  dialog { border:1px solid var(--rule); border-radius:10px; background:var(--panel);
+           color:var(--ink); max-width:min(680px,92vw); padding:0; box-shadow:var(--shadow); }
+  dialog::backdrop { background:rgba(0,0,0,.4); }
+  dialog textarea { width:100%; height:340px; font-family:var(--mono); font-size:11.5px;
+        border:none; border-top:1px solid var(--rule-soft); padding:11px 13px;
+        background:var(--panel); color:var(--ink); resize:vertical; }
+  dialog .dfoot { display:flex; gap:8px; justify-content:flex-end; padding:9px 13px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="eyebrow">MSPM0G3507 · H3 Challenge · Debug_Ex 115200</div>
+    <h1>滚球实时整定台</h1>
+  </div>
+  <div class="grow"></div>
+  <span id="status"><span class="dot" id="dot"></span>未连接</span>
+  <button id="connect" class="primary">连接串口</button>
+  <button id="reload" disabled>重新读取</button>
+  <button id="defaults" disabled>恢复默认</button>
+  <button id="record" disabled>● 录制</button>
+  <button id="export" disabled>导出为 C</button>
+  <button id="export-json" disabled>导出配置 JSON</button>
+</header>
+
+<main>
+  <section class="panel">
+    <div class="phead">
+      <span class="ptitle">控制参数</span>
+      <span class="punit" id="pcount">—</span>
+      <span class="grow"></span>
+      <span class="punit">滑块粗调 · 输入框精调</span>
+    </div>
+    <div class="help-note">
+      <b>使用说明：</b>连接串口后面板自动读取参数；拖动滑块或输入数值后<b>立即生效</b>（节流 10 Hz）；
+      <b>掉电恢复默认</b>——整定完可用「导出为 C」粘回源码，或用「导出配置 JSON」保存本次全部参数值。
+      <br><b>协议：</b>手动命令 <code>?</code> 列表，<code>g kp</code> 读取，<code>s kp 0.05</code> 写入，<code>d</code> 恢复默认。
+    </div>
+    <div id="params"></div>
+    <div id="log"></div>
+  </section>
+
+  <section class="charts">
+    <div class="panel">
+      <div class="phead"><span class="ptitle">会话概览</span>
+        <span class="punit">最近 20 s</span></div>
+      <div class="tiles" id="tiles"></div>
+    </div>
+    <div class="panel">
+      <div class="phead"><span class="ptitle">诊断</span>
+        <span class="punit">[SCVD] · 500 ms</span>
+        <span class="grow"></span>
+        <span class="punit" id="diagage">等待…</span></div>
+      <div class="tiles" id="diagtiles"></div>
+    </div>
+    <div id="plots"></div>
+    <p class="note">
+      固件<b>只改内存、不写 flash</b>——掉电即恢复源码默认值。整定完请用
+      <b>导出为 C</b> 把数值回填
+      <span style="font-family:var(--mono)">app_ball_scurve_task.c</span> 的
+      <span style="font-family:var(--mono)">H3S_SCURVE_CONFIG</span> 并提交，否则不算数。
+    </p>
+  </section>
+</main>
+
+<dialog id="recdlg">
+  <div class="phead"><span class="ptitle">录制结束</span>
+    <span class="punit">选择导出格式</span></div>
+  <div class="tiles" id="recstats"></div>
+  <p class="note" id="recwarn" style="display:none">
+    <b>没有采到遥测行。</b>可能是任务没进（根菜单选 H3 Challenge，或 Device Check 选 H3 Hold 0cm），
+    或者串口选错了设备。原始 txt 仍可下载，用来看究竟收到了什么。
+  </p>
+  <p class="note">
+    <b>CSV</b> 给 Excel/pandas 用，表头是字段名，缺字段留空。<br>
+    <b>原始 txt</b> 是逐行原样，喂
+    <span style="font-family:var(--mono)">tools/analysis/</span> 下的
+    landing_stats.py / vel_lag.py / extrap.py 要用这个。
+  </p>
+  <div class="dfoot">
+    <button id="recraw">下载原始 txt</button>
+    <button id="reccsv" class="primary">下载 CSV</button>
+    <button id="recdlg-close">关闭</button>
+  </div>
+</dialog>
+
+<dialog id="expdlg">
+  <div class="phead"><span class="ptitle">粘回 app_ball_scurve_task.c 的对应配置</span></div>
+  <textarea id="exptext" readonly></textarea>
+  <div class="dfoot">
+    <button id="expcopy">复制</button>
+    <button id="expclose" class="primary">关闭</button>
+  </div>
+</dialog>
+
+<script>
+"use strict";
+
+/* ===== 参数分组：名字须与固件 H3S_TUNE_TABLE 一致 ===== */
+const GROUPS = [
+  ["MOVE 与反馈限幅", ["kp","kd","fblim"]],
+  ["增益调度",       ["sched","bkp","bkd","hkp","hkd"]],
+  ["制动判定",       ["bdelay","bacc","bstart","bfull","btau"]],
+  ["保持判定",       ["hent_e","hent_v","hent_dw","hext_e","hext_v","htau"]],
+  ["速度可信度",     ["vage1","vage0","vfloor","vstill"]],
+  ["轨迹预览与捕获", ["apreview","cap_enter","cap_full","cap_tau"]],
+  ["受控重规划",     ["rp_err","rp_vel","rp_dwell","rp_cool"]],
+  ["小误差静止积分", ["i_ki","i_minerr","i_maxerr","i_maxspd","i_relspd","i_relrate","i_mcomp"]],
+  /* 单向脱困与抖动**互斥**：brk_amp > 0 时脱困接管，抖动恒为 0。 */
+  ["单向脱困 · 推荐", ["brk_amp","brk_ramp","brk_rel","brk_minerr",
+                      "brk_maxspd","brk_dwell","brk_relspd","brk_reldw"]],
+  ["抖动 · 备用",     ["dith_amp","dith_freq","dith_minerr","dith_maxspd","dith_dwell"]],
+  ["JY61P 直线加速度辅助", ["imu_gain"]],
+  ["前馈与补偿",     ["roll_ff","roll_db","lvl_bias"]],
+  ["轨迹限制",       ["amax","vmax"]],
+];
+/* 参数中文提示，只为可读性，不影响协议。 */
+const LABEL = {
+  kp:"MOVE 位置增益", kd:"MOVE 速度增益", fblim:"反馈限幅",
+  sched:"调度总开关", bkp:"BRAKE 位置增益", bkd:"BRAKE 速度增益",
+  hkp:"HOLD 位置增益", hkd:"HOLD 速度增益",
+  bdelay:"执行器延迟", bacc:"有效制动加速度", bstart:"制动混合起点",
+  bfull:"制动完全接管", btau:"制动混合时间常数",
+  hent_e:"HOLD 进入误差", hent_v:"HOLD 进入速度", hent_dw:"HOLD 进入驻留",
+  hext_e:"HOLD 退出误差", hext_v:"HOLD 退出速度", htau:"HOLD 混合时间常数",
+  vage1:"速度满权龄期", vage0:"速度最低权龄期", vfloor:"速度最低权重",
+  vstill:"静止速度权重",
+  apreview:"加速度预览时间", cap_enter:"捕获进入误差", cap_full:"捕获完全接管误差",
+  cap_tau:"捕获混合时间常数", rp_err:"重规划位置误差", rp_vel:"重规划速度误差",
+  rp_dwell:"重规划驻留", rp_cool:"重规划冷却",
+  i_ki:"积分增益", i_minerr:"停止积分误差", i_maxerr:"积分区上限",
+  i_maxspd:"积分速度上限", i_relspd:"快速清零速度", i_relrate:"基础清零速率",
+  i_mcomp:"运动退积分补偿",
+  brk_amp:"脱困角上限", brk_ramp:"爬升速率", brk_rel:"撤销速率",
+  brk_minerr:"触发误差", brk_maxspd:"触发速度", brk_dwell:"触发驻留",
+  brk_relspd:"释放速度", brk_reldw:"释放驻留",
+  dith_amp:"抖动振幅", dith_freq:"抖动频率", dith_minerr:"触发误差", dith_maxspd:"触发速度", dith_dwell:"触发驻留",
+  imu_gain:"纵向加速度辅助增益（负值反向）",
+  roll_ff:"滚阻前馈", roll_db:"滚阻死区", lvl_bias:"水平点偏置",
+  amax:"最大加速度", vmax:"最大速度",
+};
+
+/* 关键参数在网页侧也限定安全整定范围，避免旧回显或导入值扩展滑块边界。 */
+const RANGE_OVERRIDE = {
+  imu_gain: [-2, 0],
+};
+
+const PLOTS = [
+  { title:"球位置", unit:"mm", h:150,
+    series:[{k:"xref",n:"参考 xref",c:"--s4",w:1.5,dash:[5,4]},
+            {k:"x",   n:"x",       c:"--s1",w:2}],
+    guides:[{key:"tgt",label:"目标"}] },
+  { title:"球速度", unit:"mm/s", h:110,
+    series:[{k:"vref",n:"参考",c:"--s4",w:1.4,dash:[5,4]},
+            {k:"v",   n:"v",  c:"--s1",w:1.7}] },
+  { title:"水管角：指令 vs 实际", unit:"deg", h:130,
+    series:[{k:"u",   n:"指令 u",   c:"--s4",w:1.7},
+            {k:"beam",n:"实际 beam",c:"--s2",w:2}] },
+  { title:"水管角：名义前馈 vs 预览前馈 vs 最终指令", unit:"deg", h:140,
+    series:[{k:"ff_nom",n:"名义理论前馈 (ff-lead)",c:"--s4",w:1.5,dash:[4,3]},
+            {k:"ff_pv", n:"预览前馈 (ff)",         c:"--s2",w:1.8},
+            {k:"u",     n:"最终合成指令 u",         c:"--s1",w:2}] },
+  { title:"控制分量", unit:"deg", h:120,
+    series:[{k:"fb",  n:"PD fb",  c:"--s3",w:1.5},
+            {k:"lead",n:"预览超前",c:"--s4",w:1.5},
+            {k:"aff", n:"加速度辅助",c:"--s2",w:1.8},
+            {k:"brka",n:"脱困角",  c:"--s5",w:2},
+             {k:"dith",n:"抖动",    c:"--s1",w:1,alpha:.6}] },
+  { title:"JY61P 车体纵向加速度", unit:"m/s²", h:110,
+    series:[{k:"araw",n:"原始",c:"--s4",w:1.2,alpha:.65},
+            {k:"aflt",n:"滤波",c:"--s2",w:2}] },
+  { title:"小误差积分量（独立监视）", unit:"deg", h:110,
+    series:[{k:"iacc",n:"积分额外倾角",c:"--s2",w:2}] },
+  { title:"生效反馈增益", unit:"", h:110,
+    series:[{k:"kpe",n:"Kp eff",c:"--s3",w:1.8},
+            {k:"kde",n:"Kd eff",c:"--s4",w:1.8}] },
+  { title:"调度混合权重", unit:"0..1", h:110,
+    series:[{k:"bb",n:"BRAKE",c:"--s3",w:1.7},
+            {k:"hb",n:"HOLD",c:"--s5",w:1.7},
+            {k:"cb",n:"CAPTURE",c:"--s4",w:1.7},
+            {k:"vw",n:"速度",c:"--s2",w:1.4}] },
+];
+
+const WINDOW_S = 20;
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const $ = id => document.getElementById(id);
+
+/* ===== 串口 ===== */
+let port = null, writer = null, keepReading = false;
+const rows = new Map();          // name -> {el, num, rng, min, max, unit, value}
+let history = [];
+const diag = {};   /* 最近一次 [SCVD] 的诊断量 */
+let t0 = null;
+
+/* ===== 录制 =====
+ *
+ * 缓冲的是**原始行**而不是解析结果，理由有两条：
+ *   1. 原始行是唯一的真相。解析器有 bug 时，原始文件还能重新分析；
+ *      只存解析结果的话，bug 会被永久烙进数据。
+ *   2. tools/analysis/ 下的脚本（landing_stats / vel_lag / extrap）读的就是
+ *      原始格式，导出 txt 可以直接喂给它们，不必再写一个 CSV 读入分支。
+ * CSV 是从缓冲派生出来的，所以两种格式都能给。
+ */
+let recording = false;
+let recordLines = [];
+let recordStartMs = 0;
+/* 20 Hz × 512 B ≈ 10 KB/s。20 万行约 100 MB，到这里必须停手，
+ * 否则浏览器标签页会因为字符串堆积而被系统杀掉，连已录的都拿不回来。 */
+const RECORD_MAX_LINES = 200000;
+
+function log(text, cls) {
+  const el = $("log");
+  const span = document.createElement("span");
+  if (cls) span.className = cls;
+  span.textContent = text + "\n";
+  el.appendChild(span);
+  while (el.childNodes.length > 400) el.removeChild(el.firstChild);
+  el.scrollTop = el.scrollHeight;
+}
+
+function setStatus(text, state) {
+  $("status").innerHTML = `<span class="dot ${state || ""}" id="dot"></span>${text}`;
+}
+
+async function connect() {
+  if (!("serial" in navigator)) {
+    log("✗ 这个浏览器没有 Web Serial。请用 Chrome/Edge，并从 file:// 或 http://localhost 打开本文件。", "bad");
+    setStatus("不支持 Web Serial", "err");
+    return;
+  }
+  try {
+    port = await navigator.serial.requestPort();
+    await port.open({ baudRate: 115200, dataBits: 8, stopBits: 1, parity: "none" });
+  } catch (err) {
+    log("✗ 打开串口失败：" + err.message, "bad");
+    setStatus("连接失败", "err");
+    return;
+  }
+  writer = port.writable.getWriter();
+  keepReading = true;
+  setStatus("已连接 115200 8N1", "on");
+  for (const id of ["reload","defaults","export","export-json","record"]) $(id).disabled = false;
+  $("connect").textContent = "断开";
+  readLoop();
+  setTimeout(() => send("?"), 250);      // 让固件把参数表打一遍
+}
+
+async function disconnect() {
+  /* 断开前若还在录，先停下来并把数据交出去——不能让已抓到的样本白丢。 */
+  if (recording) { stopRecord(); }
+  keepReading = false;
+  try { if (writer) { writer.releaseLock(); writer = null; } } catch {}
+  try { if (port) await port.close(); } catch {}
+  port = null;
+  setStatus("未连接");
+  for (const id of ["reload","defaults","export","export-json","record"]) $(id).disabled = true;
+  $("connect").textContent = "连接串口";
+}
+
+async function readLoop() {
+  const decoder = new TextDecoder();
+  let buffer = "";
+  const reader = port.readable.getReader();
+  try {
+    while (keepReading) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let index;
+      while ((index = buffer.indexOf("\n")) >= 0) {
+        handleLine(buffer.slice(0, index).trim());
+        buffer = buffer.slice(index + 1);
+      }
+      if (buffer.length > 8192) buffer = "";   // 防跑飞
+    }
+  } catch (err) {
+    log("✗ 读取中断：" + err.message, "bad");
+  } finally {
+    try { reader.releaseLock(); } catch {}
+  }
+}
+
+async function send(text) {
+  if (!writer) return;
+  try { await writer.write(new TextEncoder().encode(text + "\n")); }
+  catch (err) { log("✗ 发送失败：" + err.message, "bad"); }
+}
+
+/* ===== 行分流 ===== */
+const RE_SCV  = /(\w+)=(-?[\d.]+)/g;
+const RE_P    = /^\[TUNE\] p name=(\S+) val=(\S+) min=(\S+) max=(\S+) unit=(\S+)/;
+const RE_OK   = /^\[TUNE\] ok name=(\S+) val=(\S+) old=(\S+)/;
+const RE_ERR  = /^\[TUNE\] err (.*)/;
+const RE_END  = /^\[TUNE\] end n=(\d+)/;
+
+function handleLine(line) {
+  if (!line) return;
+  /* 录制放在最前面：后面的分支会 return，挂在下面会漏掉整类行。
+   * [TUNE] 回显也一并录进去——事后能看出这段数据是在哪组参数下采的。 */
+  if (recording) {
+    recordLines.push(line);
+    if (recordLines.length >= RECORD_MAX_LINES) {
+      log(`⚠ 已达 ${RECORD_MAX_LINES} 行上限，自动停止录制`, "bad");
+      stopRecord();
+    }
+  }
+  /*
+   * 当前固件使用单行 [SCV] @80 ms；同时保留对历史 [SCVD] 分频日志的兼容，
+   * 若读到旧格式，就把最近一次诊断字段并进后续 [SCV]。
+   */
+  if (line.startsWith("[SCVD]")) {
+    for (const m of line.matchAll(RE_SCV)) {
+      if (m[1] !== "t") diag[m[1]] = parseFloat(m[2]);
+    }
+    renderDiag();
+    return;
+  }
+  if (line.startsWith("[SCV]") && line.includes("drop=")) {
+    const row = Object.assign({}, diag);
+    for (const m of line.matchAll(RE_SCV)) row[m[1]] = parseFloat(m[2]);
+    /* 固件遥测 ff 已是预览前馈，lead = ff - 名义前馈。 */
+    if (Number.isFinite(row.ff) && Number.isFinite(row.lead)) {
+      row.ff_nom = row.ff - row.lead;
+      row.ff_pv = row.ff;
+    }
+    if (Number.isFinite(row.iact)) {
+      diag.iact = row.iact;
+      renderDiag();
+    }
+    if (t0 === null) t0 = row.t ?? 0;
+    row._t = ((row.t ?? 0) - t0) / 1000;
+    history.push(row);
+    if (history.length > 6000) history.splice(0, history.length - 6000);
+    return;
+  }
+  if (line.startsWith("[SCV] resume") || line.startsWith("[SCV] arrive") ||
+      line.startsWith("[SCV] plan")   || line.startsWith("[SCV] armed")) {
+    log(line.slice(6));
+    return;
+  }
+  let m;
+  if ((m = RE_P.exec(line))) {
+    upsertRow(m[1], +m[2], +m[3], +m[4], m[5]);
+    return;
+  }
+  if ((m = RE_OK.exec(line))) {
+    const row = rows.get(m[1]);
+    if (row) { row.value = +m[2]; paint(row); row.el.classList.remove("rejected"); }
+    log(`${m[1]} : ${(+m[3]).toPrecision(5)} → ${(+m[2]).toPrecision(5)}`, "ok");
+    return;
+  }
+  if ((m = RE_ERR.exec(line))) {
+    const name = /name=(\S+)/.exec(m[1]);
+    if (name && rows.has(name[1])) rows.get(name[1]).el.classList.add("rejected");
+    log("✗ " + m[1], "bad");
+    return;
+  }
+  if ((m = RE_END.exec(line))) {
+    $("pcount").textContent = `${m[1]} 项`;
+    return;
+  }
+  if (line.startsWith("[SCVCFG]")) log(line);
+}
+
+/* ===== 参数面板 ===== */
+function groupOf(name) {
+  for (const [title, names] of GROUPS) if (names.includes(name)) return title;
+  return "其它";
+}
+
+function ensureGroup(title) {
+  let box = document.querySelector(`details[data-g="${CSS.escape(title)}"]`);
+  if (box) return box;
+  box = document.createElement("details");
+  box.className = "group";
+  box.dataset.g = title;
+  box.open = true;
+  box.innerHTML = `<summary>${title}</summary>`;
+  const order = GROUPS.findIndex(g => g[0] === title);
+  box.dataset.order = order < 0 ? 99 : order;
+  const parent = $("params");
+  const after = [...parent.children].find(c => +c.dataset.order > +box.dataset.order);
+  parent.insertBefore(box, after || null);
+  return box;
+}
+
+function upsertRow(name, value, min, max, unit) {
+  const override = RANGE_OVERRIDE[name];
+  if (override) {
+    min = override[0];
+    max = override[1];
+    value = Math.min(max, Math.max(min, value));
+  }
+  let row = rows.get(name);
+  if (!row) {
+    const el = document.createElement("div");
+    el.className = "row";
+    const binary = unit === "bool";
+    el.innerHTML =
+      `<span class="name">${name}<small>${LABEL[name] || ""}</small></span>` +
+      (binary
+        ? `<input type="checkbox" class="toggle"><span class="toggle-state"></span>`
+        : `<input type="range"><input type="number">`);
+    ensureGroup(groupOf(name)).appendChild(el);
+    row = { el, rng: el.querySelector("input[type=range]"),
+            num: el.querySelector("input[type=number]"),
+            toggle: el.querySelector("input[type=checkbox]"),
+            toggleState: el.querySelector(".toggle-state"), binary };
+    rows.set(name, row);
+
+    if (binary) {
+      row.toggle.addEventListener("change", () => {
+        row.value = row.toggle.checked ? 1 : 0;
+        el.classList.add("changed");
+        paint(row);
+        flushSet(name, row.value);
+      });
+    } else {
+      row.rng.addEventListener("input", () => {
+        row.value = +row.rng.value;
+        row.num.value = fmt(row.value);
+        el.classList.add("changed");
+        queueSet(name, row.value);          // 拖动节流
+      });
+      row.num.addEventListener("change", () => {
+        const v = parseFloat(row.num.value);
+        if (!Number.isFinite(v)) return;
+        row.value = v; row.rng.value = v;
+        el.classList.add("changed");
+        flushSet(name, v);                  // 输入框立即发
+      });
+    }
+  }
+  Object.assign(row, { min, max, unit, value });
+  if (!row.binary) {
+    const step = (max - min) / 200 || 0.001;
+    row.rng.min = min; row.rng.max = max; row.rng.step = step;
+    row.num.min = min; row.num.max = max; row.num.step = step;
+    row.num.title = `范围 [${min}, ${max}] ${unit}`;
+  }
+  paint(row);
+  row.el.classList.remove("changed", "rejected");
+}
+
+const fmt = v => (Math.abs(v) >= 1000 || (v !== 0 && Math.abs(v) < 0.001))
+  ? v.toExponential(3) : String(+v.toPrecision(5));
+
+function paint(row) {
+  if (row.binary) {
+    row.toggle.checked = row.value >= 0.5;
+    row.toggleState.textContent = row.toggle.checked ? "启用" : "关闭";
+  } else {
+    row.rng.value = row.value;
+    row.num.value = fmt(row.value);
+  }
+}
+
+/* 滑块拖动会连续触发，10 Hz 节流，避免刷爆串口。 */
+const pending = new Map();
+let lastFlush = 0;
+function queueSet(name, value) { pending.set(name, value); }
+function flushSet(name, value) { send(`s ${name} ${(+value).toPrecision(6)}`); }
+setInterval(() => {
+  if (!pending.size || performance.now() - lastFlush < 100) return;
+  for (const [name, value] of pending) flushSet(name, value);
+  pending.clear();
+  lastFlush = performance.now();
+}, 50);
+
+/* ===== 绘图 ===== */
+const charts = [];
+function buildPlots() {
+  const host = $("plots");
+  host.innerHTML = "";
+  charts.length = 0;
+  for (const spec of PLOTS) {
+    const panel = document.createElement("section");
+    panel.className = "panel";
+    const legend = spec.series.map(s =>
+      `<span class="lg"><i class="sw" style="background:var(${s.c});${
+        s.dash ? "opacity:.8" : ""}"></i>${s.n}</span>`).join("");
+    panel.innerHTML =
+      `<div class="phead"><span class="ptitle">${spec.title}</span>` +
+      `<span class="punit">${spec.unit}</span>` +
+      `<span class="legend">${legend}</span></div><canvas></canvas>`;
+    host.appendChild(panel);
+    charts.push({ spec, canvas: panel.querySelector("canvas") });
+  }
+}
+
+function draw(chart) {
+  const { spec, canvas } = chart;
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.clientWidth || 700, H = spec.h;
+  canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+  canvas.style.height = H + "px";
+  const g = canvas.getContext("2d");
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, W, H);
+
+  const PL = 50, PR = 12, PT = 8, PB = 18;
+  const iw = W - PL - PR, ih = H - PT - PB;
+  if (!history.length) return;
+  const now = history[history.length - 1]._t;
+  const x0 = Math.max(0, now - WINDOW_S), x1 = now + 0.4;
+  const rowsIn = history.filter(r => r._t >= x0);
+  if (rowsIn.length < 2) return;
+
+  let lo = Infinity, hi = -Infinity;
+  for (const s of spec.series) for (const r of rowsIn) {
+    const v = r[s.k]; if (Number.isFinite(v)) { if (v < lo) lo = v; if (v > hi) hi = v; }
+  }
+  for (const gd of (spec.guides || [])) for (const r of rowsIn) {
+    const v = r[gd.key]; if (Number.isFinite(v)) { if (v < lo) lo = v; if (v > hi) hi = v; }
+  }
+  if (!Number.isFinite(lo)) return;
+  if (lo === hi) { lo -= 1; hi += 1; }
+  const pad = (hi - lo) * .1; lo -= pad; hi += pad;
+  const X = t => PL + (t - x0) / (x1 - x0) * iw;
+  const Y = v => PT + (1 - (v - lo) / (hi - lo)) * ih;
+
+  g.strokeStyle = css("--rule-soft"); g.lineWidth = 1;
+  g.fillStyle = css("--ink-3"); g.font = `11px ${css("--mono")}`;
+  g.textAlign = "right"; g.textBaseline = "middle";
+  for (let i = 0; i <= 4; i++) {
+    const v = lo + (hi - lo) * i / 4, y = Math.round(Y(v)) + .5;
+    g.beginPath(); g.moveTo(PL, y); g.lineTo(PL + iw, y); g.stroke();
+    g.fillText(v.toFixed(Math.abs(hi - lo) < 6 ? 2 : 0), PL - 6, Y(v));
+  }
+
+  for (const gd of (spec.guides || [])) {
+    const v = rowsIn[rowsIn.length - 1][gd.key];
+    if (!Number.isFinite(v)) continue;
+    g.strokeStyle = css("--good"); g.globalAlpha = .6;
+    g.setLineDash([4, 4]); g.beginPath();
+    g.moveTo(PL, Math.round(Y(v)) + .5); g.lineTo(PL + iw, Math.round(Y(v)) + .5);
+    g.stroke(); g.setLineDash([]); g.globalAlpha = 1;
+    /* ±10 mm 判据带 */
+    g.fillStyle = css("--good"); g.globalAlpha = .08;
+    g.fillRect(PL, Y(v + 10), iw, Math.abs(Y(v - 10) - Y(v + 10)));
+    g.globalAlpha = 1;
+  }
+
+  g.lineJoin = "round"; g.lineCap = "round";
+  for (const s of spec.series) {
+    g.strokeStyle = css(s.c); g.lineWidth = s.w;
+    g.globalAlpha = s.alpha || 1; g.setLineDash(s.dash || []);
+    g.beginPath();
+    let started = false;
+    for (const r of rowsIn) {
+      const v = r[s.k];
+      if (!Number.isFinite(v)) { started = false; continue; }
+      const px = X(r._t), py = Y(v);
+      started ? g.lineTo(px, py) : (g.moveTo(px, py), started = true);
+    }
+    g.stroke(); g.setLineDash([]); g.globalAlpha = 1;
+  }
+}
+
+/* [SCVD] 诊断条。时序三项是判断"遥测有没有挤占控制节拍"的直接证据：
+   tcmax=控制计算峰值，ttmax=整拍峰值（含 printf），stkmax=步进 Tick 实际间隔。 */
+const DIAG = [
+  ["tcmax",  "控制耗时峰值", "us", v => v > 800 ? "warn" : "good"],
+  ["ttmax",  "整拍耗时峰值", "us", v => v > 5000 ? "critical" : v > 2000 ? "warn" : "good"],
+  ["stkmax", "步进Tick最大", "ms", v => v > 12 ? "critical" : v > 10.5 ? "warn" : "good"],
+  ["fps",    "相机帧率",     "",   v => v < 25 ? "warn" : "good"],
+  ["inv",    "视觉无效帧",   "",   () => null],
+  ["deg",    "视觉降级",     "",   v => v ? "warn" : "good"],
+  ["guard",  "步进守护",     "",   v => v > 1 ? "critical" : "good"],
+  ["iact",   "积分累积中",   "",   () => null],
+];
+function renderDiag() {
+  const host = document.getElementById("diagtiles");
+  if (!host) return;
+  host.innerHTML = DIAG.map(([k, label, unit, sev]) => {
+    const v = diag[k];
+    if (v === undefined) return "";
+    const s = sev(v);
+    const color = s === "critical" ? "var(--critical)"
+                : s === "warn" ? "var(--warn)"
+                : s === "good" ? "var(--good)" : "var(--ink)";
+    const shown = Number.isInteger(v) ? v : (+v).toFixed(1);
+    return `<div class="tile"><div class="k">${label}</div>` +
+           `<div class="v" style="color:${color}">${shown}` +
+           `<span style="font-size:11px;color:var(--ink-2)">${unit}</span></div></div>`;
+  }).join("");
+  document.getElementById("diagage").textContent =
+    `已收到 ${Object.keys(diag).length} 项`;
+}
+
+function tiles() {
+  if (!history.length) return;
+  const now = history[history.length - 1]._t;
+  const seg = history.filter(r => r._t >= now - WINDOW_S);
+  const err = seg.map(r => (r.x ?? 0) - (r.tgt ?? 0));
+  const inSpec = err.filter(e => Math.abs(e) < 10).length / (err.length || 1);
+  const still  = seg.filter(r => Math.abs(r.v ?? 0) < 3).length / (seg.length || 1);
+  const last = seg[seg.length - 1];
+  const pk = arr => arr.length ? Math.max(...arr.map(Math.abs)) : NaN;
+  const gainMode = ["MOVE", "BRAKE", "HOLD"][last.gm] || "—";
+  const set = [
+    ["±10 mm 达标率", (inSpec * 100).toFixed(1), "%"],
+    ["当前误差",      (err[err.length - 1] ?? 0).toFixed(2), "mm"],
+    ["球静止占比",    (still * 100).toFixed(0), "%"],
+    ["增益状态",      gainMode, ""],
+    ["当前 Kp / Kd",  `${(last.kpe ?? 0).toFixed(4)} / ${(last.kde ?? 0).toFixed(4)}`, ""],
+    ["制动距离",      (last.ds ?? 0).toFixed(1), "mm"],
+    ["执行器滞后峰值", pk(seg.map(r => r.lag ?? 0)).toFixed(2), "°"],
+    ["脱困",          last.brk ? `${(last.brka ?? 0).toFixed(2)}°` : (last.dth ? "抖动" : "关"), ""],
+    ["小误差积分",    `${(last.iacc ?? 0).toFixed(3)}°${last.iact ? " 累积" : ""}`, ""],
+    ["加速度辅助",    last.imuok ? `${(last.aff ?? 0).toFixed(3)}°` : "无数据", ""],
+    ["末端捕获",      `${((last.cb ?? 0) * 100).toFixed(0)}%${last.rp ? " · 重规划" : ""}`, ""],
+    /* 卡住计时：脱困未介入时它在涨，说明触发判据太严；一直是 0 说明球没卡。 */
+    ["卡住计时",      (last.brkst ?? 0).toFixed(2), "s"],
+    /* 反馈限幅命中率。持续为高说明 Kd·v 顶穿 fblim，该降 Kd 或提 fblim。 */
+    ["反馈限幅占比",  (seg.filter(r => r.fbc).length / (seg.length || 1) * 100).toFixed(0), "%"],
+  ];
+  $("tiles").innerHTML = set.map(([k, v, u]) =>
+    `<div class="tile"><div class="k">${k}</div><div class="v">${v}<span style="font-size:11px;color:var(--ink-2)">${u}</span></div></div>`
+  ).join("");
+}
+
+function frame() { for (const c of charts) draw(c); tiles(); requestAnimationFrame(frame); }
+
+/* ===== 录制到 CSV =====
+ *
+ * 缓冲的是**原始行**而不是解析后的对象，理由有两条：
+ *   1. 原始行是唯一的真相。解析规则以后要是改了，重新解析一遍就行，
+ *      而丢掉的原始信息永远找不回来。
+ *   2. tools/analysis 下的 landing_stats.py / vel_lag.py / extrap.py 全都
+ *      直接吃 `[SCV] key=value` 原始格式。只导 CSV 会让那三个脚本失效。
+ * 所以停止时同时提供 CSV（给 Excel/pandas）和原始 txt（给现有脚本）。
+ */
+function startRecord() {
+  recording = true;
+  recordLines = [];
+  recordStartMs = Date.now();
+  paintRecordButton();
+  log("● 开始录制", "ok");
+}
+
+function stopRecord() {
+  if (!recording) return;
+  recording = false;
+  const seconds = (Date.now() - recordStartMs) / 1000;
+  paintRecordButton();
+  log(`■ 录制结束：${recordLines.length} 行 / ${seconds.toFixed(1)} s`, "ok");
+  showRecordDialog(seconds);
+}
+
+function paintRecordButton() {
+  const btn = $("record");
+  btn.classList.toggle("recording", recording);
+  btn.textContent = recording ? `■ 停止 (${recordLines.length})` : "● 录制";
+}
+
+/* 录制中按钮上的行数计数，1 Hz 刷新就够——放进 frame() 会每帧改 DOM。 */
+setInterval(() => { if (recording) paintRecordButton(); }, 1000);
+
+/** 把原始行转成 CSV。字段顺序取首次出现顺序，即固件 printf 的顺序。 */
+function toCSV(lines) {
+  const FIELD = /(\w+)=(-?[\d.]+)/g;
+  const order = [];
+  const seen = new Set();
+  const out = [];
+  let diagNow = {};        /* 最近一次 [SCVD]，并进后续每一行 */
+  let malformed = 0;
+
+  const register = key => { if (!seen.has(key)) { seen.add(key); order.push(key); } };
+
+  for (const line of lines) {
+    if (line.startsWith("[SCVD]")) {
+      const d = {};
+      for (const m of line.matchAll(FIELD)) if (m[1] !== "t") d[m[1]] = m[2];
+      diagNow = d;
+      continue;
+    }
+    /* drop= 是遥测行的末字段，用它排除 plan/arrive/armed 这些事件行；
+     * 顺带也排除了被串口截断的半行。 */
+    if (!line.startsWith("[SCV]") || !line.includes("drop=")) continue;
+
+    const row = {};
+    for (const m of line.matchAll(FIELD)) { row[m[1]] = m[2]; register(m[1]); }
+    if (row.t === undefined || row.x === undefined) { malformed++; continue; }
+    for (const key in diagNow) {
+      if (!(key in row)) { row[key] = diagNow[key]; register(key); }
+    }
+    out.push(row);
+  }
+
+  if (!out.length) return { csv: "", rows: 0, fields: 0, malformed };
+  const body = out.map(r => order.map(k => r[k] ?? "").join(","));
+  return {
+    csv: order.join(",") + "\n" + body.join("\n") + "\n",
+    rows: out.length, fields: order.length, malformed,
+  };
+}
+
+function stamp() {
+  const d = new Date();
+  const p = n => String(n).padStart(2, "0");
+  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}` +
+         `_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
+}
+
+function download(name, text, mime = "text/plain;charset=utf-8") {
+  const url = URL.createObjectURL(new Blob([text], { type: mime }));
+  const a = document.createElement("a");
+  a.href = url; a.download = name;
+  a.click();
+  URL.revokeObjectURL(url);
+  log(`已下载 ${name}`, "ok");
+}
+
+let recordResult = null;
+function showRecordDialog(seconds) {
+  recordResult = toCSV(recordLines);
+  const events = recordLines.filter(l =>
+    /^\[SCV\] (plan|arrive|armed|resume)/.test(l)).length;
+  const tune = recordLines.filter(l => l.startsWith("[TUNE]")).length;
+  const rate = seconds > 0 ? (recordResult.rows / seconds).toFixed(1) : "—";
+
+  $("recstats").innerHTML = [
+    ["时长", seconds.toFixed(1), "s"],
+    ["遥测行", recordResult.rows, ""],
+    ["采样率", rate, "Hz"],
+    ["字段", recordResult.fields, ""],
+    ["事件行", events, ""],
+    ["参数回显", tune, ""],
+    ["残缺行", recordResult.malformed, ""],
+    ["原始行", recordLines.length, ""],
+  ].map(([k, v, u]) =>
+    `<div class="tile"><div class="k">${k}</div><div class="v">${v}` +
+    `<span style="font-size:11px;color:var(--ink-2)">${u}</span></div></div>`).join("");
+
+  $("recwarn").style.display = recordResult.rows ? "none" : "block";
+  $("reccsv").disabled = !recordResult.rows;
+  $("recdlg").showModal();
+}
+
+/* ===== 导出 ===== */
+function exportC() {
+  const stamp = new Date().toISOString().slice(0, 16).replace("T", " ");
+  const out = [`/* 由 ball_tune.html 导出 ${stamp} */`];
+  const imu = rows.get("imu_gain");
+  if (imu) {
+    out.push(`static float h3s_imu_gain = ${fmt(imu.value)}f;   /* H3 Hold 纵向加速度辅助增益 */`);
+    out.push("", "/* 以下各项粘回 H3S_SCURVE_CONFIG */");
+  }
+  for (const [title, names] of GROUPS) {
+    out.push(`    /* --- ${title} --- */`);
+    for (const name of names) {
+      const row = rows.get(name);
+      if (!row) continue;
+      if (name === "imu_gain") continue;  // 独立变量已在配置块前导出
+      const field = name === "kp" ? "kp_deg_per_mm"
+                  : name === "kd" ? "kd_deg_per_mm_s"
+                  : name === "fblim" ? "feedback_limit_deg"
+                  : name === "sched" ? "gain_schedule_enabled"
+                  : name === "bkp" ? "brake_kp_deg_per_mm"
+                  : name === "bkd" ? "brake_kd_deg_per_mm_s"
+                  : name === "hkp" ? "hold_kp_deg_per_mm"
+                  : name === "hkd" ? "hold_kd_deg_per_mm_s"
+                  : name === "bdelay" ? "brake_delay_s"
+                  : name === "bacc" ? "brake_acceleration_mm_s2"
+                  : name === "bstart" ? "brake_blend_start_ratio"
+                  : name === "bfull" ? "brake_blend_full_ratio"
+                  : name === "btau" ? "brake_blend_tau_s"
+                  : name === "hent_e" ? "hold_enter_error_mm"
+                  : name === "hent_v" ? "hold_enter_speed_mm_s"
+                  : name === "hent_dw" ? "hold_enter_dwell_s"
+                  : name === "hext_e" ? "hold_exit_error_mm"
+                  : name === "hext_v" ? "hold_exit_speed_mm_s"
+                  : name === "htau" ? "hold_blend_tau_s"
+                  : name === "vage1" ? "velocity_full_weight_age_ms"
+                  : name === "vage0" ? "velocity_floor_weight_age_ms"
+                  : name === "vfloor" ? "velocity_untrusted_weight"
+                  : name === "vstill" ? "stationary_velocity_weight"
+                  : name === "brk_amp" ? "breakout_max_angle_deg"
+                  : name === "brk_ramp" ? "breakout_ramp_rate_deg_s"
+                  : name === "brk_rel" ? "breakout_release_rate_deg_s"
+                  : name === "brk_minerr" ? "breakout_min_error_mm"
+                  : name === "brk_maxspd" ? "breakout_max_speed_mm_s"
+                  : name === "brk_dwell" ? "breakout_dwell_s"
+                  : name === "brk_relspd" ? "breakout_release_speed_mm_s"
+                  : name === "brk_reldw" ? "breakout_release_dwell_s"
+                  : name === "apreview" ? "acceleration_preview_s"
+                  : name === "cap_enter" ? "capture_enter_error_mm"
+                  : name === "cap_full" ? "capture_full_error_mm"
+                  : name === "cap_tau" ? "capture_blend_tau_s"
+                  : name === "rp_err" ? "replan_error_mm"
+                  : name === "rp_vel" ? "replan_velocity_error_mm_s"
+                  : name === "rp_dwell" ? "replan_dwell_s"
+                  : name === "rp_cool" ? "replan_cooldown_s"
+                  : name === "i_ki" ? "hold_integral_ki_deg_per_mm_s"
+                  : name === "i_minerr" ? "hold_integral_min_error_mm"
+                  : name === "i_maxerr" ? "hold_integral_max_error_mm"
+                  : name === "i_maxspd" ? "hold_integral_max_speed_mm_s"
+                  : name === "i_relspd" ? "hold_integral_release_speed_mm_s"
+                  : name === "i_relrate" ? "hold_integral_release_rate_deg_s"
+                  : name === "i_mcomp" ? "hold_integral_motion_comp_deg_per_mm"
+                  : name === "dith_amp" ? "dither_amplitude_deg"
+                  : name === "dith_freq" ? "dither_frequency_hz"
+                  : name === "dith_minerr" ? "dither_min_error_mm"
+                  : name === "dith_maxspd" ? "dither_max_speed_mm_s"
+                  : name === "dith_dwell" ? "dither_dwell_s"
+                  : name === "roll_ff" ? "rolling_resistance_deg"
+                  : name === "roll_db" ? "rolling_ff_speed_deadband_mm_s"
+                  : name === "lvl_bias" ? "level_bias_deg"
+                  : name === "amax" ? "max_acceleration_mm_s2"
+                  : name === "vmax" ? "max_velocity_mm_s" : name;
+      out.push(`    .${field} = ${fmt(row.value)}f,   /* ${LABEL[name] || name} ${row.unit} */`);
+    }
+  }
+  $("exptext").value = out.join("\n");
+  $("expdlg").showModal();
+}
+
+/** 下载当前面板的全部参数值，包括尚在串口发送队列中的最新滑块值。 */
+function exportConfigJson() {
+  if (!rows.size) {
+    log("尚未读取到参数，无法导出配置 JSON", "bad");
+    return;
+  }
+  const parameters = {};
+  const emitted = new Set();
+  for (const [, names] of GROUPS) {
+    for (const name of names) {
+      const row = rows.get(name);
+      if (!row) continue;
+      parameters[name] = row.value;
+      emitted.add(name);
+    }
+  }
+  /* 固件新增但网页尚未分组的参数也不能静默漏掉。 */
+  for (const [name, row] of rows) {
+    if (!emitted.has(name)) parameters[name] = row.value;
+  }
+  const config = {
+    schema: "mspm0-car/ball-tune-config",
+    version: 1,
+    exported_at: new Date().toISOString(),
+    parameters,
+  };
+  download(`ball_tune_${stamp()}.json`, JSON.stringify(config, null, 2) + "\n",
+           "application/json;charset=utf-8");
+}
+
+/* ===== 绑定 ===== */
+$("connect").addEventListener("click", () => port ? disconnect() : connect());
+$("record").addEventListener("click", () => recording ? stopRecord() : startRecord());
+$("recdlg-close").addEventListener("click", () => $("recdlg").close());
+$("reccsv").addEventListener("click", () => {
+  download(`scv_${stamp()}.csv`, recordResult.csv);
+});
+$("recraw").addEventListener("click", () => {
+  download(`scv_${stamp()}.txt`, recordLines.join("\r\n") + "\r\n");
+});
+$("reload").addEventListener("click", () => send("?"));
+$("defaults").addEventListener("click", async () => { await send("d"); setTimeout(() => send("?"), 200); });
+$("export").addEventListener("click", exportC);
+$("export-json").addEventListener("click", exportConfigJson);
+$("expclose").addEventListener("click", () => $("expdlg").close());
+$("expcopy").addEventListener("click", () => {
+  navigator.clipboard.writeText($("exptext").value).then(() => log("已复制到剪贴板", "ok"));
+});
+
+buildPlots();
+requestAnimationFrame(frame);
+if (!("serial" in navigator)) {
+  setStatus("浏览器不支持 Web Serial", "err");
+  log("提示：需要 Chrome/Edge，且从 file:// 或 http://localhost 打开。", "bad");
+}
+</script>
+</body>
+</html>

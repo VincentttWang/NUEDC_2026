@@ -1,0 +1,65 @@
+Debug/
+build/
+.settings/
+.theia/
+.project
+.cproject
+.ccsproject
+.clangd
+.vscode/
+/NUEDC2025_MSPM0G3507_nortos_ticlang/
+# 保留 .uvprojx (工程结构文件, 需随仓库分发); 仅忽略构建产物与用户私有状态
+Project/Keil/Objects/
+Project/Keil/*.map
+Project/Keil/*.axf
+Project/Keil/*.hex
+Project/Keil/*.htm
+Project/Keil/*.dep
+Project/Keil/*.log
+Project/Keil/*.uvoptx
+Project/Keil/*.uvguix.*
+project/keil/Objects/
+project/keil/*.map
+project/keil/*.axf
+project/keil/*.hex
+project/keil/*.htm
+project/keil/*.dep
+project/keil/*.log
+project/keil/*.uvoptx
+project/keil/*.uvguix.*
+project/keil/build_log.txt
+keil/
+!Project/
+!Project/Keil/
+**/*.map
+**/*.obj
+**/*.o
+**/*.out
+/ai/toolchain/
+/ai/nncase_dump/
+/ai/.ultralytics/
+__pycache__/
+# 器件手册等大体积本地参考资料，不入库（协议要点已固化进 bsp 接口文档）
+docs/datasheets/*.pdf
+
+# 本地底盘整定原始采样与导出数据
+/raw.txt
+/spd.csv
+/straight_raw.txt
+/straight.csv
+/track.csv
+/track_raw.txt
+
+# 可视化工具生成的诊断报告与归档采集数据（本地留存，不入库）
+/reports/
+
+# 主机侧仿真器编译产物（源码入库，二进制不入库）
+/tools/checks/*.exe
+
+# CMSIS Solution / MDK 6 本地生成文件（工程输入 YAML 与工具清单保留）
+/project/keil/out/
+/project/keil/tmp/
+/project/keil/RTE/
+/project/keil/*.cbuild*.yml
+/project/keil/compile_commands.json
+/vcpkg-configuration.json

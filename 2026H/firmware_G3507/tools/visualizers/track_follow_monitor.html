@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Track Follow 遥测观测台</title>
+<style>
+  :root {
+    color-scheme: light;
+    --surface:      #F2F5F7;
+    --panel:        #FFFFFF;
+    --panel-sunk:   #E9EFF2;
+    --ink:          #14202A;
+    --ink-2:        #4F6070;
+    --ink-3:        #7B8B99;
+    --rule:         #DCE4E9;
+    --rule-soft:    #EAF0F3;
+    --c1: #BE7000;  /* 轮速 */
+    --c2: #0089AD;  /* 球位置 */
+    --c3: #B03A1E;  /* 加速度 */
+    --c4: #5257A8;  /* 水管角 / 参考 */
+    --c5: #1C7A55;  /* 前馈 / 反馈 */
+    --good:#1C7A55; --warn:#B57A05; --critical:#A8291B;
+    --shadow: 0 1px 2px rgba(20,32,42,.06), 0 4px 14px rgba(20,32,42,.05);
+    --ui: "Segoe UI Variable Text","Segoe UI",-apple-system,"Microsoft YaHei UI",
+          "PingFang SC",sans-serif;
+    --mono: ui-monospace,"Cascadia Mono","SF Mono",Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --surface:#0B141B; --panel:#101A22; --panel-sunk:#16222C;
+      --ink:#E4ECF1; --ink-2:#96A9B6; --ink-3:#647684;
+      --rule:#1F2E3A; --rule-soft:#182530;
+      --c1:#C98416; --c2:#1E96B5; --c3:#C9553A; --c4:#6E79C9; --c5:#2E9366;
+      --good:#2E9366; --warn:#C08B1C; --critical:#CD5548;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 20px rgba(0,0,0,.3);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--surface); color:var(--ink);
+         font-family:var(--ui); font-size:14px; line-height:1.5;
+         -webkit-font-smoothing:antialiased; }
+  header { display:flex; align-items:baseline; gap:16px; flex-wrap:wrap;
+           padding:14px 20px; border-bottom:2px solid var(--ink); }
+  h1 { margin:0; font-size:20px; font-weight:650; letter-spacing:-.01em; }
+  .eyebrow { font-family:var(--mono); font-size:10.5px; letter-spacing:.13em;
+             text-transform:uppercase; color:var(--ink-3); }
+  header .grow { flex:1; }
+  button { font-family:var(--ui); font-size:13px; font-weight:550; color:var(--ink);
+           background:var(--panel); border:1px solid var(--rule); border-radius:7px;
+           padding:6px 13px; cursor:pointer; }
+  button:hover:not(:disabled) { border-color:var(--ink-3); }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+  button:focus-visible { outline:2px solid var(--c2); outline-offset:2px; }
+  button.primary { background:var(--ink); color:var(--surface); border-color:var(--ink); }
+  button.rec { background:var(--critical); color:#fff; border-color:var(--critical);
+               animation:recpulse 1.6s ease-in-out infinite; }
+  @keyframes recpulse { 0%,100% { opacity:1 } 50% { opacity:.72 } }
+  @media (prefers-reduced-motion:reduce) { button.rec { animation:none } }
+  .dot { width:8px; height:8px; border-radius:50%; background:var(--ink-3);
+         display:inline-block; margin-right:6px; }
+  .dot.on { background:var(--good); }
+  .dot.err { background:var(--critical); }
+  #status { font-family:var(--mono); font-size:12px; color:var(--ink-2); }
+  main { display:grid; grid-template-columns:340px 1fr; gap:12px;
+         padding:12px 20px 24px; align-items:start; }
+  @media (max-width:1100px){ main { grid-template-columns:1fr; } }
+  .panel { background:var(--panel); border:1px solid var(--rule); border-radius:10px;
+           box-shadow:var(--shadow); overflow:hidden; margin-bottom:10px; }
+  .phead { display:flex; align-items:baseline; gap:10px; padding:8px 13px 6px;
+           border-bottom:1px solid var(--rule-soft); }
+  .ptitle { font-size:14px; font-weight:650; }
+  .punit { font-family:var(--mono); font-size:10.5px; color:var(--ink-3); }
+  .phead .grow { flex:1; }
+  #log { font-family:var(--mono); font-size:11px; height:110px; overflow:auto;
+         padding:7px 13px; white-space:pre-wrap; color:var(--ink-2); }
+  #log .ok  { color:var(--good); }
+  #log .bad { color:var(--critical); }
+  .charts { display:flex; flex-direction:column; gap:10px; }
+  canvas { display:block; width:100%; }
+  .legend { display:flex; gap:12px; flex-wrap:wrap; margin-left:auto; }
+  .lg { display:inline-flex; align-items:center; gap:5px; font-family:var(--mono);
+        font-size:11px; color:var(--ink-2); }
+  .sw { width:12px; height:3px; border-radius:2px; }
+  .tiles { display:grid; gap:8px; grid-template-columns:repeat(auto-fit,minmax(96px,1fr));
+           padding:9px 13px; }
+  .tile { background:var(--panel-sunk); border-radius:7px; padding:6px 9px; }
+  .tile .k { font-size:10.5px; color:var(--ink-3); }
+  .tile .v { font-family:var(--mono); font-size:15px; font-weight:600;
+             font-variant-numeric:tabular-nums; }
+  .note { margin:0; padding:10px 13px; font-size:12px; color:var(--ink-2);
+          border-top:1px solid var(--rule-soft); }
+  dialog { border:1px solid var(--rule); border-radius:10px; background:var(--panel);
+           color:var(--ink); max-width:min(680px,92vw); padding:0; box-shadow:var(--shadow); }
+  dialog::backdrop { background:rgba(0,0,0,.4); }
+  dialog .dfoot { display:flex; gap:8px; justify-content:flex-end; padding:9px 13px; }
+  #csvfile { display:none; }
+  #dropzone { position:fixed; inset:12px; z-index:1000; display:none;
+              place-items:center; border:2px dashed var(--c2); border-radius:14px;
+              background:color-mix(in srgb, var(--surface) 88%, transparent);
+              color:var(--ink); font-size:18px; font-weight:650;
+              pointer-events:none; }
+  body.is-dragging #dropzone { display:grid; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="eyebrow">MSPM0G3507 · H4/H5/H6 · Debug_Ex 115200</div>
+    <h1>Track Follow 遥测</h1>
+  </div>
+  <div class="grow"></div>
+  <span id="status"><span class="dot" id="dot"></span>未连接</span>
+  <button id="connect" class="primary">连接串口</button>
+  <button id="import">导入 CSV</button>
+  <input id="csvfile" type="file" accept=".csv,text/csv">
+  <button id="record" disabled>● 录制</button>
+  <button id="clear" disabled>清空</button>
+</header>
+
+<div id="dropzone">松开鼠标，导入 CSV 并显示波形</div>
+
+<main>
+  <section class="panel">
+    <div class="phead"><span class="ptitle">会话概览</span><span class="punit" id="viewrange">最近 20 s</span></div>
+    <div class="tiles" id="tiles"></div>
+    <div id="log"></div>
+  </section>
+
+  <section class="charts" id="plots"></section>
+</main>
+
+<dialog id="recdlg">
+  <div class="phead"><span class="ptitle">录制结束</span><span class="punit">选择格式</span></div>
+  <div class="tiles" id="recstats"></div>
+  <p class="note" id="recwarn" style="display:none"><b>没有采到遥测行。</b>请确认串口和设备已连接。</p>
+  <div class="dfoot">
+    <button id="recraw">下载原始 txt</button>
+    <button id="reccsv" class="primary">下载 CSV</button>
+    <button id="recdlg-close">关闭</button>
+  </div>
+</dialog>
+
+<script>
+"use strict";
+
+/* ===== 遥测字段 ===== */
+const STR_FIELDS = ["seg","st","fs","ph"];
+const REQ_FLOAT = ["t","run","req","err","cor","vc","ac","vs","vl","vr","dl","dr","sl","sr","s","rem",
+                   "wref","wz","yaw","href","herr"];
+const OPT_FLOAT  = ["cff","turn"];
+const BALL_FLOAT = ["bx","be","ba","bvff","bfb","bbrk","bint"];
+const INT_FIELDS = ["sen","gm","hs","n","bfl","drop"];
+const ALL_FLOATS = [...REQ_FLOAT, ...OPT_FLOAT, ...BALL_FLOAT];
+
+/* ===== 图表 ===== */
+const PLOTS = [
+  { title:"车体轮速", unit:"m/s", h:120,
+    series:[{k:"vc",n:"指令 vc",c:"--c4",w:1.5,dash:[5,4]},
+            {k:"vl",n:"左轮 vl",c:"--c1",w:1.6},
+            {k:"vr",n:"右轮 vr",c:"--c2",w:1.6}] },
+  { title:"纵向加速度", unit:"m/s²", h:110,
+    series:[{k:"ac",n:"指令 ac",c:"--c4",w:1.5,dash:[5,4]},
+            {k:"bvff",n:"imu前馈",c:"--c3",w:2}] },
+  { title:"球位置", unit:"mm", h:130,
+    series:[{k:"bx",n:"球 bx",c:"--c2",w:2},
+            {k:"be",n:"误差 be",c:"--c3",w:1.5}] },
+  { title:"水管角", unit:"deg", h:130,
+    series:[{k:"ba",n:"指令 ba",c:"--c4",w:1.8},
+            {k:"bvff",n:"车体前馈",c:"--c5",w:1.5,dash:[4,3]},
+            {k:"bfb",n:"PD反馈",c:"--c3",w:1.4}] },
+  { title:"脱困 / 积分", unit:"deg", h:110,
+    series:[{k:"bbrk",n:"脱困",c:"--c5",w:2},
+            {k:"bint",n:"积分",c:"--c1",w:2}] },
+  { title:"双轮里程", unit:"m", h:110,
+    series:[{k:"sl",n:"左轮 sl",c:"--c1",w:1.5},
+            {k:"sr",n:"右轮 sr",c:"--c2",w:1.5},
+            {k:"s",n:"车体 s",c:"--c4",w:1.6}] },
+  { title:"左右占空比", unit:"%", h:110,
+    series:[{k:"dl",n:"左 dl",c:"--c1",w:1.5},
+            {k:"dr",n:"右 dr",c:"--c2",w:1.5}] },
+  { title:"航向角", unit:"deg", h:120,
+    series:[{k:"yaw",n:"yaw",c:"--c2",w:2},
+            {k:"href",n:"参考 href",c:"--c4",w:1.5,dash:[5,4]},
+            {k:"herr",n:"误差 herr",c:"--c3",w:1.5}] },
+];
+
+const WINDOW_S = 20;
+const MAX_SAMPLES = 6000;
+const RECORD_MAX_LINES = 200000;
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const $ = id => document.getElementById(id);
+
+/* ===== 串口 ===== */
+let port = null, writer = null, keepReading = false;
+let history = [];
+let recording = false, recordLines = [], recordStartMs = 0;
+let t0 = null;
+let importedView = false;
+let renderDirty = true;
+
+function log(text, cls) {
+  const el = $("log");
+  const span = document.createElement("span");
+  if (cls) span.className = cls;
+  span.textContent = text + "\n";
+  el.appendChild(span);
+  while (el.childNodes.length > 300) el.removeChild(el.firstChild);
+  el.scrollTop = el.scrollHeight;
+}
+function setStatus(text, state) {
+  $("status").innerHTML = `<span class="dot ${state||""}" id="dot"></span>${text}`;
+}
+function updateControls() {
+  $("record").disabled = !port;
+  $("clear").disabled = !history.length;
+}
+function invalidate() { renderDirty = true; }
+
+async function connect() {
+  if (!("serial" in navigator)) {
+    log("✗ 浏览器不支持 Web Serial。请用 Chrome/Edge。","bad");
+    return;
+  }
+  try {
+    port = await navigator.serial.requestPort();
+    await port.open({ baudRate:115200, dataBits:8, stopBits:1, parity:"none" });
+  } catch(err) { log("✗ 打开串口失败："+err.message,"bad"); return; }
+  writer = port.writable.getWriter();
+  keepReading = true;
+  setStatus("已连接 115200 8N1","on");
+  updateControls();
+  $("connect").textContent = "断开";
+  readLoop();
+}
+
+async function disconnect() {
+  if (recording) stopRecord();
+  keepReading = false;
+  try { if (writer) { writer.releaseLock(); writer = null; } } catch {}
+  try { if (port) await port.close(); } catch {}
+  port = null;
+  setStatus("未连接");
+  updateControls();
+  $("connect").textContent = "连接串口";
+}
+
+async function readLoop() {
+  const decoder = new TextDecoder();
+  let buffer = "";
+  const reader = port.readable.getReader();
+  try {
+    while (keepReading) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream:true });
+      let i;
+      while ((i = buffer.indexOf("\n")) >= 0) {
+        handleLine(buffer.slice(0,i).trim());
+        buffer = buffer.slice(i+1);
+      }
+      if (buffer.length > 8192) buffer = "";
+    }
+  } catch(err) { log("✗ 读取中断："+err.message,"bad"); }
+  finally { try { reader.releaseLock(); } catch {} }
+}
+
+/* ===== 行解析 ===== */
+const FIELD = /(\w+)=(-?[\d.]+)/g;
+
+function handleLine(line) {
+  if (!line) return;
+  if (recording) {
+    recordLines.push(line);
+    if (recordLines.length >= RECORD_MAX_LINES) { log("⚠ 已达上限，停止录制","bad"); stopRecord(); }
+  }
+  if (!line.startsWith("[TRK] t=") || !line.includes("drop=")) {
+    if (line.startsWith("[TRK] ")) log(line.slice(6));  /* enter / segment 等 */
+    return;
+  }
+
+  const row = {};
+  for (const m of line.matchAll(FIELD)) {
+    const k = m[1], v = parseFloat(m[2]);
+    row[k] = Number.isFinite(v) ? v : m[2];
+  }
+  if (row.t === undefined) return;
+
+  if (importedView) {
+    history = [];
+    t0 = null;
+    importedView = false;
+    $("viewrange").textContent = `最近 ${WINDOW_S} s`;
+  }
+
+  /* --- 补齐可选字段 --- */
+  for (const k of OPT_FLOAT)  if (!(k in row)) row[k] = 0;
+  for (const k of BALL_FLOAT) if (!(k in row)) row[k] = 0;
+  for (const k of INT_FIELDS) if (!(k in row)) row[k] = 0;
+
+  if (t0 === null) t0 = row.t;
+  row._t = (row.t - t0) / 1000;
+  history.push(row);
+  if (history.length > MAX_SAMPLES) history.splice(0, history.length - MAX_SAMPLES);
+  updateControls();
+  invalidate();
+}
+
+/* ===== CSV 导入 ===== */
+function parseCSV(text) {
+  text = text.replace(/^\uFEFF/, "");
+  const rows = []; let row = [], cell = "", quoted = false;
+  for (let i=0; i<text.length; i++) {
+    const ch = text[i];
+    if (quoted) {
+      if (ch === '"' && text[i+1] === '"') { cell += '"'; i++; }
+      else if (ch === '"') quoted = false;
+      else cell += ch;
+    } else if (ch === '"') quoted = true;
+    else if (ch === ",") { row.push(cell.trim()); cell = ""; }
+    else if (ch === "\n") {
+      row.push(cell.trim());
+      if (row.some(v => v !== "")) rows.push(row);
+      row = []; cell = "";
+    } else if (ch !== "\r") cell += ch;
+  }
+  row.push(cell.trim());
+  if (row.some(v => v !== "")) rows.push(row);
+  return rows;
+}
+
+async function importCSV(file) {
+  if (!file) return;
+  if (!/\.csv$/i.test(file.name) && file.type !== "text/csv") {
+    log(`✕ ${file.name} 不是 CSV 文件`, "bad");
+    return;
+  }
+  try {
+    const table = parseCSV(await file.text());
+    if (table.length < 2) throw new Error("文件中没有数据行");
+    const header = table[0].map(v => v.trim());
+    if (!header.includes("t")) throw new Error("缺少必需的 t 时间字段");
+
+    const loaded = []; let skipped = 0;
+    for (const cells of table.slice(1)) {
+      const row = {};
+      for (let i=0; i<header.length; i++) {
+        const k = header[i], raw = cells[i] ?? "";
+        if (!k || raw === "") continue;
+        if (STR_FIELDS.includes(k)) row[k] = raw;
+        else {
+          const value = Number(raw);
+          if (Number.isFinite(value)) row[k] = value;
+        }
+      }
+      if (!Number.isFinite(row.t)) { skipped++; continue; }
+      for (const k of OPT_FLOAT)  if (!(k in row)) row[k] = 0;
+      for (const k of BALL_FLOAT) if (!(k in row)) row[k] = 0;
+      for (const k of INT_FIELDS) if (!(k in row)) row[k] = 0;
+      loaded.push(row);
+      if (loaded.length >= RECORD_MAX_LINES) break;
+    }
+    if (!loaded.length) throw new Error("没有可解析的数据行");
+
+    const base = loaded[0].t;
+    for (const row of loaded) row._t = (row.t-base)/1000;
+    history = loaded;
+    t0 = base;
+    importedView = true;
+    const duration = Math.max(0, history[history.length-1]._t-history[0]._t);
+    $("viewrange").textContent = `CSV 全部 ${duration.toFixed(1)} s`;
+    updateControls();
+    invalidate();
+    log(`✓ 已导入 ${file.name}：${loaded.length} 行，${duration.toFixed(1)} s${skipped ? `，跳过 ${skipped} 行` : ""}`, "ok");
+  } catch (err) {
+    log(`✕ CSV 导入失败：${err.message}`, "bad");
+  } finally {
+    $("csvfile").value = "";
+  }
+}
+
+/* ===== 绘图 ===== */
+const charts = [];
+function buildPlots() {
+  const host = $("plots"); host.innerHTML = ""; charts.length = 0;
+  for (const spec of PLOTS) {
+    const panel = document.createElement("section"); panel.className = "panel";
+    const leg = spec.series.map(s =>
+      `<span class="lg"><i class="sw" style="background:var(${s.c});${s.dash?"opacity:.8":""}"></i>${s.n}</span>`).join("");
+    panel.innerHTML = `<div class="phead"><span class="ptitle">${spec.title}</span>` +
+      `<span class="punit">${spec.unit}</span><span class="legend">${leg}</span></div><canvas></canvas>`;
+    host.appendChild(panel);
+    charts.push({ spec, canvas: panel.querySelector("canvas") });
+  }
+}
+
+function draw(chart) {
+  const { spec, canvas } = chart;
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.clientWidth || 700, H = spec.h;
+  canvas.width = Math.round(W*dpr); canvas.height = Math.round(H*dpr);
+  canvas.style.height = H+"px";
+  const g = canvas.getContext("2d");
+  g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,W,H);
+
+  const PL=50, PR=12, PT=8, PB=18, iw=W-PL-PR, ih=H-PT-PB;
+  if (!history.length) return;
+  const now = history[history.length-1]._t;
+  const x0 = importedView ? history[0]._t : Math.max(0, now-WINDOW_S);
+  const x1 = now + Math.max(.4, importedView ? (now-x0)*.01 : 0);
+  const rowsIn = history.filter(r => r._t >= x0);
+  if (rowsIn.length < 2) return;
+
+  let lo = Infinity, hi = -Infinity;
+  for (const s of spec.series) for (const r of rowsIn) {
+    const v = r[s.k]; if (Number.isFinite(v)) { if (v<lo) lo=v; if (v>hi) hi=v; }
+  }
+  if (!Number.isFinite(lo)) return;
+  if (lo===hi) { lo-=1; hi+=1; }
+  const pad = (hi-lo)*.1; lo-=pad; hi+=pad;
+  const X = t => PL + (t-x0)/(x1-x0)*iw;
+  const Y = v => PT + (1-(v-lo)/(hi-lo))*ih;
+
+  g.strokeStyle = css("--rule-soft"); g.lineWidth = 1;
+  g.fillStyle = css("--ink-3"); g.font = `11px ${css("--mono")}`;
+  g.textAlign = "right"; g.textBaseline = "middle";
+  for (let i=0; i<=4; i++) {
+    const v = lo+(hi-lo)*i/4, y = Math.round(Y(v))+.5;
+    g.beginPath(); g.moveTo(PL,y); g.lineTo(PL+iw,y); g.stroke();
+    g.fillText(v.toFixed(Math.abs(hi-lo)<6?2:0), PL-6, Y(v));
+  }
+
+  g.lineJoin = "round"; g.lineCap = "round";
+  for (const s of spec.series) {
+    g.strokeStyle = css(s.c); g.lineWidth = s.w;
+    g.globalAlpha = s.alpha||1; g.setLineDash(s.dash||[]);
+    g.beginPath(); let started=false;
+    for (const r of rowsIn) {
+      const v = r[s.k];
+      if (!Number.isFinite(v)) { started=false; continue; }
+      const px=X(r._t), py=Y(v);
+      started ? g.lineTo(px,py) : (g.moveTo(px,py), started=true);
+    }
+    g.stroke(); g.setLineDash([]); g.globalAlpha = 1;
+  }
+}
+
+/* ===== 统计磁贴 ===== */
+function tiles() {
+  if (!history.length) return;
+  const now = history[history.length-1]._t;
+  const seg = importedView ? history : history.filter(r => r._t >= now-WINDOW_S);
+  const last = seg[seg.length-1];
+  const set = [
+    ["赛题 req", last.req||"?", ""],
+    ["段 seg", last.seg||"?", ""],
+    ["状态 st", last.st||"?", ""],
+    ["车体里程", (last.s??0).toFixed(2), "m"],
+    ["指令速度 vc", (last.vc??0).toFixed(3), "m/s"],
+    ["左/右轮速", `${(last.vl??0).toFixed(3)} / ${(last.vr??0).toFixed(3)}`, ""],
+    ["球位置 bx", (last.bx??0).toFixed(1), "mm"],
+    ["球误差 be", (last.be??0).toFixed(1), "mm"],
+    ["水管角 ba", (last.ba??0).toFixed(2), "°"],
+    ["车体前馈 bvff", (last.bvff??0).toFixed(3), "°"],
+    ["PD反馈 bfb", (last.bfb??0).toFixed(3), "°"],
+    ["脱困 bbrk", ((last.bfl??0)&4) ? (last.bbrk??0).toFixed(3) : "关", "°"],
+    ["积分 bint", ((last.bfl??0)&1) ? (last.bint??0).toFixed(3) : "关", "°"],
+    ["限位饱和", ((last.bfl??0)&8)?"是":"否", ""],
+    ["丢字节 drop", last.drop||0, ""],
+  ];
+  $("tiles").innerHTML = set.map(([k,v,u]) =>
+    `<div class="tile"><div class="k">${k}</div><div class="v">${v}<span style="font-size:11px;color:var(--ink-2)">${u}</span></div></div>`
+  ).join("");
+}
+
+function frame() {
+  if (renderDirty) {
+    renderDirty = false;
+    for (const c of charts) draw(c);
+    tiles();
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ===== 录制 / 导出 ===== */
+function startRecord() {
+  recording = true; recordLines = []; recordStartMs = Date.now();
+  paintRec(); log("● 开始录制","ok");
+}
+function stopRecord() {
+  if (!recording) return; recording = false;
+  const s = (Date.now()-recordStartMs)/1000;
+  paintRec(); log(`■ 录制结束：${recordLines.length} 行 / ${s.toFixed(1)} s`,"ok");
+  showRecDlg(s);
+}
+function paintRec() {
+  const b = $("record"); b.classList.toggle("rec",recording);
+  b.textContent = recording ? `■ 停止 (${recordLines.length})` : "● 录制";
+}
+setInterval(()=>{ if(recording) paintRec(); }, 1000);
+
+function toCSV(lines) {
+  const FIELD = /(\w+)=(-?[\d.]+)/g;
+  const order = [], seen = new Set();
+  const register = k => { if (!seen.has(k)) { seen.add(k); order.push(k); } };
+  const out = []; let bad = 0;
+  for (const line of lines) {
+    if (!line.startsWith("[TRK] t=") || !line.includes("drop=")) continue;
+    const row = {};
+    for (const m of line.matchAll(FIELD)) { row[m[1]] = m[2]; register(m[1]); }
+    if (row.t === undefined) { bad++; continue; }
+    for (const k of STR_FIELDS) if (!(k in row)) row[k] = "";
+    out.push(row);
+  }
+  if (!out.length) return { csv:"", rows:0, fields:0, malformed:bad };
+  const body = out.map(r => order.map(k => r[k]??"").join(","));
+  return { csv:order.join(",")+"\n"+body.join("\n")+"\n", rows:out.length, fields:order.length, malformed:bad };
+}
+
+function stamp() {
+  const d = new Date(), p = n => String(n).padStart(2,"0");
+  return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
+}
+
+function download(name, text, mime="text/plain;charset=utf-8") {
+  const url = URL.createObjectURL(new Blob([text],{type:mime}));
+  const a = document.createElement("a"); a.href=url; a.download=name;
+  a.click(); URL.revokeObjectURL(url); log(`已下载 ${name}`,"ok");
+}
+
+let recResult = null;
+function showRecDlg(s) {
+  recResult = toCSV(recordLines);
+  $("recstats").innerHTML = [
+    ["时长", s.toFixed(1), "s"], ["遥测行", recResult.rows, ""],
+    ["字段", recResult.fields, ""], ["残缺行", recResult.malformed, ""],
+    ["原始行", recordLines.length, ""],
+  ].map(([k,v,u])=>`<div class="tile"><div class="k">${k}</div><div class="v">${v}<span style="font-size:11px;color:var(--ink-2)">${u}</span></div></div>`).join("");
+  $("recwarn").style.display = recResult.rows ? "none" : "block";
+  $("reccsv").disabled = !recResult.rows;
+  $("recdlg").showModal();
+}
+
+/* ===== 绑定 ===== */
+$("connect").addEventListener("click", () => port ? disconnect() : connect());
+$("import").addEventListener("click", () => $("csvfile").click());
+$("csvfile").addEventListener("change", e => importCSV(e.target.files[0]));
+$("record").addEventListener("click", ()=> recording ? stopRecord() : startRecord());
+$("clear").addEventListener("click", ()=>{
+  history=[]; t0=null; importedView=false;
+  $("tiles").innerHTML = "";
+  $("viewrange").textContent = `最近 ${WINDOW_S} s`;
+  updateControls();
+  invalidate();
+});
+$("recdlg-close").addEventListener("click", ()=> $("recdlg").close());
+$("reccsv").addEventListener("click", ()=> download(`trk_${stamp()}.csv`, recResult.csv));
+$("recraw").addEventListener("click", ()=> download(`trk_${stamp()}.txt`, recordLines.join("\r\n")+"\r\n"));
+
+let dragDepth = 0;
+document.addEventListener("dragenter", e => {
+  if ([...e.dataTransfer.types].includes("Files")) {
+    e.preventDefault(); dragDepth++; document.body.classList.add("is-dragging");
+  }
+});
+document.addEventListener("dragover", e => {
+  if ([...e.dataTransfer.types].includes("Files")) e.preventDefault();
+});
+document.addEventListener("dragleave", e => {
+  if (document.body.classList.contains("is-dragging")) {
+    dragDepth = Math.max(0, dragDepth-1);
+    if (!dragDepth) document.body.classList.remove("is-dragging");
+  }
+});
+document.addEventListener("drop", e => {
+  e.preventDefault(); dragDepth = 0; document.body.classList.remove("is-dragging");
+  const files = [...e.dataTransfer.files];
+  if (files.length !== 1) log("✕ 请一次拖入一个 CSV 文件", "bad");
+  else importCSV(files[0]);
+});
+window.addEventListener("resize", invalidate);
+
+buildPlots();
+requestAnimationFrame(frame);
+if (!("serial" in navigator)) { log("提示：需要 Chrome/Edge，且从 file:// 或 http://localhost 打开。","bad"); }
+</script>
+</body>
+</html>

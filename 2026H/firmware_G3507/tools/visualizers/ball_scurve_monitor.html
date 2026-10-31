@@ -1,0 +1,849 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>H3 纯 S 曲线观测台</title>
+<style>
+  :root {
+    color-scheme: light;
+    --surface:      #F2F5F7;
+    --panel:        #FFFFFF;
+    --panel-sunk:   #E9EFF2;
+    --ink:          #14202A;
+    --ink-2:        #4F6070;
+    --ink-3:        #7B8B99;
+    --rule:         #DCE4E9;
+    --rule-soft:    #EAF0F3;
+    /* 取自 pygame_linkage_visualizer 的实物配色，经 dataviz 校验器全项 PASS。 */
+    --s1: #BE7000;  /* 球 — BALL 琥珀，永远代表"实测的球" */
+    --s2: #0089AD;  /* 水管 — PIPE_FILL 青，永远代表"实测的管" */
+    --s3: #B03A1E;  /* 执行器 / 反馈 — PRINTED 铁锈 */
+    --s4: #5257A8;  /* 参考 / 规划 —— 与实测成对出现时永远是虚线 */
+    --s5: #1C7A55;  /* 前馈修正 */
+    --good:#1C7A55; --warn:#B57A05; --critical:#A8291B;
+    --shadow: 0 1px 2px rgba(20,32,42,.06), 0 4px 14px rgba(20,32,42,.05);
+    --ui: "Segoe UI Variable Text","Segoe UI",-apple-system,"Microsoft YaHei UI",
+          "PingFang SC",sans-serif;
+    --mono: ui-monospace,"Cascadia Mono","SF Mono",Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --surface:#0B141B; --panel:#101A22; --panel-sunk:#16222C;
+      --ink:#E4ECF1; --ink-2:#96A9B6; --ink-3:#647684;
+      --rule:#1F2E3A; --rule-soft:#182530;
+      --s1:#C98416; --s2:#1E96B5; --s3:#C9553A; --s4:#6E79C9; --s5:#2E9366;
+      --good:#2E9366; --warn:#C08B1C; --critical:#CD5548;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 20px rgba(0,0,0,.3);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--surface); color:var(--ink);
+         font-family:var(--ui); font-size:14px; line-height:1.5;
+         -webkit-font-smoothing:antialiased; }
+
+  header { display:flex; align-items:baseline; gap:16px; flex-wrap:wrap;
+           padding:14px 20px; border-bottom:2px solid var(--ink); }
+  h1 { margin:0; font-size:20px; font-weight:650; letter-spacing:-.01em; }
+  .eyebrow { font-family:var(--mono); font-size:10.5px; letter-spacing:.13em;
+             text-transform:uppercase; color:var(--ink-3); }
+  header .grow { flex:1; }
+
+  button { font-family:var(--ui); font-size:13px; font-weight:550; color:var(--ink);
+           background:var(--panel); border:1px solid var(--rule); border-radius:7px;
+           padding:6px 13px; cursor:pointer; }
+  button:hover:not(:disabled) { border-color:var(--ink-3); }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+  button:focus-visible { outline:2px solid var(--s2); outline-offset:2px; }
+  button.primary { background:var(--ink); color:var(--surface); border-color:var(--ink); }
+
+  .dot { width:8px; height:8px; border-radius:50%; background:var(--ink-3);
+         display:inline-block; margin-right:6px; }
+  .dot.on { background:var(--good); }
+  .dot.err { background:var(--critical); }
+  #status { font-family:var(--mono); font-size:12px; color:var(--ink-2); }
+
+  main { display:grid; grid-template-columns:340px 1fr; gap:12px;
+         padding:12px 20px 24px; align-items:start; }
+  @media (max-width:1100px){ main { grid-template-columns:1fr; } }
+
+  .panel { background:var(--panel); border:1px solid var(--rule); border-radius:10px;
+           box-shadow:var(--shadow); overflow:hidden; margin-bottom:10px; }
+  .phead { display:flex; align-items:baseline; gap:10px; padding:8px 13px 6px;
+           border-bottom:1px solid var(--rule-soft); }
+  .ptitle { font-size:13px; font-weight:620; }
+  .punit { font-family:var(--mono); font-size:10.5px; color:var(--ink-3); }
+  .phead .grow { flex:1; }
+
+  #log { font-family:var(--mono); font-size:11px; height:150px; overflow:auto;
+         padding:7px 13px; white-space:pre-wrap; color:var(--ink-2); }
+  #log .ok  { color:var(--good); }
+  #log .bad { color:var(--critical); }
+
+  .charts { display:flex; flex-direction:column; gap:10px; }
+  .cwrap { position:relative; }
+  canvas { display:block; width:100%; }
+  .legend { display:flex; gap:12px; flex-wrap:wrap; margin-left:auto; }
+  .lg { display:inline-flex; align-items:center; gap:5px; font-family:var(--mono);
+        font-size:11px; color:var(--ink-2); }
+  .sw { width:12px; height:3px; border-radius:2px; }
+  .sw.dash { background:none !important;
+             background-image:repeating-linear-gradient(90deg,
+               currentColor 0 4px, transparent 4px 7px) !important; }
+
+  .tip { position:absolute; pointer-events:none; z-index:5; opacity:0;
+         transition:opacity .08s; background:var(--panel);
+         border:1px solid var(--rule); border-radius:7px; box-shadow:var(--shadow);
+         padding:6px 9px; font-family:var(--mono); font-size:11px;
+         color:var(--ink); white-space:nowrap; }
+  .tip b { font-weight:600; color:var(--ink-2); font-family:var(--ui); }
+
+  .tiles { display:grid; gap:8px; grid-template-columns:repeat(auto-fit,minmax(104px,1fr));
+           padding:9px 13px; }
+  .tile { background:var(--panel-sunk); border-radius:7px; padding:7px 9px; }
+  .tile .k { font-size:10.5px; color:var(--ink-3); }
+  .tile .v { font-family:var(--mono); font-size:16px; font-weight:600;
+             font-variant-numeric:tabular-nums; }
+  .tile .v small { font-size:11px; color:var(--ink-2); font-weight:400; }
+
+  table { width:100%; border-collapse:collapse; font-family:var(--mono); font-size:11.5px; }
+  th, td { padding:4px 13px; text-align:right; font-variant-numeric:tabular-nums; }
+  th { font-family:var(--ui); font-size:10.5px; font-weight:600; color:var(--ink-3);
+       text-align:right; border-bottom:1px solid var(--rule-soft); }
+  th:first-child, td:first-child { text-align:left; }
+  tbody tr:nth-child(even) { background:var(--panel-sunk); }
+  .scroll { max-height:230px; overflow:auto; }
+
+  .note { margin:0; padding:9px 13px; font-size:11.5px; color:var(--ink-2);
+          border-top:1px solid var(--rule-soft); }
+  .note b { color:var(--ink); }
+  .note code { font-family:var(--mono); font-size:11px; }
+
+  pre.snip { margin:0; padding:10px 13px; font-family:var(--mono); font-size:11px;
+             background:var(--panel-sunk); color:var(--ink); overflow-x:auto;
+             border-top:1px solid var(--rule-soft); }
+
+  .bad  { color:var(--critical); }
+  .warn { color:var(--warn); }
+  .good { color:var(--good); }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="eyebrow">MSPM0G3507 · H3 Challenge · Debug_Ex 115200</div>
+    <h1>纯 S 曲线观测台</h1>
+  </div>
+  <div class="grow"></div>
+  <span id="status"><span class="dot"></span>未连接</span>
+  <button id="connect" class="primary">连接串口</button>
+  <button id="clear" disabled>清空</button>
+  <button id="table" disabled>数据表</button>
+</header>
+
+<main>
+  <div>
+    <section class="panel">
+      <div class="phead"><span class="ptitle">会话概览</span>
+        <span class="grow"></span><span class="punit" id="nrows">—</span></div>
+      <div class="tiles" id="tiles"></div>
+    </section>
+
+    <section class="panel">
+      <div class="phead"><span class="ptitle">链路健康</span>
+        <span class="grow"></span><span class="punit">树莓派 → MCU</span></div>
+      <div class="tiles" id="link"></div>
+      <p class="note" id="linknote"></p>
+    </section>
+
+    <section class="panel">
+      <div class="phead"><span class="ptitle">事件日志</span></div>
+      <div id="log"></div>
+    </section>
+  </div>
+
+  <div class="charts" id="charts">
+    <section class="panel">
+      <div class="phead"><span class="ptitle">落点统计</span>
+        <span class="punit">mm</span>
+        <span class="grow"></span>
+        <span class="punit" id="landsum">等待第一次到达</span></div>
+      <div class="scroll"><table id="landtab">
+        <thead><tr><th>段</th><th>目标</th><th>落点</th><th>误差</th><th>静止</th></tr></thead>
+        <tbody></tbody></table></div>
+      <p class="note">
+        落点 = <b>该段末尾连续满足 |v| &lt; 3 mm/s 且视觉有效的那一段</b>的位置均值，
+        不用固件的 <code>arrive</code>——那是剖面时钟走完就触发，球往往还在动。
+        静止时长不足 0.8 s 判为未稳定，不计入统计。
+        <br><b>均值是可标定掉的部分</b>（回填 <code>level_bias</code> /
+        <code>rolling_resistance</code>），<b>标准差是标定不掉的部分</b>。
+        若标准差接近 13 mm，说明捕获点近乎随机、抖动没起作用。
+      </p>
+    </section>
+
+    <section class="panel">
+      <div class="phead"><span class="ptitle">水平角与增益辨识</span>
+        <span class="punit">aest = K·(beam − θ₀)</span>
+        <span class="grow"></span>
+        <span class="punit" id="idsum">样本不足</span></div>
+      <div class="cwrap"><canvas id="idplot"></canvas><div class="tip" id="idtip"></div></div>
+      <p class="note">
+        这趟移动<b>本身就是辨识实验</b>：S 曲线在 ±3° 内扫过倾角，对
+        (beam, aest) 做一次线性回归，斜率给真实滚球增益、零交点给真实动力学水平角。
+        <b>只取 |v| &gt; 15 mm/s 的样本</b>——球被静摩擦钉住时 aest≡0 与倾角无关，
+        纳入会把 θ₀ 拉向当时的保持角。
+      </p>
+      <pre class="snip" id="snip">连接后自动计算</pre>
+    </section>
+  </div>
+</main>
+
+<dialog id="dlg">
+  <div class="phead"><span class="ptitle">最近 200 行遥测</span>
+    <span class="grow"></span><button id="dlgclose">关闭</button></div>
+  <div class="scroll" style="max-height:70vh"><table id="rawtab">
+    <thead></thead><tbody></tbody></table></div>
+</dialog>
+
+<script>
+"use strict";
+
+/* ==========================================================================
+ * 这个页面配的是 **01e8d1c 版固件**（纯 S 曲线 + 抖动破静摩擦，无积分无调度）。
+ *
+ * 与之前那版整定台的区别，都源自固件本身：
+ *   · config 是 static const，**参数不可热更** → 没有滑块，这里只观测不下发
+ *   · 遥测是**单行 [SCV]**、64 字段 @80 ms（没有 [SCVD] 分频行）
+ *   · 没有 [TUNE] 协议
+ *
+ * 所以本页的职责是「量出这条基线值多少」，而不是「把它调好」。
+ *
+ * 三个必须盯住的量，各自对应一条已被实测确认的因果链：
+ *
+ *   dith —— 抖动分量。纯 PD 的稳态残差有个与整定无关的数学下限
+ *           θ_stick/Kp = 0.62/0.04711 = 13.2 mm（实测 13.1 mm），
+ *           **抖动是这版固件里唯一能突破它的机制**。若落点误差 >10 mm
+ *           而 dth 全程为 0，说明触发判据没满足，不是增益的问题。
+ *
+ *   fbc  —— PD 分量被 feedback_limit_deg 夹住。它与末端极限环振幅单调相关
+ *           （实测 0%→17.4 mm，30%→27.7 mm）；sat 只反映物理角度范围，
+ *           夹在 ±2° 限幅上的那 45% 在 sat 里是隐形的。
+ *
+ *   ok   —— 视觉有效位。2026-07-31 实测可用率仅 51%，是当前最大瓶颈；
+ *           ok=0 时 x/v 是保留的旧值不是真值，图上会铺红底。
+ * ========================================================================== */
+
+const WINDOW_S = 20;          /* 时序图显示窗口 */
+const STILL_SPEED = 3.0;      /* 判静止的速度阈值 mm/s */
+const STILL_TIME  = 0.8;      /* 静止需持续多久才算落点 s */
+const MAX_GAP     = 0.30;     /* 静止区间允许的最大时间断口 s */
+const ID_MIN_SPEED = 15.0;    /* 进入辨识回归所需的最小球速 mm/s */
+const K_G_NOMINAL = 7004.75;  /* 固件里的名义滚球增益 mm/s² per rad */
+const DEG = Math.PI / 180;
+
+const STATE = ["等待视觉","准备中","S 曲线移动","驻留","序列完成","视觉丢失","执行器故障"];
+
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const $ = id => document.getElementById(id);
+
+let port = null, keepReading = false;
+let history = [];
+let t0 = null;
+
+/* ===== 串口 ===== */
+function setStatus(text, state) {
+  $("status").innerHTML = `<span class="dot ${state || ""}"></span>${text}`;
+}
+
+function log(text, cls) {
+  const el = $("log");
+  const span = document.createElement("span");
+  if (cls) span.className = cls;
+  span.textContent = text + "\n";
+  el.appendChild(span);
+  while (el.childNodes.length > 400) el.removeChild(el.firstChild);
+  el.scrollTop = el.scrollHeight;
+}
+
+async function connect() {
+  if (port) { await disconnect(); return; }
+  if (!("serial" in navigator)) {
+    log("✗ 这个浏览器没有 Web Serial。请用 Chrome/Edge 打开本文件。", "bad");
+    setStatus("不支持 Web Serial", "err");
+    return;
+  }
+  try {
+    port = await navigator.serial.requestPort();
+    await port.open({ baudRate: 115200, dataBits: 8, stopBits: 1, parity: "none" });
+  } catch (err) {
+    log("✗ 打开串口失败：" + err.message, "bad");
+    setStatus("连接失败", "err");
+    port = null;
+    return;
+  }
+  keepReading = true;
+  setStatus("已连接 115200 8N1", "on");
+  $("connect").textContent = "断开";
+  $("clear").disabled = false;
+  $("table").disabled = false;
+  log("已连接。进入 Main Menu → H3 Challenge 开始。", "ok");
+  readLoop();
+}
+
+async function disconnect() {
+  keepReading = false;
+  try { if (port) await port.close(); } catch {}
+  port = null;
+  setStatus("未连接");
+  $("connect").textContent = "连接串口";
+}
+
+async function readLoop() {
+  const decoder = new TextDecoder();
+  let buffer = "";
+  const reader = port.readable.getReader();
+  try {
+    while (keepReading) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let index;
+      while ((index = buffer.indexOf("\n")) >= 0) {
+        handleLine(buffer.slice(0, index).trim());
+        buffer = buffer.slice(index + 1);
+      }
+      if (buffer.length > 8192) buffer = "";   /* 防跑飞 */
+    }
+  } catch (err) {
+    if (keepReading) log("✗ 读取中断：" + err.message, "bad");
+  } finally {
+    try { reader.releaseLock(); } catch {}
+  }
+}
+
+/* ===== 行解析 ===== */
+const FIELD = /(\w+)=(-?[\d.]+)/g;
+/*
+ * 一整行遥测的形状：以 `[SCV] t=<数字>` 开头、以 `drop=<数字>` 收尾。
+ * 串口偶尔会把两行搅在一起（缓冲区瞬时满），拼出 `-1.37.0353` 这类伪数字。
+ * 现在单行最大约 640 B @80ms，占 UART 约 69%，这种坏行仍必须整行丢弃，
+ * 否则一个 NaN 会顺着均值污染整段统计。
+ */
+const WELL_FORMED = /^\[SCV\] t=\d+ .*drop=\d+$/;
+let dropped = 0;
+
+function handleLine(line) {
+  if (!line) return;
+
+  if (line.startsWith("[SCV] t=")) {
+    if (!WELL_FORMED.test(line)) { dropped++; return; }
+    const row = {};
+    let bad = false;
+    for (const m of line.matchAll(FIELD)) {
+      const v = parseFloat(m[2]);
+      if (!Number.isFinite(v)) { bad = true; break; }
+      row[m[1]] = v;
+    }
+    if (bad || row.x === undefined || row.t === undefined) { dropped++; return; }
+    if (t0 === null) t0 = row.t;
+    row._t = (row.t - t0) / 1000;
+    history.push(row);
+    if (history.length > 20000) history.splice(0, history.length - 20000);
+    return;
+  }
+  /* plan / arrive / armed 是状态转换日志，不是遥测行。 */
+  if (line.startsWith("[SCV] ")) { log(line.slice(6)); return; }
+  if (line.startsWith("[SCVCFG]")) { log(line.slice(9), "ok"); return; }
+}
+
+/* ===== 时序图 ===== */
+const PLOTS = [
+  { title:"球位置：剖面参考 vs 实测", unit:"mm", h:160, target:"tgt",
+    series:[{k:"xref", n:"参考 xref", c:"--s4", w:1.5, dash:[5,4]},
+            {k:"x",    n:"实测 x",    c:"--s1", w:2}] },
+  { title:"球速度", unit:"mm/s", h:110,
+    series:[{k:"vref", n:"参考 vref", c:"--s4", w:1.4, dash:[5,4]},
+            {k:"v",    n:"实测 v",    c:"--s1", w:1.8}] },
+  { title:"水管角：指令 vs 实际", unit:"deg", h:130,
+    series:[{k:"u",    n:"指令 u",    c:"--s4", w:1.6},
+            {k:"beam", n:"实际 beam", c:"--s2", w:2}] },
+  { title:"指令分解", unit:"deg", h:140,
+    series:[{k:"ff",   n:"加速度前馈", c:"--s4", w:1.6},
+            {k:"fb",   n:"剖面跟踪反馈", c:"--s3", w:1.6},
+            {k:"dith", n:"抖动",       c:"--s1", w:1.4},
+            {k:"rff",  n:"滚阻前馈",   c:"--s5", w:1.4}] },
+];
+
+const charts = [];
+function buildPlots() {
+  const host = $("charts");
+  for (const spec of PLOTS) {
+    const panel = document.createElement("section");
+    panel.className = "panel";
+    /* 参考量一律虚线，实测量一律实线——图例里也要能看出这个区别，
+       否则色盲读者只能靠颜色分辨"参考 vs 实测"这组最重要的对照。 */
+    const legend = spec.series.map(s =>
+      `<span class="lg"><i class="sw${s.dash ? " dash" : ""}" style="${
+        s.dash ? `color:var(${s.c})` : `background:var(${s.c})`}"></i>${s.n}</span>`
+    ).join("");
+    panel.innerHTML =
+      `<div class="phead"><span class="ptitle">${spec.title}</span>` +
+      `<span class="punit">${spec.unit}</span>` +
+      `<span class="legend">${legend}</span></div>` +
+      `<div class="cwrap"><canvas></canvas><div class="tip"></div></div>`;
+    host.appendChild(panel);
+    const chart = { spec, canvas: panel.querySelector("canvas"),
+                    tip: panel.querySelector(".tip"), hover: null };
+    charts.push(chart);
+    attachHover(chart);
+  }
+}
+
+/* 十字光标 + 提示框。时序图默认就该有——静态折线图读不出具体数值。 */
+function attachHover(chart) {
+  const wrap = chart.canvas.parentElement;
+  wrap.addEventListener("pointermove", ev => {
+    const rect = chart.canvas.getBoundingClientRect();
+    chart.hover = { x: ev.clientX - rect.left, y: ev.clientY - rect.top };
+  });
+  wrap.addEventListener("pointerleave", () => {
+    chart.hover = null;
+    chart.tip.style.opacity = 0;
+  });
+}
+
+function visible() {
+  if (!history.length) return [];
+  const now = history[history.length - 1]._t;
+  return history.filter(r => r._t >= now - WINDOW_S);
+}
+
+function draw(chart) {
+  const { spec, canvas } = chart;
+  const dpr = window.devicePixelRatio || 1;
+  const width = canvas.clientWidth;
+  if (!width) return;
+  canvas.width = width * dpr;
+  canvas.height = spec.h * dpr;
+  canvas.style.height = spec.h + "px";
+  const g = canvas.getContext("2d");
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, width, spec.h);
+
+  const seg = visible();
+  const padL = 46, padR = 10, padT = 8, padB = 18;
+  const w = width - padL - padR, h = spec.h - padT - padB;
+
+  g.font = "10px " + css("--mono");
+  g.strokeStyle = css("--rule-soft");
+  g.fillStyle = css("--ink-3");
+
+  if (seg.length < 2) {
+    g.fillText("等待数据…", padL + 6, padT + 14);
+    return;
+  }
+
+  const tMin = seg[0]._t, tMax = seg[seg.length - 1]._t;
+  const span = Math.max(tMax - tMin, 0.5);
+
+  let lo = Infinity, hi = -Infinity;
+  for (const r of seg) {
+    for (const s of spec.series) {
+      const v = r[s.k];
+      if (Number.isFinite(v)) { if (v < lo) lo = v; if (v > hi) hi = v; }
+    }
+    if (spec.target && Number.isFinite(r[spec.target])) {
+      lo = Math.min(lo, r[spec.target]); hi = Math.max(hi, r[spec.target]);
+    }
+  }
+  if (!Number.isFinite(lo)) { lo = -1; hi = 1; }
+  if (hi - lo < 1e-6) { lo -= 1; hi += 1; }
+  const pad = (hi - lo) * 0.12;
+  lo -= pad; hi += pad;
+
+  const X = t => padL + (t - tMin) / span * w;
+  const Y = v => padT + (hi - v) / (hi - lo) * h;
+
+  /* recessive 网格：3 条水平参考线，1px，rule-soft */
+  g.lineWidth = 1;
+  for (let i = 0; i <= 3; i++) {
+    const v = lo + (hi - lo) * i / 3;
+    const y = Math.round(Y(v)) + 0.5;
+    g.beginPath(); g.moveTo(padL, y); g.lineTo(padL + w, y); g.stroke();
+    g.fillText(v.toFixed(Math.abs(hi - lo) < 5 ? 2 : 1), 4, y + 3);
+  }
+
+  /* 目标位置：单独一条 good 色虚线，是判据的基准而不是一条数据序列 */
+  if (spec.target) {
+    const tv = seg[seg.length - 1][spec.target];
+    if (Number.isFinite(tv)) {
+      g.save();
+      g.strokeStyle = css("--ink-3");
+      g.setLineDash([2, 3]);
+      const y = Math.round(Y(tv)) + 0.5;
+      g.beginPath(); g.moveTo(padL, y); g.lineTo(padL + w, y); g.stroke();
+      g.restore();
+    }
+  }
+
+  /* 视觉丢失区间铺底：ok=0 时 x/v 是保留值不是真值，必须让人一眼看见 */
+  g.save();
+  g.fillStyle = css("--critical");
+  g.globalAlpha = 0.10;
+  let runStart = null;
+  for (let i = 0; i < seg.length; i++) {
+    const blind = seg[i].ok === 0;
+    if (blind && runStart === null) runStart = seg[i]._t;
+    if ((!blind || i === seg.length - 1) && runStart !== null) {
+      g.fillRect(X(runStart), padT, Math.max(X(seg[i]._t) - X(runStart), 1), h);
+      runStart = null;
+    }
+  }
+  g.restore();
+
+  for (const s of spec.series) {
+    g.strokeStyle = css(s.c);
+    g.lineWidth = s.w;
+    g.setLineDash(s.dash || []);
+    g.lineJoin = "round";
+    g.beginPath();
+    let started = false;
+    for (const r of seg) {
+      const v = r[s.k];
+      if (!Number.isFinite(v)) { started = false; continue; }
+      const px = X(r._t), py = Y(v);
+      if (!started) { g.moveTo(px, py); started = true; } else { g.lineTo(px, py); }
+    }
+    g.stroke();
+  }
+  g.setLineDash([]);
+
+  /* 十字光标 */
+  if (chart.hover && chart.hover.x >= padL && chart.hover.x <= padL + w) {
+    const t = tMin + (chart.hover.x - padL) / w * span;
+    let best = seg[0], bd = Infinity;
+    for (const r of seg) { const d = Math.abs(r._t - t); if (d < bd) { bd = d; best = r; } }
+    const cx = Math.round(X(best._t)) + 0.5;
+    g.save();
+    g.strokeStyle = css("--ink-3"); g.lineWidth = 1; g.setLineDash([3, 3]);
+    g.beginPath(); g.moveTo(cx, padT); g.lineTo(cx, padT + h); g.stroke();
+    g.restore();
+    for (const s of spec.series) {
+      const v = best[s.k];
+      if (!Number.isFinite(v)) continue;
+      g.beginPath();
+      g.arc(X(best._t), Y(v), 4, 0, Math.PI * 2);
+      g.fillStyle = css(s.c); g.fill();
+      g.strokeStyle = css("--panel"); g.lineWidth = 2; g.stroke();
+    }
+    const lines = spec.series
+      .filter(s => Number.isFinite(best[s.k]))
+      .map(s => `<b>${s.n}</b> ${best[s.k].toFixed(2)}`);
+    chart.tip.innerHTML = `t ${best._t.toFixed(2)} s<br>` + lines.join("<br>");
+    chart.tip.style.opacity = 1;
+    const left = Math.min(Math.max(X(best._t) + 12, 4), width - 130);
+    chart.tip.style.left = left + "px";
+    chart.tip.style.top = padT + 4 + "px";
+  }
+}
+
+/* ===== 落点统计 =====
+ * 与 tools/analysis/landing_stats.py 同一套判据，两边结论必须一致。 */
+function segments() {
+  const out = [];
+  let current = [], target = null;
+  for (const r of history) {
+    const tgt = r.tgt ?? 0;
+    if (target === null || Math.abs(tgt - target) > 0.5) {
+      if (current.length) out.push({ target, rows: current });
+      target = tgt; current = [];
+    }
+    current.push(r);
+  }
+  if (current.length) out.push({ target, rows: current });
+  return out;
+}
+
+function landing(rows) {
+  const still = [];
+  for (let i = rows.length - 1; i >= 0; i--) {
+    const r = rows[i];
+    if (r.ok === 0) break;                                  /* 视觉丢失，不能续 */
+    if (Math.abs(r.v ?? 0) >= STILL_SPEED) break;
+    if (still.length && (still[still.length - 1]._t - r._t) > MAX_GAP) break;
+    still.push(r);
+  }
+  if (!still.length) return null;
+  const span = still[0]._t - still[still.length - 1]._t;
+  if (span < STILL_TIME) return null;
+  const mean = still.reduce((a, r) => a + r.x, 0) / still.length;
+  return { x: mean, span };
+}
+
+function renderLanding() {
+  const body = $("landtab").querySelector("tbody");
+  const segs = segments();
+  const rows = [], errors = [];
+  segs.forEach((s, i) => {
+    const r = landing(s.rows);
+    if (r) {
+      const e = r.x - s.target;
+      errors.push(e);
+      rows.push(`<tr><td>${i}</td><td>${s.target.toFixed(1)}</td>` +
+                `<td>${r.x.toFixed(2)}</td>` +
+                `<td class="${Math.abs(e) < 10 ? "good" : "bad"}">${e >= 0 ? "+" : ""}${e.toFixed(2)}</td>` +
+                `<td>${r.span.toFixed(1)} s</td></tr>`);
+    } else {
+      rows.push(`<tr><td>${i}</td><td>${(s.target ?? 0).toFixed(1)}</td>` +
+                `<td colspan="3" style="text-align:left;color:var(--ink-3)">未稳定</td></tr>`);
+    }
+  });
+  body.innerHTML = rows.join("") ||
+    `<tr><td colspan="5" style="text-align:left;color:var(--ink-3)">等待第一次到达</td></tr>`;
+
+  if (errors.length) {
+    const mean = errors.reduce((a, b) => a + b, 0) / errors.length;
+    const sd = errors.length > 1
+      ? Math.sqrt(errors.reduce((a, e) => a + (e - mean) ** 2, 0) / errors.length) : 0;
+    const inSpec = errors.filter(e => Math.abs(e) < 10).length;
+    /*
+     * 均值是**可标定掉**的部分（填 level_bias / rolling_resistance），
+     * 标准差是标定不掉的部分。两者之比决定了"再标一次还有没有用"。
+     */
+    $("landsum").textContent =
+      `n=${errors.length}  均值 ${mean >= 0 ? "+" : ""}${mean.toFixed(2)}  ` +
+      `标准差 ${sd.toFixed(2)}  ±10mm ${inSpec}/${errors.length}`;
+  }
+}
+
+/* ===== 水平角与增益辨识 =====
+ * 模型 ẍ = K_G·sin(θ − θ₀)，小角下 aest ≈ K_deg·(beam − θ₀)。
+ * 对 (beam, aest) 做最小二乘，斜率给 K_deg、零交点给 θ₀。 */
+function identify() {
+  const pts = history.filter(r =>
+    r.ok === 1 && Number.isFinite(r.beam) && Number.isFinite(r.aest) &&
+    Math.abs(r.v ?? 0) > ID_MIN_SPEED);
+  if (pts.length < 40) return { pts, n: pts.length };
+
+  let sx = 0, sy = 0;
+  for (const p of pts) { sx += p.beam; sy += p.aest; }
+  const mx = sx / pts.length, my = sy / pts.length;
+  let sxy = 0, sxx = 0, syy = 0;
+  for (const p of pts) {
+    const dx = p.beam - mx, dy = p.aest - my;
+    sxy += dx * dy; sxx += dx * dx; syy += dy * dy;
+  }
+  if (sxx < 1e-9) return { pts, n: pts.length };
+  const slope = sxy / sxx;                 /* mm/s² per deg */
+  const intercept = my - slope * mx;
+  const r2 = (sxy * sxy) / (sxx * syy || 1);
+  return {
+    pts, n: pts.length, slope, intercept, r2,
+    theta0: -intercept / slope,            /* 零交点 = 真实动力学水平角 */
+    kg: slope / DEG,                       /* 换回 mm/s² per rad */
+  };
+}
+
+function renderIdent() {
+  const fit = identify();
+  const canvas = $("idplot");
+  const dpr = window.devicePixelRatio || 1;
+  const width = canvas.clientWidth;
+  if (!width) return;
+  const H = 170;
+  canvas.width = width * dpr; canvas.height = H * dpr;
+  canvas.style.height = H + "px";
+  const g = canvas.getContext("2d");
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, width, H);
+  g.font = "10px " + css("--mono");
+
+  const padL = 52, padR = 12, padT = 10, padB = 22;
+  const w = width - padL - padR, h = H - padT - padB;
+
+  if (fit.n < 40) {
+    g.fillStyle = css("--ink-3");
+    g.fillText(`样本 ${fit.n} / 40——需要球以 >${ID_MIN_SPEED} mm/s 滚动时的数据`,
+               padL, padT + 16);
+    $("idsum").textContent = `样本 ${fit.n} / 40`;
+    $("snip").textContent = "跑完至少一段完整移动后自动给出";
+    return;
+  }
+
+  const bs = fit.pts.map(p => p.beam), as = fit.pts.map(p => p.aest);
+  const bLo = Math.min(...bs), bHi = Math.max(...bs);
+  const aLo = Math.min(...as), aHi = Math.max(...as);
+  const X = b => padL + (b - bLo) / ((bHi - bLo) || 1) * w;
+  const Y = a => padT + (aHi - a) / ((aHi - aLo) || 1) * h;
+
+  g.strokeStyle = css("--rule-soft"); g.lineWidth = 1; g.fillStyle = css("--ink-3");
+  for (let i = 0; i <= 3; i++) {
+    const v = aLo + (aHi - aLo) * i / 3;
+    const y = Math.round(Y(v)) + 0.5;
+    g.beginPath(); g.moveTo(padL, y); g.lineTo(padL + w, y); g.stroke();
+    g.fillText(v.toFixed(0), 4, y + 3);
+  }
+  g.fillText("beam / deg", padL + w - 56, H - 6);
+  g.fillText(bLo.toFixed(2), padL, H - 6);
+
+  /* 零线与 θ₀：辨识结果的两个读数点，比散点本身更该被看见 */
+  if (aLo < 0 && aHi > 0) {
+    g.save(); g.strokeStyle = css("--ink-3"); g.setLineDash([2, 3]);
+    const y = Math.round(Y(0)) + 0.5;
+    g.beginPath(); g.moveTo(padL, y); g.lineTo(padL + w, y); g.stroke(); g.restore();
+  }
+
+  g.fillStyle = css("--s1");
+  g.globalAlpha = 0.35;
+  for (const p of fit.pts) {
+    g.beginPath(); g.arc(X(p.beam), Y(p.aest), 2.2, 0, Math.PI * 2); g.fill();
+  }
+  g.globalAlpha = 1;
+
+  g.strokeStyle = css("--s4"); g.lineWidth = 2;
+  g.beginPath();
+  g.moveTo(X(bLo), Y(fit.slope * bLo + fit.intercept));
+  g.lineTo(X(bHi), Y(fit.slope * bHi + fit.intercept));
+  g.stroke();
+
+  if (fit.theta0 >= bLo && fit.theta0 <= bHi) {
+    g.beginPath(); g.arc(X(fit.theta0), Y(0), 5, 0, Math.PI * 2);
+    g.fillStyle = css("--s3"); g.fill();
+    g.strokeStyle = css("--panel"); g.lineWidth = 2; g.stroke();
+    g.fillStyle = css("--ink");
+    g.fillText(`θ₀ = ${fit.theta0.toFixed(3)}°`, X(fit.theta0) + 8, Y(0) - 6);
+  }
+
+  const dev = (fit.kg / K_G_NOMINAL - 1) * 100;
+  $("idsum").textContent =
+    `n=${fit.n}  R²=${fit.r2.toFixed(3)}  K=${fit.kg.toFixed(0)}  θ₀=${fit.theta0.toFixed(3)}°`;
+
+  $("snip").textContent =
+`/* 由 ball_scurve_monitor.html 辨识，n=${fit.n} R²=${fit.r2.toFixed(3)} */
+/* 真实滚球增益比名义值${dev >= 0 ? "高" : "低"} ${Math.abs(dev).toFixed(1)}% */
+    .rolling_acceleration_gain_mm_s2 = ${fit.kg.toFixed(2)}f,
+
+/* 动力学水平角 = 查表 0° 往${fit.theta0 >= 0 ? "正" : "负"}偏 ${Math.abs(fit.theta0).toFixed(3)}°，约 ${(fit.theta0 / 0.0297).toFixed(0)} cnt */
+#define H3S_LEVEL_BIAS_DEG ${fit.theta0.toFixed(3)}f`;
+}
+
+/* ===== 概览与链路 ===== */
+function tiles() {
+  if (!history.length) return;
+  const seg = visible();
+  const last = history[history.length - 1];
+  const ok = seg.filter(r => r.ok === 1);
+  const err = ok.map(r => r.x - r.tgt);
+  const inSpec = err.length ? err.filter(e => Math.abs(e) < 10).length / err.length : 0;
+  const still = ok.length ? ok.filter(r => Math.abs(r.v) < STILL_SPEED).length / ok.length : 0;
+  const pk = a => a.length ? Math.max(...a.map(Math.abs)) : 0;
+
+  /* fbc 是命中率而不是布尔——它与极限环振幅单调相关，看"多久夹一次"才有意义。 */
+  const fbcRate = seg.length ? seg.filter(r => r.fbc).length / seg.length : 0;
+  const dithRate = seg.length ? seg.filter(r => r.dth).length / seg.length : 0;
+  const dithAmp = pk(seg.map(r => r.dith));
+
+  const set = [
+    ["状态", STATE[last.st] ?? last.st, "", ""],
+    ["航点", `wp${last.wp}`, "", ""],
+    ["当前误差", err.length ? (err[err.length - 1]).toFixed(2) : "—", "mm",
+      err.length && Math.abs(err[err.length - 1]) < 10 ? "good" : ""],
+    ["±10 mm", (inSpec * 100).toFixed(0), "%", inSpec > 0.9 ? "good" : inSpec > 0.5 ? "warn" : "bad"],
+    ["球静止占比", (still * 100).toFixed(0), "%", ""],
+    ["抖动占比", (dithRate * 100).toFixed(0), "%", dithRate > 0 ? "good" : ""],
+    ["抖动幅值", dithAmp.toFixed(2), "°", ""],
+    ["反馈限幅命中", (fbcRate * 100).toFixed(0), "%",
+      fbcRate > 0.3 ? "bad" : fbcRate > 0.05 ? "warn" : "good"],
+    ["执行器滞后峰值", pk(seg.map(r => r.lag)).toFixed(2), "°", ""],
+    ["位置环误差峰值", pk(seg.map(r => r.perr)).toFixed(0), "cnt", ""],
+  ];
+  $("tiles").innerHTML = set.map(([k, v, u, s]) =>
+    `<div class="tile"><div class="k">${k}</div><div class="v ${s}">${v}<small>${u}</small></div></div>`
+  ).join("");
+  $("nrows").textContent =
+    `${history.length} 行 / ${history[history.length - 1]._t.toFixed(0)} s` +
+    (dropped ? ` · 坏行 ${dropped}` : "");
+}
+
+function linkTiles() {
+  if (!history.length) return;
+  const last = history[history.length - 1];
+  const blind = history.filter(r => r.ok === 0).length;
+  const avail = 1 - blind / history.length;
+  const sev = (v, warn, crit) => v >= crit ? "bad" : v >= warn ? "warn" : "good";
+
+  const set = [
+    ["视觉可用率", (avail * 100).toFixed(0), "%", avail < 0.9 ? (avail < 0.7 ? "bad" : "warn") : "good"],
+    ["相机帧率", (last.fps ?? 0).toFixed(0), "fps", (last.fps ?? 0) < 25 ? "warn" : "good"],
+    ["无效帧", String(last.inv ?? 0), "", (last.inv ?? 0) > 0 ? "warn" : "good"],
+    ["丢帧 gap", String(last.gap ?? 0), "", sev(last.gap ?? 0, 1, 20)],
+    ["CRC 失败", String(last.crc ?? 0), "", sev(last.crc ?? 0, 1, 5)],
+    ["串口丢弃", String(last.drop ?? 0), "", sev(last.drop ?? 0, 1, 10)],
+    ["测速可信", last.vv ? "是" : "否", "", last.vv ? "good" : "warn"],
+    ["步进守护", String(last.guard ?? 0), "", (last.guard ?? 0) > 1 ? "bad" : "good"],
+  ];
+  $("link").innerHTML = set.map(([k, v, u, s]) =>
+    `<div class="tile"><div class="k">${k}</div>` +
+    `<div class="v ${s}">${v}<small>${u}</small></div></div>`
+  ).join("");
+
+  /* 视觉可用率是本项目当前最大的瓶颈，低于阈值时把结论直接写出来。 */
+  const note = $("linknote");
+  if (avail < 0.9) {
+    note.className = "note bad";
+    note.innerHTML = `<b>视觉可用率 ${(avail * 100).toFixed(0)}%</b>——` +
+      `落点统计的样本量与代表性都不足。<code>inv</code> 计的是树莓派主动清了 VALID 标志的帧，` +
+      `即<b>摄像头端没找到球</b>；若同时 <code>gap</code>/<code>crc</code> 为 0，说明链路完好，问题在识别侧。`;
+  } else {
+    note.className = "note";
+    note.innerHTML = `<code>inv</code> = 树莓派没找到球的帧数；<code>gap</code> = 序号跳变；` +
+      `<code>crc</code> = 校验失败。后两者非 0 才是链路问题。`;
+  }
+}
+
+/* ===== 数据表（无障碍：图之外必须有一条纯文本读取路径）===== */
+function showTable() {
+  const rows = history.slice(-200);
+  if (!rows.length) return;
+  const keys = ["_t","st","wp","ok","x","v","tgt","xref","vref","beam","u","ff","fb","lag","perr"];
+  $("rawtab").querySelector("thead").innerHTML =
+    "<tr>" + keys.map(k => `<th>${k === "_t" ? "t/s" : k}</th>`).join("") + "</tr>";
+  $("rawtab").querySelector("tbody").innerHTML = rows.map(r =>
+    "<tr>" + keys.map(k => {
+      const v = r[k];
+      return `<td>${Number.isFinite(v) ? (Number.isInteger(v) ? v : v.toFixed(2)) : "—"}</td>`;
+    }).join("") + "</tr>").join("");
+  $("dlg").showModal();
+}
+
+/* ===== 主循环 ===== */
+let lastSlow = 0;
+function frame(now) {
+  for (const c of charts) draw(c);
+  tiles();
+  /* 落点统计与回归要扫全量历史，5 Hz 足够，别每帧算。 */
+  if (now - lastSlow > 200) {
+    lastSlow = now;
+    linkTiles();
+    renderLanding();
+    renderIdent();
+  }
+  requestAnimationFrame(frame);
+}
+
+$("connect").addEventListener("click", connect);
+$("clear").addEventListener("click", () => {
+  history = []; t0 = null; dropped = 0;
+  $("log").innerHTML = "";
+  log("已清空。", "ok");
+});
+$("table").addEventListener("click", showTable);
+$("dlgclose").addEventListener("click", () => $("dlg").close());
+
+buildPlots();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

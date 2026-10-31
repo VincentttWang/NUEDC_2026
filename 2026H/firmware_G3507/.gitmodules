@@ -1,0 +1,4 @@
+[submodule "third_party/mspm0-sdk"]
+	path = third_party/mspm0-sdk
+	url = https://github.com/TexasInstruments/mspm0-sdk.git
+	shallow = true
