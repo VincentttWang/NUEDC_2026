@@ -1,0 +1,81 @@
+{
+  "kind": "shallow_cnn_static",
+  "platform": {
+    "hostname": "NaiLong",
+    "platform": "Linux-6.18.34+rpt-rpi-2712-aarch64-with-glibc2.41",
+    "machine": "aarch64",
+    "python": "3.13.5",
+    "opencv": "5.0.0",
+    "ncnn": "1.0.20260526",
+    "logical_cpu_count": 4
+  },
+  "model": "model",
+  "model_bytes": {
+    "param": 3596,
+    "bin": 80044
+  },
+  "model_load_ms": 16.4612,
+  "input": "sample.png",
+  "input_shape_hwc": [
+    100,
+    640,
+    3
+  ],
+  "input_resized": false,
+  "ncnn_threads": 1,
+  "opencv_threads": 1,
+  "warmup_iterations": 30,
+  "measured_iterations": 500,
+  "timing_ms": {
+    "inference_only_prepared_chw": {
+      "count": 500,
+      "mean": 5.1046,
+      "p50": 5.2035,
+      "p90": 6.0495,
+      "p95": 6.3757,
+      "p99": 6.7566,
+      "minimum": 3.6593,
+      "maximum": 7.779
+    },
+    "coordinate_decode_only": {
+      "count": 500,
+      "mean": 0.1704,
+      "p50": 0.1483,
+      "p90": 0.2689,
+      "p95": 0.3072,
+      "p99": 0.3791,
+      "minimum": 0.0994,
+      "maximum": 0.4938
+    },
+    "bgr_to_rgb_chw_inference_decode": {
+      "count": 500,
+      "mean": 6.0717,
+      "p50": 6.2259,
+      "p90": 7.0406,
+      "p95": 7.3779,
+      "p99": 8.076,
+      "minimum": 4.3696,
+      "maximum": 8.8297
+    }
+  },
+  "equivalent_fps_from_complete_p95": 135.54,
+  "last_prediction": {
+    "found": true,
+    "x_local": 293.95057141780853,
+    "presence_probability": 0.9999735355377197,
+    "heatmap_peak": 0.9081302285194397
+  },
+  "services": {
+    "ustreamer.service": "active",
+    "vision-scale-uart.service": "active"
+  },
+  "thermal_start": {
+    "temperature": "temp=57.1'C",
+    "throttled": "throttled=0x0"
+  },
+  "thermal_end": {
+    "temperature": "temp=59.8'C",
+    "throttled": "throttled=0x0"
+  },
+  "max_rss_kib": 72816
+}

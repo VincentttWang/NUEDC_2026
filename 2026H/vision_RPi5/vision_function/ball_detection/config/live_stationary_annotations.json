@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "source_folder": "live_right_no_hand",
+  "expected_image_count": 50,
+  "coordinate_space": "tube_local_rectified_plane",
+  "rectified_origin_xy": [40, 126],
+  "image_size": [640, 100],
+  "fisheye_balance": 0.2,
+  "stationary_ball_xyr": [526.3, 46.58, 14.0],
+  "annotation_note": "All 50 live JPEG frames show the stationary ball at the same right-side position. Hough found 50/50: center std=(1.37,1.04) px, radius mean=13.98 px; the fixed mean annotation avoids fitting per-frame Hough jitter."
+}

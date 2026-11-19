@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "performed_at": "2026-07-30",
+  "platform": "NaiLong Raspberry Pi 5",
+  "calibration": {
+    "config": "../config/scale_calibration.json",
+    "status": "accepted_for_current_iteration",
+    "static_points_cm": [-10, -5, 0, 5, 10],
+    "maximum_absolute_bias_cm": 0.5211,
+    "acceptance_limit_cm": 1.0
+  },
+  "confidence_threshold_validation": {
+    "selected_threshold": 0.1,
+    "dynamic_original_misses": 97,
+    "dynamic_misses_recovered": 82,
+    "dynamic_miss_recovery_rate": 0.8453608247,
+    "labelled_positive_images": 383,
+    "labelled_negative_images": 31,
+    "false_positives_at_selected_threshold": 0,
+    "maximum_negative_confidence": 0.064208984375,
+    "false_positives_at_0_05": 10
+  },
+  "dynamic_validation": {
+    "baseline_confidence_0_25": {
+      "report": "dynamic_slow_20260730_report.json",
+      "frames": 1800,
+      "detected_frames": 1703,
+      "detection_rate": 0.9461111111,
+      "longest_detection_gap_frames": 9
+    },
+    "selected_confidence_0_10": {
+      "report": "dynamic_conf010_valid_20260730_report.json",
+      "frames": 1800,
+      "detected_frames": 1791,
+      "detection_rate": 0.995,
+      "valid_frames": 1788,
+      "decode_failures": 3,
+      "longest_detection_gap_frames": 3,
+      "position_range_cm": [-9.6304, 12.1283],
+      "zero_crossings": 30,
+      "mean_processing_ms": 26.4103,
+      "max_age_ms": 69
+    }
+  },
+  "mcu_uart_validation": {
+    "bounded_test": {
+      "report": "camera_to_mcu_uart_conf010_20260730.json",
+      "device": "/dev/ttyAMA0",
+      "frames": 300,
+      "tx_frames": 300,
+      "write_failures": 0,
+      "mean_processing_ms": 26.5109,
+      "max_age_ms": 28,
+      "status": "passed"
+    },
+    "continuous_motion_test": {
+      "status": "vision_uart_only_mcu_control_disabled",
+      "observed_position_range_cm_approx": [-11, 8],
+      "observed_peak_speed_cm_s_approx": 23,
+      "mcu_control_program_running": false,
+      "closed_loop_conclusion": null
+    },
+    "position_sign_follow_up": {
+      "position_sign": -1,
+      "bounded_report": "position_sign_inverted_uart_20260730.json",
+      "bounded_frames": 180,
+      "bounded_write_failures": 0,
+      "systemd_report": "systemd_deployment_20260730.json",
+      "service_installed": true,
+      "service_enabled": true,
+      "service_active": true,
+      "service_restart_count": 0,
+      "status": "enabled_active"
+    }
+  }
+}

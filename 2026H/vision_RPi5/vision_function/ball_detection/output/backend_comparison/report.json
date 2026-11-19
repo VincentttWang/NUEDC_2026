@@ -1,0 +1,51 @@
+{
+  "kind": "yolo_backend_accuracy_comparison",
+  "date": "2026-07-29",
+  "source_image_count": 13,
+  "roi_xyxy": [300, 270, 1150, 420],
+  "imgsz": 320,
+  "confidence_threshold": 0.25,
+  "reference_model": "model/best.pt",
+  "candidates": {
+    "ncnn_fp32": {
+      "model": "model/best_ncnn_model",
+      "images_with_detection": 13,
+      "mean_center_delta_px": 0.381203,
+      "maximum_center_delta_px": 1.587734,
+      "mean_absolute_confidence_delta": 0.027784,
+      "maximum_absolute_confidence_delta": 0.082407
+    },
+    "ncnn_fp16": {
+      "model": "model/best_fp16_ncnn_model",
+      "images_with_detection": 13,
+      "mean_center_delta_px": 0.3797,
+      "maximum_center_delta_px": 1.580285,
+      "mean_absolute_confidence_delta": 0.025,
+      "maximum_absolute_confidence_delta": 0.076043,
+      "raspberry_pi_timing_status": "completed",
+      "raspberry_pi_static_predict_p95_ms": {
+        "2_threads": 20.177,
+        "4_threads": 19.087
+      },
+      "raspberry_pi_live_control_p95_ms": {
+        "2_threads": 28.41,
+        "4_threads": 27.986
+      }
+    }
+  },
+  "per_image_center_delta_px": [
+    {"image": "snapshot-2026-07-29T08-14-56-368Z.png", "ncnn_fp32": 0.022361, "ncnn_fp16": 0.014142},
+    {"image": "snapshot-2026-07-29T08-15-02-962Z.png", "ncnn_fp32": 0.208087, "ncnn_fp16": 0.194165},
+    {"image": "snapshot-2026-07-29T08-15-04-897Z.png", "ncnn_fp32": 0.277308, "ncnn_fp16": 0.277308},
+    {"image": "snapshot-2026-07-29T08-15-12-435Z.png", "ncnn_fp32": 0.172627, "ncnn_fp16": 0.182483},
+    {"image": "snapshot-2026-07-29T08-15-14-134Z.png", "ncnn_fp32": 0.201246, "ncnn_fp16": 0.210238},
+    {"image": "snapshot-2026-07-29T08-15-19-601Z.png", "ncnn_fp32": 0.106301, "ncnn_fp16": 0.1},
+    {"image": "snapshot-2026-07-29T08-15-21-566Z.png", "ncnn_fp32": 0.05, "ncnn_fp16": 0.044721},
+    {"image": "snapshot-2026-07-29T08-15-30-898Z.png", "ncnn_fp32": 0.080623, "ncnn_fp16": 0.086023},
+    {"image": "snapshot-2026-07-29T08-15-32-711Z.png", "ncnn_fp32": 0.31257, "ncnn_fp16": 0.311448},
+    {"image": "snapshot-2026-07-29T08-15-50-578Z.png", "ncnn_fp32": 0.796241, "ncnn_fp16": 0.78721},
+    {"image": "snapshot-2026-07-29T08-15-52-334Z.png", "ncnn_fp32": 0.549181, "ncnn_fp16": 0.557315},
+    {"image": "snapshot-2026-07-29T08-16-02-866Z.png", "ncnn_fp32": 1.587734, "ncnn_fp16": 1.580285},
+    {"image": "snapshot-2026-07-29T08-16-04-782Z.png", "ncnn_fp32": 0.591354, "ncnn_fp16": 0.591354}
+  ]
+}

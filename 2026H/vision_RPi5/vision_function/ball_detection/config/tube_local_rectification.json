@@ -1,0 +1,33 @@
+{
+  "schema_version": 2,
+  "coordinate_space": "tube_local_rectified_plane",
+  "reference_image_size": {
+    "width": 1280,
+    "height": 720
+  },
+  "production_decode_scale": 2,
+  "fisheye_balance": 0.2,
+  "reference_rectified_region": {
+    "left": 80,
+    "top": 252,
+    "width": 1280,
+    "height": 200
+  },
+  "production_output": {
+    "origin_xy": [40, 126],
+    "width": 640,
+    "height": 100
+  },
+  "model_letterbox": {
+    "width": 320,
+    "height": 320,
+    "preserve_aspect_ratio": true,
+    "padding": "black"
+  },
+  "boundary_dataset": "data/raw/boundary",
+  "notes": [
+    "The output is a crop of an infinitely extended balance=0.2 rectified plane, not a crop constrained to the nominal 1280x720 canvas.",
+    "The 640x100 production image retains the current pixel density and covers both observed physical ball limits with margin.",
+    "Coordinates consumed by scale_location are measured before model letterboxing."
+  ]
+}

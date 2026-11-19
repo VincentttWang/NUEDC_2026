@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "coordinate_system": "production ROI after 640x360 fisheye correction with balance=0.2",
+  "rectified_origin_xy": [60, 140],
+  "image_size": [570, 80],
+  "fisheye_balance": 0.2,
+  "class_name": "steel_ball",
+  "annotations": {
+    "snapshot-2026-07-30T00-58-39-377Z.png": [232.5, 35.5, 9.6],
+    "snapshot-2026-07-30T00-58-49-486Z.png": [170.5, 37.5, 11.3],
+    "snapshot-2026-07-30T00-59-37-465Z.png": [74.5, 34.0, 10.0],
+    "snapshot-2026-07-30T00-59-47-619Z.png": [112.5, 36.5, 9.4],
+    "snapshot-2026-07-30T01-00-19-926Z.png": [135.5, 36.5, 9.3],
+    "snapshot-2026-07-30T01-00-29-346Z.png": [178.5, 37.5, 11.1],
+    "snapshot-2026-07-30T01-00-40-301Z.png": [189.5, 36.5, 9.4],
+    "snapshot-2026-07-30T01-00-48-503Z.png": [213.5, 36.5, 10.2],
+    "snapshot-2026-07-30T01-00-54-326Z.png": [270.5, 33.5, 8.8],
+    "snapshot-2026-07-30T01-01-17-534Z.png": [264.5, 35.5, 8.4],
+    "snapshot-2026-07-30T01-01-23-947Z.png": [312.5, 34.5, 8.8],
+    "snapshot-2026-07-30T01-01-30-767Z.png": [333.5, 34.5, 9.6],
+    "snapshot-2026-07-30T01-01-47-200Z.png": [351.5, 34.5, 9.4],
+    "snapshot-2026-07-30T01-01-53-953Z.png": [375.5, 33.5, 10.2],
+    "snapshot-2026-07-30T01-02-26-366Z.png": [398.5, 33.5, 9.1],
+    "snapshot-2026-07-30T01-02-33-236Z.png": [446.5, 34.5, 9.4],
+    "snapshot-2026-07-30T01-02-40-803Z.png": [469.5, 34.5, 10.3],
+    "snapshot-2026-07-30T01-02-47-370Z.png": [502.5, 34.5, 15.0],
+    "snapshot-2026-07-30T01-02-56-333Z.png": [503.5, 33.5, 13.0],
+    "snapshot-2026-07-30T01-03-06-769Z.png": [534.2, 31.9, 12.0],
+    "snapshot-2026-07-30T01-03-25-934Z.png": [546.8, 31.5, 12.0]
+  },
+  "notes": [
+    "Annotations were initialized with circle geometry and the previous detector, then visually checked.",
+    "Each value is [center_x, center_y, radius] in the 570x80 production ROI.",
+    "Rightmost balls are partially close to the ROI boundary and remain valid training samples."
+  ]
+}

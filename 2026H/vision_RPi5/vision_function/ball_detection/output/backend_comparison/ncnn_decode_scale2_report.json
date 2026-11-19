@@ -1,0 +1,392 @@
+{
+  "model": "vision_function/ball_detection/model/best_ncnn_model",
+  "model_names": {
+    "0": "steel_ball"
+  },
+  "image_count": 13,
+  "image_size": [
+    1280,
+    720
+  ],
+  "source_scale": 2,
+  "inference_image_size": [
+    640,
+    360
+  ],
+  "roi_xyxy": [
+    300,
+    270,
+    1150,
+    420
+  ],
+  "inference_roi_xyxy": [
+    150,
+    135,
+    575,
+    210
+  ],
+  "imgsz": 320,
+  "confidence_threshold": 0.25,
+  "full_total_seconds": 0.183581,
+  "roi_total_seconds": 0.177372,
+  "full_ms_per_image": 14.122,
+  "roi_ms_per_image": 13.644,
+  "full_images_with_detection": 2,
+  "roi_images_with_detection": 13,
+  "full_detection_count": 2,
+  "roi_detection_count": 13,
+  "full_mean_confidence": 0.29962,
+  "roi_mean_confidence": 0.693704,
+  "images": [
+    {
+      "image": "snapshot-2026-07-29T08-14-56-368Z.png",
+      "full": [],
+      "roi": [
+        {
+          "class_id": 0,
+          "confidence": 0.803287,
+          "box_xyxy": [
+            827.16,
+            342.41,
+            868.21,
+            385.43
+          ],
+          "center_xy": [
+            847.68,
+            363.92
+          ],
+          "size_wh": [
+            41.06,
+            43.01
+          ]
+        }
+      ]
+    },
+    {
+      "image": "snapshot-2026-07-29T08-15-02-962Z.png",
+      "full": [],
+      "roi": [
+        {
+          "class_id": 0,
+          "confidence": 0.748775,
+          "box_xyxy": [
+            825.48,
+            337.69,
+            870.07,
+            382.34
+          ],
+          "center_xy": [
+            847.77,
+            360.01
+          ],
+          "size_wh": [
+            44.59,
+            44.65
+          ]
+        }
+      ]
+    },
+    {
+      "image": "snapshot-2026-07-29T08-15-04-897Z.png",
+      "full": [],
+      "roi": [
+        {
+          "class_id": 0,
+          "confidence": 0.770662,
+          "box_xyxy": [
+            820.94,
+            340.27,
+            861.58,
+            382.83
+          ],
+          "center_xy": [
+            841.26,
+            361.55
+          ],
+          "size_wh": [
+            40.64,
+            42.56
+          ]
+        }
+      ]
+    },
+    {
+      "image": "snapshot-2026-07-29T08-15-12-435Z.png",
+      "full": [],
+      "roi": [
+        {
+          "class_id": 0,
+          "confidence": 0.668375,
+          "box_xyxy": [
+            859.3,
+            315.57,
+            900.37,
+            356.76
+          ],
+          "center_xy": [
+            879.83,
+            336.17
+          ],
+          "size_wh": [
+            41.07,
+            41.19
+          ]
+        }
+      ]
+    },
+    {
+      "image": "snapshot-2026-07-29T08-15-14-134Z.png",
+      "full": [],
+      "roi": [
+        {
+          "class_id": 0,
+          "confidence": 0.681448,
+          "box_xyxy": [
+            852.63,
+            316.15,
+            893.89,
+            356.26
+          ],
+          "center_xy": [
+            873.26,
+            336.21
+          ],
+          "size_wh": [
+            41.26,
+            40.12
+          ]
+        }
+      ]
+    },
+    {
+      "image": "snapshot-2026-07-29T08-15-19-601Z.png",
+      "full": [
+        {
+          "class_id": 0,
+          "confidence": 0.333611,
+          "box_xyxy": [
+            1.4,
+            671.84,
+            113.71,
+            718.26
+          ],
+          "center_xy": [
+            57.55,
+            695.05
+          ],
+          "size_wh": [
+            112.31,
+            46.41
+          ]
+        }
+      ],
+      "roi": [
+        {
+          "class_id": 0,
+          "confidence": 0.780309,
+          "box_xyxy": [
+            920.9,
+            326.01,
+            964.3,
+            368.87
+          ],
+          "center_xy": [
+            942.6,
+            347.44
+          ],
+          "size_wh": [
+            43.4,
+            42.86
+          ]
+        }
+      ]
+    },
+    {
+      "image": "snapshot-2026-07-29T08-15-21-566Z.png",
+      "full": [],
+      "roi": [
+        {
+          "class_id": 0,
+          "confidence": 0.600311,
+          "box_xyxy": [
+            929.94,
+            319.07,
+            967.53,
+            359.58
+          ],
+          "center_xy": [
+            948.73,
+            339.32
+          ],
+          "size_wh": [
+            37.59,
+            40.51
+          ]
+        }
+      ]
+    },
+    {
+      "image": "snapshot-2026-07-29T08-15-30-898Z.png",
+      "full": [],
+      "roi": [
+        {
+          "class_id": 0,
+          "confidence": 0.743079,
+          "box_xyxy": [
+            693.1,
+            324.25,
+            734.62,
+            366.33
+          ],
+          "center_xy": [
+            713.86,
+            345.29
+          ],
+          "size_wh": [
+            41.52,
+            42.09
+          ]
+        }
+      ]
+    },
+    {
+      "image": "snapshot-2026-07-29T08-15-32-711Z.png",
+      "full": [],
+      "roi": [
+        {
+          "class_id": 0,
+          "confidence": 0.693376,
+          "box_xyxy": [
+            686.38,
+            320.27,
+            730.79,
+            366.64
+          ],
+          "center_xy": [
+            708.58,
+            343.45
+          ],
+          "size_wh": [
+            44.41,
+            46.37
+          ]
+        }
+      ]
+    },
+    {
+      "image": "snapshot-2026-07-29T08-15-50-578Z.png",
+      "full": [],
+      "roi": [
+        {
+          "class_id": 0,
+          "confidence": 0.461564,
+          "box_xyxy": [
+            597.07,
+            297.07,
+            639.04,
+            341.39
+          ],
+          "center_xy": [
+            618.06,
+            319.23
+          ],
+          "size_wh": [
+            41.97,
+            44.32
+          ]
+        }
+      ]
+    },
+    {
+      "image": "snapshot-2026-07-29T08-15-52-334Z.png",
+      "full": [
+        {
+          "class_id": 0,
+          "confidence": 0.26563,
+          "box_xyxy": [
+            0.01,
+            678.4,
+            32.5,
+            720.0
+          ],
+          "center_xy": [
+            16.26,
+            699.2
+          ],
+          "size_wh": [
+            32.49,
+            41.6
+          ]
+        }
+      ],
+      "roi": [
+        {
+          "class_id": 0,
+          "confidence": 0.71394,
+          "box_xyxy": [
+            598.93,
+            304.08,
+            637.83,
+            344.58
+          ],
+          "center_xy": [
+            618.38,
+            324.33
+          ],
+          "size_wh": [
+            38.9,
+            40.5
+          ]
+        }
+      ]
+    },
+    {
+      "image": "snapshot-2026-07-29T08-16-02-866Z.png",
+      "full": [],
+      "roi": [
+        {
+          "class_id": 0,
+          "confidence": 0.61518,
+          "box_xyxy": [
+            435.61,
+            291.89,
+            481.51,
+            335.17
+          ],
+          "center_xy": [
+            458.56,
+            313.53
+          ],
+          "size_wh": [
+            45.89,
+            43.28
+          ]
+        }
+      ]
+    },
+    {
+      "image": "snapshot-2026-07-29T08-16-04-782Z.png",
+      "full": [],
+      "roi": [
+        {
+          "class_id": 0,
+          "confidence": 0.737848,
+          "box_xyxy": [
+            430.71,
+            302.11,
+            474.43,
+            346.54
+          ],
+          "center_xy": [
+            452.57,
+            324.32
+          ],
+          "size_wh": [
+            43.72,
+            44.43
+          ]
+        }
+      ]
+    }
+  ]
+}

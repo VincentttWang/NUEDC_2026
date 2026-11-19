@@ -1,0 +1,49 @@
+#!/bin/bash
+# camres - 切换摄像头推流分辨率/帧率
+# 用法:
+#   camres                  查看当前配置与状态
+#   camres 1280x720         切换分辨率
+#   camres 1280x720 30      同时指定帧率
+set -e
+
+ENVFILE=/etc/default/ustreamer
+
+show() {
+  echo "当前配置 ($ENVFILE):"
+  grep -E '^(RESOLUTION|FPS|PORT)=' "$ENVFILE" | sed 's/^/  /'
+  echo
+  echo "服务状态: $(systemctl is-active ustreamer)"
+  curl -s --max-time 3 "http://127.0.0.1:$(grep '^PORT=' $ENVFILE | cut -d= -f2)/state" 2>/dev/null \
+    | python3 -c '
+import sys, json
+try:
+    r = json.load(sys.stdin)["result"]
+    s, st = r["source"], r["stream"]
+    w = s["resolution"]["width"]
+    h = s["resolution"]["height"]
+    print("  实际: %dx%d  采集 %dfps  编码 %s  观看端 %d"
+          % (w, h, s["captured_fps"], r["encoder"]["type"], st["clients"]))
+except Exception:
+    pass'
+}
+
+if [ $# -eq 0 ]; then
+  show
+  exit 0
+fi
+
+RES="$1"
+if ! echo "$RES" | grep -qE '^[0-9]+x[0-9]+$'; then
+  echo "错误: 分辨率格式应为 宽x高, 例如 1280x720" >&2
+  exit 1
+fi
+
+sudo sed -i "s/^RESOLUTION=.*/RESOLUTION=$RES/" "$ENVFILE"
+if [ -n "$2" ]; then
+  sudo sed -i "s/^FPS=.*/FPS=$2/" "$ENVFILE"
+fi
+
+sudo systemctl restart ustreamer
+sleep 3
+echo "已切换 ->"
+show

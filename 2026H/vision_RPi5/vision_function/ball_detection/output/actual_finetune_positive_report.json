@@ -1,0 +1,512 @@
+{
+  "model": "/home/mizuku/NUEDC_2026_H_VISION/vision_function/ball_detection/model/actual_yolo11n_v1_ncnn_model",
+  "roi_config": "/home/mizuku/NUEDC_2026_H_VISION/vision_function/ball_detection/config/actual_roi.json",
+  "imgsz": 320,
+  "confidence_threshold": 0.25,
+  "images": [
+    {
+      "found": true,
+      "candidate_count": 1,
+      "confidence": 0.771578,
+      "center_reference_xy": [
+        583.303,
+        352.375
+      ],
+      "center_production_xy": [
+        291.652,
+        176.188
+      ],
+      "center_roi_xy": [
+        231.652,
+        36.188
+      ],
+      "box_reference_xyxy": [
+        558.69,
+        328.171,
+        607.917,
+        376.58
+      ],
+      "image": "snapshot-2026-07-30T00-58-39-377Z.png"
+    },
+    {
+      "found": true,
+      "candidate_count": 1,
+      "confidence": 0.764907,
+      "center_reference_xy": [
+        458.221,
+        352.796
+      ],
+      "center_production_xy": [
+        229.111,
+        176.398
+      ],
+      "center_roi_xy": [
+        169.111,
+        36.398
+      ],
+      "box_reference_xyxy": [
+        434.885,
+        330.076,
+        481.558,
+        375.517
+      ],
+      "image": "snapshot-2026-07-30T00-58-49-486Z.png"
+    },
+    {
+      "found": true,
+      "candidate_count": 1,
+      "confidence": 0.592911,
+      "center_reference_xy": [
+        266.477,
+        354.256
+      ],
+      "center_production_xy": [
+        133.239,
+        177.128
+      ],
+      "center_roi_xy": [
+        73.239,
+        37.128
+      ],
+      "box_reference_xyxy": [
+        243.197,
+        329.964,
+        289.758,
+        378.549
+      ],
+      "image": "snapshot-2026-07-30T00-59-37-465Z.png"
+    },
+    {
+      "found": true,
+      "candidate_count": 1,
+      "confidence": 0.732858,
+      "center_reference_xy": [
+        347.516,
+        353.035
+      ],
+      "center_production_xy": [
+        173.758,
+        176.517
+      ],
+      "center_roi_xy": [
+        113.758,
+        36.517
+      ],
+      "box_reference_xyxy": [
+        323.432,
+        329.233,
+        371.601,
+        376.837
+      ],
+      "image": "snapshot-2026-07-30T00-59-47-619Z.png"
+    },
+    {
+      "found": true,
+      "candidate_count": 1,
+      "confidence": 0.784981,
+      "center_reference_xy": [
+        394.852,
+        353.573
+      ],
+      "center_production_xy": [
+        197.426,
+        176.787
+      ],
+      "center_roi_xy": [
+        137.426,
+        36.787
+      ],
+      "box_reference_xyxy": [
+        368.401,
+        328.505,
+        421.303,
+        378.641
+      ],
+      "image": "snapshot-2026-07-30T01-00-19-926Z.png"
+    },
+    {
+      "found": true,
+      "candidate_count": 1,
+      "confidence": 0.755376,
+      "center_reference_xy": [
+        472.544,
+        351.522
+      ],
+      "center_production_xy": [
+        236.272,
+        175.761
+      ],
+      "center_roi_xy": [
+        176.272,
+        35.761
+      ],
+      "box_reference_xyxy": [
+        448.394,
+        328.877,
+        496.694,
+        374.166
+      ],
+      "image": "snapshot-2026-07-30T01-00-29-346Z.png"
+    },
+    {
+      "found": true,
+      "candidate_count": 1,
+      "confidence": 0.702154,
+      "center_reference_xy": [
+        498.369,
+        352.904
+      ],
+      "center_production_xy": [
+        249.184,
+        176.452
+      ],
+      "center_roi_xy": [
+        189.184,
+        36.452
+      ],
+      "box_reference_xyxy": [
+        474.213,
+        328.952,
+        522.524,
+        376.857
+      ],
+      "image": "snapshot-2026-07-30T01-00-40-301Z.png"
+    },
+    {
+      "found": true,
+      "candidate_count": 1,
+      "confidence": 0.792196,
+      "center_reference_xy": [
+        545.72,
+        353.714
+      ],
+      "center_production_xy": [
+        272.86,
+        176.857
+      ],
+      "center_roi_xy": [
+        212.86,
+        36.857
+      ],
+      "box_reference_xyxy": [
+        521.578,
+        329.413,
+        569.862,
+        378.014
+      ],
+      "image": "snapshot-2026-07-30T01-00-48-503Z.png"
+    },
+    {
+      "found": true,
+      "candidate_count": 1,
+      "confidence": 0.766837,
+      "center_reference_xy": [
+        660.391,
+        351.962
+      ],
+      "center_production_xy": [
+        330.195,
+        175.981
+      ],
+      "center_roi_xy": [
+        270.195,
+        35.981
+      ],
+      "box_reference_xyxy": [
+        635.211,
+        327.196,
+        685.571,
+        376.729
+      ],
+      "image": "snapshot-2026-07-30T01-00-54-326Z.png"
+    },
+    {
+      "found": true,
+      "candidate_count": 1,
+      "confidence": 0.784574,
+      "center_reference_xy": [
+        648.52,
+        351.63
+      ],
+      "center_production_xy": [
+        324.26,
+        175.815
+      ],
+      "center_roi_xy": [
+        264.26,
+        35.815
+      ],
+      "box_reference_xyxy": [
+        622.504,
+        326.141,
+        674.536,
+        377.12
+      ],
+      "image": "snapshot-2026-07-30T01-01-17-534Z.png"
+    },
+    {
+      "found": true,
+      "candidate_count": 1,
+      "confidence": 0.706938,
+      "center_reference_xy": [
+        745.019,
+        350.895
+      ],
+      "center_production_xy": [
+        372.509,
+        175.447
+      ],
+      "center_roi_xy": [
+        312.509,
+        35.447
+      ],
+      "box_reference_xyxy": [
+        720.745,
+        327.729,
+        769.293,
+        374.06
+      ],
+      "image": "snapshot-2026-07-30T01-01-23-947Z.png"
+    },
+    {
+      "found": true,
+      "candidate_count": 1,
+      "confidence": 0.719375,
+      "center_reference_xy": [
+        786.898,
+        351.465
+      ],
+      "center_production_xy": [
+        393.449,
+        175.733
+      ],
+      "center_roi_xy": [
+        333.449,
+        35.733
+      ],
+      "box_reference_xyxy": [
+        761.955,
+        326.576,
+        811.842,
+        376.355
+      ],
+      "image": "snapshot-2026-07-30T01-01-30-767Z.png"
+    },
+    {
+      "found": true,
+      "candidate_count": 1,
+      "confidence": 0.767574,
+      "center_reference_xy": [
+        821.095,
+        351.274
+      ],
+      "center_production_xy": [
+        410.547,
+        175.637
+      ],
+      "center_roi_xy": [
+        350.547,
+        35.637
+      ],
+      "box_reference_xyxy": [
+        794.113,
+        325.59,
+        848.077,
+        376.958
+      ],
+      "image": "snapshot-2026-07-30T01-01-47-200Z.png"
+    },
+    {
+      "found": true,
+      "candidate_count": 1,
+      "confidence": 0.752046,
+      "center_reference_xy": [
+        871.674,
+        351.604
+      ],
+      "center_production_xy": [
+        435.837,
+        175.802
+      ],
+      "center_roi_xy": [
+        375.837,
+        35.802
+      ],
+      "box_reference_xyxy": [
+        845.356,
+        325.867,
+        897.992,
+        377.341
+      ],
+      "image": "snapshot-2026-07-30T01-01-53-953Z.png"
+    },
+    {
+      "found": true,
+      "candidate_count": 1,
+      "confidence": 0.662645,
+      "center_reference_xy": [
+        916.926,
+        351.839
+      ],
+      "center_production_xy": [
+        458.463,
+        175.919
+      ],
+      "center_roi_xy": [
+        398.463,
+        35.919
+      ],
+      "box_reference_xyxy": [
+        886.331,
+        323.031,
+        947.522,
+        380.647
+      ],
+      "image": "snapshot-2026-07-30T01-02-26-366Z.png"
+    },
+    {
+      "found": true,
+      "candidate_count": 1,
+      "confidence": 0.668048,
+      "center_reference_xy": [
+        1009.273,
+        351.004
+      ],
+      "center_production_xy": [
+        504.637,
+        175.502
+      ],
+      "center_roi_xy": [
+        444.637,
+        35.502
+      ],
+      "box_reference_xyxy": [
+        981.716,
+        324.14,
+        1036.831,
+        377.868
+      ],
+      "image": "snapshot-2026-07-30T01-02-33-236Z.png"
+    },
+    {
+      "found": true,
+      "candidate_count": 2,
+      "confidence": 0.693927,
+      "center_reference_xy": [
+        1053.193,
+        348.359
+      ],
+      "center_production_xy": [
+        526.596,
+        174.18
+      ],
+      "center_roi_xy": [
+        466.596,
+        34.18
+      ],
+      "box_reference_xyxy": [
+        1026.786,
+        322.098,
+        1079.599,
+        374.62
+      ],
+      "image": "snapshot-2026-07-30T01-02-40-803Z.png"
+    },
+    {
+      "found": true,
+      "candidate_count": 2,
+      "confidence": 0.624142,
+      "center_reference_xy": [
+        1126.292,
+        349.54
+      ],
+      "center_production_xy": [
+        563.146,
+        174.77
+      ],
+      "center_roi_xy": [
+        503.146,
+        34.77
+      ],
+      "box_reference_xyxy": [
+        1097.916,
+        322.008,
+        1154.668,
+        377.071
+      ],
+      "image": "snapshot-2026-07-30T01-02-47-370Z.png"
+    },
+    {
+      "found": true,
+      "candidate_count": 2,
+      "confidence": 0.699626,
+      "center_reference_xy": [
+        1137.076,
+        349.186
+      ],
+      "center_production_xy": [
+        568.538,
+        174.593
+      ],
+      "center_roi_xy": [
+        508.538,
+        34.593
+      ],
+      "box_reference_xyxy": [
+        1108.098,
+        320.97,
+        1166.054,
+        377.403
+      ],
+      "image": "snapshot-2026-07-30T01-02-56-333Z.png"
+    },
+    {
+      "found": true,
+      "candidate_count": 2,
+      "confidence": 0.60668,
+      "center_reference_xy": [
+        1181.701,
+        347.391
+      ],
+      "center_production_xy": [
+        590.85,
+        173.696
+      ],
+      "center_roi_xy": [
+        530.85,
+        33.696
+      ],
+      "box_reference_xyxy": [
+        1145.204,
+        312.891,
+        1218.197,
+        381.891
+      ],
+      "image": "snapshot-2026-07-30T01-03-06-769Z.png"
+    },
+    {
+      "found": true,
+      "candidate_count": 1,
+      "confidence": 0.663399,
+      "center_reference_xy": [
+        1204.606,
+        350.607
+      ],
+      "center_production_xy": [
+        602.303,
+        175.304
+      ],
+      "center_roi_xy": [
+        542.303,
+        35.304
+      ],
+      "box_reference_xyxy": [
+        1167.257,
+        319.002,
+        1241.955,
+        382.213
+      ],
+      "image": "snapshot-2026-07-30T01-03-25-934Z.png"
+    }
+  ]
+}

@@ -1,0 +1,201 @@
+{
+  "kind": "live_camera_preprocess",
+  "platform": {
+    "hostname": "NaiLong",
+    "platform": "Linux-6.18.34+rpt-rpi-2712-aarch64-with-glibc2.41",
+    "machine": "aarch64",
+    "python": "3.13.5",
+    "opencv": "5.0.0",
+    "logical_cpu_count": 4
+  },
+  "acquisition_source": "snapshot",
+  "source_url": "http://127.0.0.1:8080/snapshot",
+  "decode_scale": 2,
+  "coordinate_restore_scale": 2,
+  "frame_size": [
+    640,
+    360
+  ],
+  "reference_roi_xyxy": [
+    300,
+    270,
+    1150,
+    420
+  ],
+  "roi_xyxy": [
+    150,
+    135,
+    575,
+    210
+  ],
+  "remap_mode": "roi",
+  "diagnostic_encode_scope": "roi",
+  "warmup_iterations": 10,
+  "measured_iterations": 130,
+  "opencv_threads": 1,
+  "with_yolo": true,
+  "model": "vision_function/ball_detection/model/best_ncnn_model",
+  "inference_backend": "ncnn",
+  "model_load_ms": 1.412,
+  "imgsz": 320,
+  "confidence_threshold": 0.25,
+  "torch_threads": null,
+  "ncnn_threads": 2,
+  "jpeg_quality": 85,
+  "first_undistort_with_map_build_ms": 1.907,
+  "timing_ms": {
+    "acquire_encoded_jpeg": {
+      "count": 130,
+      "mean": 0.586,
+      "p50": 0.574,
+      "p90": 0.641,
+      "p95": 0.663,
+      "p99": 0.718,
+      "minimum": 0.538,
+      "maximum": 0.771
+    },
+    "frame_age_at_acquire_end": {
+      "count": 130,
+      "mean": 0.31,
+      "p50": 0.283,
+      "p90": 0.745,
+      "p95": 0.821,
+      "p99": 0.84,
+      "minimum": -0.163,
+      "maximum": 0.871
+    },
+    "jpeg_decode": {
+      "count": 130,
+      "mean": 3.567,
+      "p50": 3.56,
+      "p90": 3.618,
+      "p95": 3.634,
+      "p99": 3.668,
+      "minimum": 3.454,
+      "maximum": 3.704
+    },
+    "fisheye_remap": {
+      "count": 130,
+      "mean": 0.631,
+      "p50": 0.619,
+      "p90": 0.692,
+      "p95": 0.7,
+      "p99": 0.727,
+      "minimum": 0.601,
+      "maximum": 0.734
+    },
+    "roi_copy": {
+      "count": 130,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p90": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "minimum": 0.0,
+      "maximum": 0.0
+    },
+    "yolo_wall": {
+      "count": 130,
+      "mean": 19.889,
+      "p50": 19.86,
+      "p90": 20.128,
+      "p95": 20.174,
+      "p99": 20.354,
+      "minimum": 19.548,
+      "maximum": 20.649
+    },
+    "yolo_inference": {
+      "count": 130,
+      "mean": 18.125,
+      "p50": 18.114,
+      "p90": 18.327,
+      "p95": 18.395,
+      "p99": 18.58,
+      "minimum": 17.812,
+      "maximum": 18.597
+    },
+    "control_total_without_diagnostic_encode": {
+      "count": 130,
+      "mean": 24.689,
+      "p50": 24.633,
+      "p90": 25.014,
+      "p95": 25.075,
+      "p99": 25.233,
+      "minimum": 24.319,
+      "maximum": 25.446
+    },
+    "frame_timestamp_to_control_result": {
+      "count": 130,
+      "mean": 24.412,
+      "p50": 24.386,
+      "p90": 24.935,
+      "p95": 25.08,
+      "p99": 25.235,
+      "minimum": 23.642,
+      "maximum": 25.296
+    },
+    "diagnostic_jpeg_encode": {
+      "count": 130,
+      "mean": 0.306,
+      "p50": 0.294,
+      "p90": 0.333,
+      "p95": 0.375,
+      "p99": 0.392,
+      "minimum": 0.287,
+      "maximum": 0.394
+    },
+    "total_including_diagnostic_encode": {
+      "count": 130,
+      "mean": 24.997,
+      "p50": 24.945,
+      "p90": 25.308,
+      "p95": 25.382,
+      "p99": 25.529,
+      "minimum": 24.614,
+      "maximum": 25.741
+    },
+    "frame_timestamp_to_total_result": {
+      "count": 130,
+      "mean": 24.721,
+      "p50": 24.696,
+      "p90": 25.23,
+      "p95": 25.375,
+      "p99": 25.531,
+      "minimum": 23.94,
+      "maximum": 25.591
+    }
+  },
+  "input_jpeg_bytes": {
+    "count": 130,
+    "mean": 122699.938,
+    "p50": 122703.0,
+    "p90": 122864.2,
+    "p95": 122954.8,
+    "p99": 123020.46,
+    "minimum": 122404.0,
+    "maximum": 123080.0
+  },
+  "diagnostic_jpeg_bytes": {
+    "count": 130,
+    "mean": 7176.138,
+    "p50": 7175.0,
+    "p90": 7203.3,
+    "p95": 7209.55,
+    "p99": 7227.39,
+    "minimum": 7135.0,
+    "maximum": 7233.0
+  },
+  "equivalent_fps_from_control_p95": 39.881,
+  "frames_with_detection": 0,
+  "total_detections": 0,
+  "thermal_start": {
+    "temperature": "temp=64.8'C",
+    "throttled": "throttled=0x0"
+  },
+  "thermal_end": {
+    "temperature": "temp=68.1'C",
+    "throttled": "throttled=0x0"
+  },
+  "max_rss_kib": 423904,
+  "note": "uStreamer receives hardware-encoded MJPEG; corrected JPEG encoding is measured separately for diagnostics and is not required by the control loop."
+}

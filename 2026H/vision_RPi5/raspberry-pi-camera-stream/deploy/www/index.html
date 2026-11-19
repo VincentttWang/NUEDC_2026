@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>树莓派摄像头 · 实时画面</title>
+<style>
+  :root {
+    --bg: #0d0f12; --panel: #16191f; --line: #262b33;
+    --fg: #e6e9ef; --dim: #8b93a1;
+    --ok: #4ade80; --warn: #fbbf24; --bad: #f87171; --accent: #60a5fa;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 14px/1.5 -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    display: flex; flex-direction: column; min-height: 100vh;
+  }
+  header {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--line);
+  }
+  h1 { font-size: 15px; margin: 0; font-weight: 600; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--bad); }
+  .dot.on { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+  .spacer { flex: 1; }
+  button {
+    background: #222833; color: var(--fg); border: 1px solid var(--line);
+    padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px;
+  }
+  button:hover { background: #2b3240; border-color: #3a4250; }
+  button.active { background: var(--accent); border-color: var(--accent); color: #0d0f12; font-weight: 600; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  button.recording { background: var(--bad); border-color: var(--bad); color: #0d0f12; font-weight: 600; }
+
+  main { flex: 1; display: flex; align-items: flex-start; justify-content: center; padding: 16px; gap: 16px; flex-wrap: wrap; }
+
+  #stage { position: relative; line-height: 0; }
+  #gl { max-width: 100%; max-height: calc(100vh - 210px); border-radius: 8px; border: 1px solid var(--line); background: #000; display: block; }
+  #src { display: none; }
+  #grid {
+    position: absolute; inset: 0; pointer-events: none; display: none;
+    border-radius: 8px;
+    background-image:
+      repeating-linear-gradient(to right,  rgba(96,165,250,.55) 0 1px, transparent 1px 10%),
+      repeating-linear-gradient(to bottom, rgba(96,165,250,.55) 0 1px, transparent 1px 10%);
+  }
+  #grid.show { display: block; }
+
+  /* 调参面板 */
+  #panel {
+    width: 290px; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 8px; padding: 14px; display: none; flex-direction: column; gap: 12px;
+  }
+  #panel.show { display: flex; }
+  #panel h2 { margin: 0; font-size: 13px; font-weight: 600; color: var(--dim); letter-spacing: .5px; }
+  .row label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; }
+  .row label b { font-family: ui-monospace, Consolas, monospace; color: var(--accent); font-weight: 600; }
+  .row input[type=range] { width: 100%; accent-color: var(--accent); }
+  .hint { font-size: 11px; color: var(--dim); line-height: 1.5; }
+  .btnrow { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btnrow button { flex: 1; padding: 5px 8px; font-size: 12px; }
+  #params {
+    font: 11px/1.5 ui-monospace, Consolas, monospace; color: var(--dim);
+    background: #0d0f12; border: 1px solid var(--line); border-radius: 5px;
+    padding: 7px; word-break: break-all; white-space: pre-wrap;
+  }
+
+  #clockbox { display: none; flex-direction: column; align-items: center; gap: 8px; background: #fff; color: #000; padding: 20px 24px; border-radius: 8px; }
+  #clockbox.show { display: flex; }
+  #clock { font: 700 60px/1 ui-monospace, Consolas, monospace; font-variant-numeric: tabular-nums; letter-spacing: -2px; }
+  #clockbox small { color: #444; font-size: 12px; max-width: 250px; text-align: center; }
+
+  footer {
+    display: flex; gap: 18px; flex-wrap: wrap; align-items: center;
+    padding: 8px 16px; background: var(--panel); border-top: 1px solid var(--line);
+    font: 12px/1.6 ui-monospace, Consolas, monospace; color: var(--dim);
+  }
+  footer b { color: var(--fg); font-weight: 600; }
+  .lag-ok b { color: var(--ok); } .lag-warn b { color: var(--warn); } .lag-bad b { color: var(--bad); }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="dot" id="dot"></span>
+  <h1>树莓派摄像头 · 实时画面</h1>
+  <div class="spacer"></div>
+  <button id="btnUndist" class="active">去畸变预览</button>
+  <button id="btnTube">识别ROI</button>
+  <button id="btnPanel">调参</button>
+  <button id="btnLines" class="active">水平参考线</button>
+  <button id="btnGrid">参考网格</button>
+  <button id="btnClock">延迟测量</button>
+  <button id="btnSnap">保存截图</button>
+  <button id="btnRecord">开始录像</button>
+  <button id="btnReload">重连</button>
+</header>
+
+<main>
+  <div id="stage">
+    <canvas id="gl"></canvas>
+    <div id="grid"></div>
+  </div>
+  <img id="src" alt="">
+
+  <div id="panel">
+    <h2>OpenCV 鱼眼校正参数</h2>
+    <div class="row">
+      <label>k1 <b id="vk1">0</b></label>
+      <input type="range" id="k1" min="-0.25" max="0.10" step="0.0005" value="-0.0739402">
+    </div>
+    <div class="row">
+      <label>k2 <b id="vk2">0</b></label>
+      <input type="range" id="k2" min="-0.25" max="0.25" step="0.0005" value="-0.0350214">
+    </div>
+    <div class="row">
+      <label>k3 <b id="vk3">0</b></label>
+      <input type="range" id="k3" min="-0.25" max="0.25" step="0.0005" value="0.0288524">
+    </div>
+    <div class="row">
+      <label>k4 <b id="vk4">0</b></label>
+      <input type="range" id="k4" min="-0.25" max="0.25" step="0.0005" value="-0.00838685">
+    </div>
+    <div class="row">
+      <label>保留视野 · balance <b id="vbalance">0.00</b></label>
+      <input type="range" id="balance" min="0" max="1" step="0.01" value="0">
+    </div>
+    <div class="row">
+      <label>额外缩放 <b id="vzoom">1.00</b></label>
+      <input type="range" id="zoom" min="0.75" max="1.40" step="0.01" value="1">
+    </div>
+    <div class="row">
+      <label>光心 X 修正 <b id="vcxOffset">0 px</b></label>
+      <input type="range" id="cxOffset" min="-40" max="40" step="0.5" value="0">
+    </div>
+    <div class="row">
+      <label>光心 Y 修正 <b id="vcyOffset">0 px</b></label>
+      <input type="range" id="cyOffset" min="-40" max="40" step="0.5" value="0">
+    </div>
+
+    <h2>红色水平参考线（720p 基准坐标）</h2>
+    <div class="row">
+      <label>参考线 1 · Y <b id="vlineY1">307 px</b></label>
+      <input type="range" id="lineY1" min="0" max="719" step="1" value="307" disabled>
+    </div>
+    <div class="row">
+      <label>参考线 2 · Y <b id="vlineY2">422 px</b></label>
+      <input type="range" id="lineY2" min="0" max="719" step="1" value="422" disabled>
+    </div>
+    <p class="hint">
+      参考线位置已固定；顶部的<b>水平参考线</b>按钮用于显示或隐藏两条红线，
+      开关状态会自动保存在本机浏览器中。
+    </p>
+
+    <p class="hint">
+      默认值来自本摄像头 1280×720 棋盘格标定（17 张照片，RMS 0.344 px）。
+      通常只需调整 balance 和额外缩放；只有重新装配镜头后才建议修改 k1～k4 或光心修正。
+      打开<b>参考网格</b>可检查直线是否已经拉直。
+    </p>
+
+    <div class="btnrow">
+      <button id="btnReset">恢复标定值</button>
+      <button id="btnCopy">复制参数</button>
+    </div>
+    <div id="params"></div>
+  </div>
+
+  <div id="clockbox">
+    <div id="clock">--:--.---</div>
+    <small>把摄像头对准这块时钟。画面里显示的时间与这里的实时时间之差，就是端到端延迟。</small>
+  </div>
+</main>
+
+<footer>
+  <span>分辨率 <b id="res">-</b></span>
+  <span>采集 <b id="cfps">-</b> fps</span>
+  <span>本机接收 <b id="clfps">-</b> fps</span>
+  <span id="lagwrap">链路 <b id="lag">-</b></span>
+  <span>渲染 <b id="rfps">-</b> fps</span>
+  <span>校正 <b id="ustat">-</b></span>
+  <span>录像 <b id="recstat">未录制</b></span>
+</footer>
+
+<script>
+const $ = id => document.getElementById(id);
+const img = $('src'), canvas = $('gl');
+
+/* ---------------- 视频流 ---------------- */
+function connect() { img.src = '/stream?t=' + Date.now(); }
+img.addEventListener('error', () => { $('dot').classList.remove('on'); setTimeout(connect, 1500); });
+connect();
+
+/* ---------------- WebGL ---------------- */
+const gl = canvas.getContext('webgl', { antialias: false, preserveDrawingBuffer: true });
+if (!gl) alert('浏览器不支持 WebGL，无法进行畸变校正');
+
+const VS = `
+attribute vec2 aPos;
+varying vec2 vUv;
+void main() {
+  vUv = vec2(aPos.x * 0.5 + 0.5, 0.5 - aPos.y * 0.5);
+  gl_Position = vec4(aPos, 0.0, 1.0);
+}`;
+
+// OpenCV fisheye (Kannala-Brandt) 模型。
+// 对输出的无畸变像素反算其在原始鱼眼画面中的采样位置。
+const FS = `
+precision highp float;
+uniform sampler2D uTex;
+uniform vec4  uD;
+uniform vec4  uSourceK;
+uniform vec4  uOutputK;
+uniform vec2  uSourceSize;
+uniform vec2  uOutputSize;
+uniform bool  uEnable;
+uniform bool  uLinesEnable;
+uniform vec2  uLineY;
+uniform float uLineHalfWidth;
+varying vec2 vUv;
+void main() {
+  vec2 uv = vUv;
+  if (uEnable) {
+    vec2 pixel = vUv * uOutputSize;
+    vec2 ray = (pixel - uOutputK.zw) / uOutputK.xy;
+    float r = length(ray);
+    float theta = atan(r);
+    float t2 = theta * theta;
+    float thetaDistorted = theta * (1.0
+      + uD.x * t2
+      + uD.y * t2 * t2
+      + uD.z * t2 * t2 * t2
+      + uD.w * t2 * t2 * t2 * t2);
+    float scale = r > 0.000001 ? thetaDistorted / r : 1.0;
+    vec2 sourcePixel = uSourceK.xy * ray * scale + uSourceK.zw;
+    uv = sourcePixel / uSourceSize;
+  }
+  vec4 color = (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0)
+    ? vec4(0.0, 0.0, 0.0, 1.0)
+    : texture2D(uTex, uv);
+  float outputY = vUv.y * uOutputSize.y;
+  if (uLinesEnable &&
+      (abs(outputY - uLineY.x) <= uLineHalfWidth ||
+       abs(outputY - uLineY.y) <= uLineHalfWidth)) {
+    color = vec4(1.0, 0.0, 0.0, 1.0);
+  }
+  gl_FragColor = color;
+}`;
+
+function compile(type, src) {
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src); gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+  return s;
+}
+const prog = gl.createProgram();
+gl.attachShader(prog, compile(gl.VERTEX_SHADER, VS));
+gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FS));
+gl.linkProgram(prog);
+gl.useProgram(prog);
+
+const buf = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+const aPos = gl.getAttribLocation(prog, 'aPos');
+gl.enableVertexAttribArray(aPos);
+gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+
+const tex = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, tex);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+const U = n => gl.getUniformLocation(prog, n);
+const uD = U('uD'), uSourceK = U('uSourceK'), uOutputK = U('uOutputK'),
+      uSourceSize = U('uSourceSize'), uOutputSize = U('uOutputSize'),
+      uEnable = U('uEnable'), uLinesEnable = U('uLinesEnable'),
+      uLineY = U('uLineY'), uLineHalfWidth = U('uLineHalfWidth');
+
+/* ---------------- 参数 ---------------- */
+// 2026-07-10 使用同一摄像头完成的 OpenCV fisheye 标定。
+const CALIBRATION_SIZE = { width: 1280, height: 720 };
+const SOURCE_K = { fx: 630.5284274261, fy: 632.2453747166, cx: 645.8315400010, cy: 355.3036670075 };
+// OpenCV balance=0 和 balance=1 对应的新内参；中间值可线性插值。
+const OUTPUT_K_CROP = { fx: 544.0628051492, fy: 545.5443040295, cx: 666.8109080315, cy: 352.3339376189 };
+const OUTPUT_K_FULL = { fx: 280.3149460422, fy: 281.0782518127, cx: 653.8136593185, cy: 356.0502503711 };
+// 与树莓派 tube_local_rectification.json 相同的局部校正平面。
+const TUBE_REGION = { left: 80, top: 252, width: 1280, height: 200, balance: 0.2 };
+const DEFAULTS = {
+  k1: -0.0739401916, k2: -0.0350214347,
+  k3: 0.0288523938, k4: -0.0083868457,
+  balance: 0.0, zoom: 1.0, cxOffset: 0.0, cyOffset: 0.0
+};
+let P = Object.assign({}, DEFAULTS);
+const LINE_DEFAULTS = { enabled: true, y1: 307, y2: 422 };
+let lineSettings = Object.assign({}, LINE_DEFAULTS);
+let previewMode = 'full'; // full | raw | tube
+
+try {
+  const saved = JSON.parse(localStorage.getItem('camFisheyeUndistortV2') || 'null');
+  if (saved) P = Object.assign(P, saved);
+} catch (e) {}
+try {
+  const saved = JSON.parse(localStorage.getItem('camHorizontalReferenceLinesV1') || 'null');
+  if (saved && typeof saved.enabled === 'boolean') lineSettings.enabled = saved.enabled;
+} catch (e) {}
+
+const CTRLS = ['k1', 'k2', 'k3', 'k4', 'balance', 'zoom', 'cxOffset', 'cyOffset'];
+function syncUI() {
+  CTRLS.forEach(k => { $(k).value = P[k]; });
+  $('vk1').textContent   = (+P.k1).toFixed(5);
+  $('vk2').textContent   = (+P.k2).toFixed(5);
+  $('vk3').textContent   = (+P.k3).toFixed(5);
+  $('vk4').textContent   = (+P.k4).toFixed(5);
+  $('vbalance').textContent = (+P.balance).toFixed(2);
+  $('vzoom').textContent = (+P.zoom).toFixed(2);
+  $('vcxOffset').textContent = (+P.cxOffset).toFixed(1) + ' px';
+  $('vcyOffset').textContent = (+P.cyOffset).toFixed(1) + ' px';
+  $('lineY1').value = lineSettings.y1;
+  $('lineY2').value = lineSettings.y2;
+  $('vlineY1').textContent = Math.round(lineSettings.y1) + ' px';
+  $('vlineY2').textContent = Math.round(lineSettings.y2) + ' px';
+  $('btnLines').classList.toggle('active', lineSettings.enabled);
+  $('params').textContent =
+    'model=opencv_fisheye  calibration=1280x720' +
+    '\nk1=' + (+P.k1).toFixed(8) + '  k2=' + (+P.k2).toFixed(8) +
+    '\nk3=' + (+P.k3).toFixed(8) + '  k4=' + (+P.k4).toFixed(8) +
+    '\nbalance=' + (+P.balance).toFixed(3) + '  zoom=' + (+P.zoom).toFixed(3) +
+    '\ncenter_offset_px=(' + (+P.cxOffset).toFixed(1) + ', ' + (+P.cyOffset).toFixed(1) + ')';
+  $('btnUndist').classList.toggle('active', previewMode === 'full');
+  $('btnTube').classList.toggle('active', previewMode === 'tube');
+  $('ustat').textContent = previewMode === 'tube'
+    ? '识别ROI · 1280×200'
+    : previewMode === 'full'
+      ? '鱼眼标定 · balance=' + (+P.balance).toFixed(2)
+      : '原始画面';
+  localStorage.setItem('camFisheyeUndistortV2', JSON.stringify(P));
+  localStorage.setItem('camHorizontalReferenceLinesV1', JSON.stringify(lineSettings));
+}
+CTRLS.forEach(k => $(k).addEventListener('input', e => { P[k] = parseFloat(e.target.value); syncUI(); }));
+syncUI();
+
+$('btnReset').onclick = () => { P = Object.assign({}, DEFAULTS); syncUI(); };
+$('btnCopy').onclick  = () => {
+  navigator.clipboard.writeText($('params').textContent)
+    .then(() => { $('btnCopy').textContent = '已复制'; setTimeout(() => $('btnCopy').textContent = '复制参数', 1200); });
+};
+
+/* ---------------- 渲染循环 ---------------- */
+let frames = 0, lastT = performance.now(), sized = false;
+function render() {
+  requestAnimationFrame(render);
+  if (!img.naturalWidth) return;
+
+  const sourceWidth = img.naturalWidth;
+  const sourceHeight = img.naturalHeight;
+  const sourceScale = sourceWidth / CALIBRATION_SIZE.width;
+  const desiredWidth = previewMode === 'tube'
+    ? Math.round(TUBE_REGION.width * sourceScale)
+    : sourceWidth;
+  const desiredHeight = previewMode === 'tube'
+    ? Math.round(TUBE_REGION.height * sourceScale)
+    : sourceHeight;
+  if (!sized || canvas.width !== desiredWidth || canvas.height !== desiredHeight) {
+    canvas.width = desiredWidth;
+    canvas.height = desiredHeight;
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    sized = true;
+    $('dot').classList.add('on');
+  }
+
+  try {
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, img);
+  } catch (e) { return; }
+
+  const sx = sourceWidth / CALIBRATION_SIZE.width;
+  const sy = sourceHeight / CALIBRATION_SIZE.height;
+  const calibratedAspect = CALIBRATION_SIZE.width / CALIBRATION_SIZE.height;
+  const aspectOk = Math.abs(sourceWidth / sourceHeight - calibratedAspect) < 0.001;
+  const mix = (a, b, t) => a + (b - a) * t;
+  const balance = previewMode === 'tube' ? TUBE_REGION.balance : P.balance;
+  const zoom = previewMode === 'tube' ? 1.0 : P.zoom;
+  const outputFx = mix(OUTPUT_K_CROP.fx, OUTPUT_K_FULL.fx, balance) * sx * zoom;
+  const outputFy = mix(OUTPUT_K_CROP.fy, OUTPUT_K_FULL.fy, balance) * sy * zoom;
+  const outputCx = mix(OUTPUT_K_CROP.cx, OUTPUT_K_FULL.cx, balance) * sx
+    - (previewMode === 'tube' ? TUBE_REGION.left * sx : 0);
+  const outputCy = mix(OUTPUT_K_CROP.cy, OUTPUT_K_FULL.cy, balance) * sy
+    - (previewMode === 'tube' ? TUBE_REGION.top * sy : 0);
+  const distortion = previewMode === 'tube' ? DEFAULTS : P;
+  gl.uniform4f(uD, distortion.k1, distortion.k2, distortion.k3, distortion.k4);
+  gl.uniform4f(uSourceK,
+    SOURCE_K.fx * sx, SOURCE_K.fy * sy,
+    SOURCE_K.cx * sx + (previewMode === 'tube' ? 0 : P.cxOffset * sx),
+    SOURCE_K.cy * sy + (previewMode === 'tube' ? 0 : P.cyOffset * sy));
+  gl.uniform4f(uOutputK, outputFx, outputFy, outputCx, outputCy);
+  gl.uniform2f(uSourceSize, sourceWidth, sourceHeight);
+  gl.uniform2f(uOutputSize, canvas.width, canvas.height);
+  gl.uniform1i(uEnable, previewMode !== 'raw' && aspectOk ? 1 : 0);
+  const lineOffsetY = previewMode === 'tube' ? TUBE_REGION.top * sy : 0;
+  gl.uniform1i(uLinesEnable, lineSettings.enabled ? 1 : 0);
+  gl.uniform2f(uLineY,
+    lineSettings.y1 * sy - lineOffsetY,
+    lineSettings.y2 * sy - lineOffsetY);
+  gl.uniform1f(uLineHalfWidth, Math.max(1.0, 1.5 * sy));
+  if (previewMode !== 'raw' && !aspectOk) {
+    $('ustat').textContent = '当前源图比例未经标定 · 原始画面';
+  }
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+  frames++;
+  const now = performance.now();
+  if (now - lastT >= 1000) {
+    $('rfps').textContent = Math.round(frames * 1000 / (now - lastT));
+    frames = 0; lastT = now;
+  }
+}
+render();
+
+/* ---------------- 按钮 ---------------- */
+$('btnUndist').onclick = () => {
+  previewMode = previewMode === 'full' ? 'raw' : 'full';
+  syncUI();
+};
+$('btnTube').onclick = () => {
+  previewMode = previewMode === 'tube' ? 'full' : 'tube';
+  syncUI();
+};
+$('btnPanel').onclick = () => {
+  const on = $('panel').classList.toggle('show');
+  $('btnPanel').classList.toggle('active', on);
+};
+$('btnLines').onclick = () => {
+  lineSettings.enabled = !lineSettings.enabled;
+  syncUI();
+};
+$('btnGrid').onclick = () => {
+  const on = $('grid').classList.toggle('show');
+  $('btnGrid').classList.toggle('active', on);
+};
+$('btnSnap').onclick = () => {
+  // canvas 中是当前预览（默认已去畸变），由浏览器下载到观看电脑。
+  canvas.toBlob(b => {
+    if (!b) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(b);
+    const prefix = previewMode === 'tube'
+      ? 'tube-roi-'
+      : previewMode === 'full' ? 'undistorted-' : 'raw-';
+    a.download = prefix + new Date().toISOString().replace(/[:.]/g, '-') + '.png';
+    a.click();
+    $('btnSnap').textContent = '已保存到电脑';
+    setTimeout(() => $('btnSnap').textContent = '保存截图', 1200);
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  }, 'image/png');
+};
+
+/* ---------------- 电脑端去畸变录像 ---------------- */
+// 录像源是已经经过 WebGL 去畸变的 canvas。captureStream 和 MediaRecorder
+// 都在观看电脑的浏览器内运行；树莓派仍只发送原始 MJPEG，不参与视频编码。
+const RECORD_FPS = 30;
+const RECORD_BPS = 8_000_000;
+let recorder = null, recordStream = null, recordChunks = [], recordStartedAt = 0;
+let recordPreviewMode = 'raw';
+let recordTimer = null;
+
+function recordMimeType() {
+  if (typeof MediaRecorder === 'undefined') return '';
+  const candidates = [
+    'video/webm;codecs=vp9',
+    'video/webm;codecs=vp8',
+    'video/webm'
+  ];
+  return candidates.find(type => MediaRecorder.isTypeSupported(type)) || '';
+}
+
+function updateRecordClock() {
+  const seconds = Math.floor((Date.now() - recordStartedAt) / 1000);
+  const mm = String(Math.floor(seconds / 60)).padStart(2, '0');
+  const ss = String(seconds % 60).padStart(2, '0');
+  const mode = recordPreviewMode === 'tube'
+    ? '识别ROI'
+    : recordPreviewMode === 'full' ? '去畸变' : '原始';
+  $('recstat').textContent = mm + ':' + ss + ' · ' + mode + ' · 电脑端';
+}
+
+function finishRecording() {
+  clearInterval(recordTimer);
+  recordTimer = null;
+  if (recordStream) recordStream.getTracks().forEach(track => track.stop());
+  recordStream = null;
+
+  const blob = new Blob(recordChunks, { type: recorder && recorder.mimeType || 'video/webm' });
+  recordChunks = [];
+  recorder = null;
+  $('btnRecord').textContent = '开始录像';
+  $('btnRecord').classList.remove('recording');
+  $('btnUndist').disabled = false;
+  $('btnTube').disabled = false;
+  $('recstat').textContent = '正在保存到电脑…';
+
+  if (!blob.size) {
+    $('recstat').textContent = '保存失败';
+    return;
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const mode = recordPreviewMode === 'tube'
+    ? 'tube-roi-'
+    : recordPreviewMode === 'full' ? 'undistorted-' : 'raw-';
+  a.download = mode + new Date().toISOString().replace(/[:.]/g, '-') + '.webm';
+  a.click();
+  $('recstat').textContent = recordPreviewMode === 'tube'
+    ? '已保存识别ROI视频'
+    : recordPreviewMode === 'full' ? '已保存去畸变视频' : '已保存原始视频';
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
+function startRecording() {
+  if (!canvas.captureStream || typeof MediaRecorder === 'undefined') {
+    alert('当前浏览器不支持 Canvas 录像，请使用最新版 Chrome 或 Edge');
+    return;
+  }
+  if (!sized || !img.naturalWidth || !img.naturalHeight) {
+    alert('画面尚未连接，请等待图像出现后再开始录像');
+    return;
+  }
+  const calibratedAspect = CALIBRATION_SIZE.width / CALIBRATION_SIZE.height;
+  if (previewMode !== 'raw' &&
+      Math.abs(img.naturalWidth / img.naturalHeight - calibratedAspect) >= 0.001) {
+    alert('当前画面比例未经标定，无法录制可靠的去畸变画面。请切换到 1280×720 或 1920×1080');
+    return;
+  }
+
+  // 按开始录像时的预览模式录制，并锁定切换，避免一个文件混入两种几何状态。
+  recordPreviewMode = previewMode;
+  $('btnUndist').disabled = true;
+  $('btnTube').disabled = true;
+
+  const mimeType = recordMimeType();
+  recordStream = canvas.captureStream(RECORD_FPS);
+  const options = { videoBitsPerSecond: RECORD_BPS };
+  if (mimeType) options.mimeType = mimeType;
+  try {
+    recorder = new MediaRecorder(recordStream, options);
+  } catch (e) {
+    recordStream.getTracks().forEach(track => track.stop());
+    recordStream = null;
+    $('btnUndist').disabled = false;
+    $('btnTube').disabled = false;
+    alert('无法启动电脑端视频编码：' + e.message);
+    return;
+  }
+
+  recordChunks = [];
+  recorder.ondataavailable = event => { if (event.data && event.data.size) recordChunks.push(event.data); };
+  recorder.onerror = event => {
+    console.error('MediaRecorder error', event.error || event);
+    $('recstat').textContent = '录像出错';
+  };
+  recorder.onstop = finishRecording;
+  recorder.start(1000);
+  recordStartedAt = Date.now();
+  updateRecordClock();
+  recordTimer = setInterval(updateRecordClock, 1000);
+  $('btnRecord').textContent = '停止并保存';
+  $('btnRecord').classList.add('recording');
+}
+
+$('btnRecord').onclick = () => {
+  if (recorder && recorder.state !== 'inactive') recorder.stop();
+  else startRecording();
+};
+$('btnReload').onclick = connect;
+
+/* ---------------- 延迟测量时钟 ---------------- */
+let rafId = null;
+$('btnClock').onclick = () => {
+  const on = $('clockbox').classList.toggle('show');
+  $('btnClock').classList.toggle('active', on);
+  if (on) {
+    (function tick() {
+      const d = new Date(), p = (n, w) => String(n).padStart(w, '0');
+      $('clock').textContent = p(d.getMinutes(), 2) + ':' + p(d.getSeconds(), 2) + '.' + p(d.getMilliseconds(), 3);
+      rafId = requestAnimationFrame(tick);
+    })();
+  } else cancelAnimationFrame(rafId);
+};
+
+/* ---------------- 状态轮询 ---------------- */
+async function poll() {
+  try {
+    const s = (await (await fetch('/state', { cache: 'no-store' })).json()).result;
+    const src = s.source, st = s.stream;
+    $('res').textContent  = src.resolution.width + 'x' + src.resolution.height;
+    $('cfps').textContent = src.captured_fps;
+
+    const fpsList = Object.values(st.clients_stat || {}).map(c => c.fps);
+    const mine = fpsList.length ? Math.max(...fpsList) : 0;
+    $('clfps').textContent = mine;
+
+    const wrap = $('lagwrap'); wrap.className = '';
+    if (!fpsList.length) { $('lag').textContent = '—'; }
+    else if (mine >= src.captured_fps * 0.85) { $('lag').textContent = '通畅'; wrap.className = 'lag-ok'; }
+    else if (mine >= src.captured_fps * 0.5)  { $('lag').textContent = '偏紧'; wrap.className = 'lag-warn'; }
+    else { $('lag').textContent = '拥塞'; wrap.className = 'lag-bad'; }
+  } catch (e) { $('dot').classList.remove('on'); }
+}
+poll(); setInterval(poll, 1000);
+</script>
+</body>
+</html>

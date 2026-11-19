@@ -1,0 +1,13 @@
+# Run training from the repository root so `path: .` resolves portably.
+path: .
+
+# raw_new_v2 contains a byte-identical copy of all 375 raw_new samples plus
+# 574 additional samples. Referencing only v2 here uses the union once instead
+# of accidentally giving the first recording double weight.
+train:
+  - vision_function/ball_detection/data/actual_yolo_local_v3/images/train
+  - vision_function/ball_detection/data/actual_video_frames_raw_new_v2/images/all
+val: vision_function/ball_detection/data/actual_yolo_local_v3/images/val
+
+names:
+  0: steel_ball

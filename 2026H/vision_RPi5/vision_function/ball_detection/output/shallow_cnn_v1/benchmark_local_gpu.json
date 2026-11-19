@@ -1,0 +1,29 @@
+{
+  "weights": "E:\\Learning\\NUEDC_2026H_VISION\\vision_function\\ball_detection\\model\\shallow_cnn_v1.pt",
+  "checkpoint_epoch": 13,
+  "image": "E:\\Learning\\NUEDC_2026H_VISION\\vision_function\\ball_detection\\data\\actual_yolo_local_v3\\images\\val\\boundary_center_snapshot-2026-07-30T04-08-31-847Z.png",
+  "device": "cuda",
+  "device_name": "NVIDIA GeForce RTX 4060 Laptop GPU",
+  "torch": "2.13.0+cu126",
+  "threads": null,
+  "parameters": 20411,
+  "warmup": 30,
+  "timing_ms": {
+    "inference_only": {
+      "count": 300,
+      "mean": 1.6474,
+      "p50": 1.3797,
+      "p95": 2.9996,
+      "p99": 3.3841,
+      "maximum": 4.3013
+    },
+    "roi_tensor_model_decode": {
+      "count": 300,
+      "mean": 2.1639,
+      "p50": 2.0256,
+      "p95": 3.0259,
+      "p99": 4.518,
+      "maximum": 5.2693
+    }
+  }
+}

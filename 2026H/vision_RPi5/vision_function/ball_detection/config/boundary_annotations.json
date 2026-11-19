@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "coordinate_system": "tube-local rectified production image",
+  "rectified_origin_xy": [40, 126],
+  "image_size": [640, 100],
+  "fisheye_balance": 0.2,
+  "class_name": "steel_ball",
+  "annotations": {
+    "left/snapshot-2026-07-30T04-07-22-088Z.png": [98.5, 52.5, 12.0],
+    "left/snapshot-2026-07-30T04-07-25-141Z.png": [98.5, 52.5, 12.0],
+    "left/snapshot-2026-07-30T04-07-32-233Z.png": [77.5, 52.5, 12.0],
+    "left/snapshot-2026-07-30T04-07-33-991Z.png": [76.5, 52.5, 12.0],
+    "left/snapshot-2026-07-30T04-07-35-666Z.png": [76.5, 52.5, 12.0],
+    "center/snapshot-2026-07-30T04-08-28-480Z.png": [293.5, 48.5, 10.0],
+    "center/snapshot-2026-07-30T04-08-30-164Z.png": [294.5, 49.5, 10.0],
+    "center/snapshot-2026-07-30T04-08-31-847Z.png": [294.5, 49.5, 10.0],
+    "right/snapshot-2026-07-30T04-07-42-474Z.png": [562.5, 46.5, 12.0],
+    "right/snapshot-2026-07-30T04-07-44-131Z.png": [563.5, 44.5, 12.0],
+    "right/snapshot-2026-07-30T04-07-46-098Z.png": [559.5, 48.5, 12.0],
+    "right/snapshot-2026-07-30T04-07-53-431Z.png": [515.5, 50.5, 12.0],
+    "right/snapshot-2026-07-30T04-08-01-349Z.png": [543.5, 42.5, 12.0]
+  },
+  "notes": [
+    "Centers were initialized with constrained Hough circles and visually checked on the tube-local images.",
+    "The stable circles near local x=50 and the dark right end cap are fixtures, not balls."
+  ]
+}

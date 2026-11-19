@@ -1,0 +1,89 @@
+{
+  "kind": "static_yolo_batch1",
+  "platform": {
+    "hostname": "NaiLong",
+    "platform": "Linux-6.18.34+rpt-rpi-2712-aarch64-with-glibc2.41",
+    "machine": "aarch64",
+    "python": "3.13.5",
+    "opencv": "5.0.0",
+    "logical_cpu_count": 4
+  },
+  "torch": "2.13.0+cpu",
+  "ultralytics_model": "vision_function/ball_detection/model/best_fp16_ncnn_model",
+  "inference_backend": "ncnn",
+  "model_load_ms": 1.862,
+  "input": "roi",
+  "source_image_count": 13,
+  "source_image_size": [
+    1280,
+    720
+  ],
+  "roi_xyxy": [
+    300,
+    270,
+    1150,
+    420
+  ],
+  "imgsz": 320,
+  "confidence_threshold": 0.25,
+  "warmup_iterations": 10,
+  "measured_iterations": 130,
+  "torch_threads": null,
+  "ncnn_threads": 2,
+  "opencv_threads": 1,
+  "timing_ms": {
+    "predict_wall": {
+      "count": 130,
+      "mean": 19.863,
+      "p50": 19.853,
+      "p90": 20.103,
+      "p95": 20.177,
+      "p99": 20.482,
+      "minimum": 19.3,
+      "maximum": 20.585
+    },
+    "preprocess": {
+      "count": 130,
+      "mean": 0.803,
+      "p50": 0.806,
+      "p90": 0.88,
+      "p95": 0.896,
+      "p99": 0.935,
+      "minimum": 0.7,
+      "maximum": 0.968
+    },
+    "inference": {
+      "count": 130,
+      "mean": 17.905,
+      "p50": 17.906,
+      "p90": 18.089,
+      "p95": 18.206,
+      "p99": 18.562,
+      "minimum": 17.474,
+      "maximum": 18.693
+    },
+    "postprocess": {
+      "count": 130,
+      "mean": 0.834,
+      "p50": 0.823,
+      "p90": 0.873,
+      "p95": 0.89,
+      "p99": 0.949,
+      "minimum": 0.793,
+      "maximum": 0.971
+    }
+  },
+  "equivalent_fps_from_wall_p95": 49.561,
+  "frames_with_detection": 130,
+  "total_detections": 130,
+  "mean_detection_confidence": 0.673715,
+  "thermal_start": {
+    "temperature": "temp=59.8'C",
+    "throttled": "throttled=0x0"
+  },
+  "thermal_end": {
+    "temperature": "temp=64.2'C",
+    "throttled": "throttled=0x0"
+  },
+  "max_rss_kib": 462064
+}

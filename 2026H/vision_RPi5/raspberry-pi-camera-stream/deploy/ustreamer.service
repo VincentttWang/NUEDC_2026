@@ -1,0 +1,35 @@
+[Unit]
+Description=uStreamer MJPEG camera stream (low latency)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# 实际运行用户由 install.sh 按登录用户自动替换；手动部署时改成自己的用户名
+User=pi
+SupplementaryGroups=video
+EnvironmentFile=/etc/default/ustreamer
+ExecStart=/usr/bin/ustreamer \
+  --device=/dev/video0 \
+  --format=MJPEG \
+  --encoder=HW \
+  --resolution=${RESOLUTION} \
+  --desired-fps=${FPS} \
+  --buffers=3 \
+  --workers=2 \
+  --drop-same-frames=30 \
+  --persistent \
+  --host=0.0.0.0 \
+  --port=${PORT} \
+  --tcp-nodelay \
+  --server-timeout=5 \
+  --allow-origin=* \
+  --static=/opt/camstream/www \
+  --log-level=1
+Restart=always
+RestartSec=3
+Nice=-10
+IOSchedulingClass=realtime
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "measurement_sigma_cm": 0.18,
+  "acceleration_sigma_cm_s2": 80.0,
+  "initial_velocity_sigma_cm_s": 20.0,
+  "innovation_gate_sigma": 4.0,
+  "innovation_floor_cm": 1.5,
+  "max_frame_interval_s": 0.2,
+  "loss_timeout_s": 0.1,
+  "min_valid_observations": 2,
+  "min_velocity_observations": 4,
+  "min_velocity_span_s": 0.05,
+  "moving_start_cm_s": 2.0,
+  "moving_stop_cm_s": 1.0,
+  "max_prediction_s": 0.05,
+  "note": "Initial safe values; retune with calibrated dynamic vehicle data."
+}

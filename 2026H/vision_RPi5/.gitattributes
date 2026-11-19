@@ -1,0 +1,8 @@
+# The calibration tool can run on Windows, but its generated config must remain
+# stable and diff-clean across Windows and Raspberry Pi deployments.
+vision_function/scale_location/config/scale_calibration.json text eol=lf
+
+# Files executed directly on Raspberry Pi must not acquire Windows CRLF endings.
+scripts/*.sh text eol=lf
+vision_function/**/deploy/*.desktop text eol=lf
+vision_function/**/deploy/90-* text eol=lf

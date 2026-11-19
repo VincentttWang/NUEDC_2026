@@ -1,0 +1,23 @@
+{
+  "source_url": "http://127.0.0.1:8080/snapshot",
+  "model": "/home/nailong/NUEDC_2026_H_VISION/vision_function/ball_detection/model/actual_yolo11n_local_v3_ncnn_model",
+  "calibration": "/home/nailong/NUEDC_2026_H_VISION/vision_function/scale_location/config/scale_calibration.json",
+  "motion_filter": "/home/nailong/NUEDC_2026_H_VISION/vision_function/scale_location/config/motion_filter.json",
+  "uart": "/dev/ttyAMA0",
+  "target_cm": 0.0,
+  "stats": {
+    "fetched": 300,
+    "duplicate_frames": 0,
+    "missing_timestamps": 0,
+    "nonmonotonic_timestamps": 0,
+    "decode_failures": 0,
+    "inferred_frames": 300,
+    "detected_frames": 300,
+    "tx_frames": 300,
+    "invalid": 1,
+    "write_fail": 0,
+    "max_age_ms": 28,
+    "total_processing_ms": 7953.25874401442,
+    "mean_processing_ms": 26.510862480048065
+  }
+}

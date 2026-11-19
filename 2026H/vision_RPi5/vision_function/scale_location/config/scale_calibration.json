@@ -1,0 +1,158 @@
+{
+  "schema_version": 1,
+  "calibration_type": "multi_mark_piecewise_linear",
+  "status": "final",
+  "coordinate_space": "tube_local_rectified_plane",
+  "image_size": [
+    640,
+    100
+  ],
+  "positive_direction": "image_right",
+  "axis_origin_xy": [
+    305.5,
+    75.0
+  ],
+  "axis_direction_xy": [
+    0.999992318,
+    -0.003919674
+  ],
+  "anchors": [
+    {
+      "axis_px": -254.503924,
+      "scale_cm": -12.0
+    },
+    {
+      "axis_px": -191.502449,
+      "scale_cm": -9.0
+    },
+    {
+      "axis_px": -127.999017,
+      "scale_cm": -6.0
+    },
+    {
+      "axis_px": -64.003428,
+      "scale_cm": -3.0
+    },
+    {
+      "axis_px": 0.0,
+      "scale_cm": 0.0
+    },
+    {
+      "axis_px": 65.001461,
+      "scale_cm": 3.0
+    },
+    {
+      "axis_px": 132.998978,
+      "scale_cm": 6.0
+    },
+    {
+      "axis_px": 202.502364,
+      "scale_cm": 9.0
+    },
+    {
+      "axis_px": 271.99987,
+      "scale_cm": 12.0
+    }
+  ],
+  "valid_range_cm": [
+    -12.0,
+    12.0
+  ],
+  "edge_margin_cm": 0.75,
+  "measured_points_local_xy": [
+    {
+      "scale_cm": -12.0,
+      "xy": [
+        51.0,
+        76.5
+      ]
+    },
+    {
+      "scale_cm": -9.0,
+      "xy": [
+        114.0,
+        76.0
+      ]
+    },
+    {
+      "scale_cm": -6.0,
+      "xy": [
+        177.5,
+        75.0
+      ]
+    },
+    {
+      "scale_cm": -3.0,
+      "xy": [
+        241.5,
+        76.0
+      ]
+    },
+    {
+      "scale_cm": 0.0,
+      "xy": [
+        305.5,
+        75.0
+      ]
+    },
+    {
+      "scale_cm": 3.0,
+      "xy": [
+        370.5,
+        74.5
+      ]
+    },
+    {
+      "scale_cm": 6.0,
+      "xy": [
+        438.5,
+        75.0
+      ]
+    },
+    {
+      "scale_cm": 9.0,
+      "xy": [
+        508.0,
+        74.0
+      ]
+    },
+    {
+      "scale_cm": 12.0,
+      "xy": [
+        577.5,
+        74.5
+      ]
+    }
+  ],
+  "source": {
+    "method": "single_frame_manual_marks",
+    "generated_at": "2026-07-30T17:12:18+08:00",
+    "rectification_config": "vision_function/ball_detection/config/tube_local_rectification.json",
+    "rectification_sha256": "c483eeae705f1eaa42ec895dcc6971df73f5bba31f5ac6b6e42b40bf5398ca6d",
+    "images": [
+      {
+        "path": "vision_function/scale_location/calibration_assets/2026-07-30/raw-2026-07-30T08-54-20-967Z.png",
+        "sha256": "b2d3b02e6c127f51874084482638e8d7f26552575adcbbe5358172e1aa115603"
+      }
+    ]
+  },
+  "validation": {
+    "status": "accepted_for_current_iteration",
+    "performed_at": "2026-07-30",
+    "method": "Raspberry Pi 5 live snapshot dry-run, 100 frames per stationary point",
+    "points": [
+      {"reference_cm": -10.0, "measured_mean_cm": -9.83, "bias_cm": 0.17, "detected_frames": 93},
+      {"reference_cm": -5.0, "measured_mean_cm": -4.9428, "bias_cm": 0.0572, "detected_frames": 100},
+      {"reference_cm": 0.0, "measured_mean_cm": 0.0496, "bias_cm": 0.0496, "detected_frames": 100},
+      {"reference_cm": 5.0, "measured_mean_cm": 4.5057, "bias_cm": -0.4943, "detected_frames": 100},
+      {"reference_cm": 10.0, "measured_mean_cm": 9.4789, "bias_cm": -0.5211, "detected_frames": 100}
+    ],
+    "maximum_absolute_bias_cm": 0.5211,
+    "acceptance_limit_cm": 1.0,
+    "notes": [
+      "Accepted temporarily because all five static points satisfy the 1 cm requirement.",
+      "Positive positions show an approximately -0.5 cm bias and should be rechecked before final competition acceptance.",
+      "Detection at -10 cm was 93/100 frames and needs left-edge robustness work."
+    ]
+  }
+}

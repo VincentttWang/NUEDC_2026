@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "performed_at": "2026-07-30T18:37:10+08:00",
+  "platform": "NaiLong Raspberry Pi 5",
+  "service": {
+    "name": "vision-scale-uart.service",
+    "repository_unit": "../deploy/vision-scale-uart.service",
+    "installed_unit": "/etc/systemd/system/vision-scale-uart.service",
+    "depends_on": "ustreamer.service",
+    "initial_start": {
+      "enabled": true,
+      "active": true,
+      "restart_count": 0,
+      "uart_exclusive": true
+    },
+    "final_state": {
+      "enabled": true,
+      "active": true,
+      "restart_count": 0,
+      "uart_exclusive": true,
+      "reason": "re-enabled after user confirmed the MCU control program was not running during motion tests"
+    }
+  },
+  "coordinate_direction": {
+    "config": "../config/uart.json",
+    "position_sign": -1,
+    "position_and_velocity_inverted_together": true
+  },
+  "bounded_uart_validation": {
+    "report": "position_sign_inverted_uart_20260730.json",
+    "frames": 180,
+    "detected_frames": 180,
+    "tx_frames": 180,
+    "write_failures": 0,
+    "invalid_frames": 2,
+    "mean_processing_ms": 26.8956,
+    "max_age_ms": 70,
+    "observed_static_position_cm": [11.375, 11.41],
+    "status": "passed"
+  },
+  "delayed_motion_monitor": {
+    "status": "vision_uart_test_only",
+    "mcu_control_program_running": false,
+    "observed_position_cm_examples": [10.222, -9.406],
+    "observed_velocity_cm_s_min": -34.97,
+    "invalid_predicted_position_cm_example": -19.317,
+    "closed_loop_conclusion": null,
+    "temporary_action": "service was disabled because test motion was initially misclassified, then re-enabled after clarification"
+  }
+}

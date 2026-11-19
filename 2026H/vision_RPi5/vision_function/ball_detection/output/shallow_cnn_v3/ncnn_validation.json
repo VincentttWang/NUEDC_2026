@@ -1,0 +1,17 @@
+{
+  "samples": 387,
+  "checkpoint_epoch": 4,
+  "positive_detected": 383,
+  "positive_total": 383,
+  "negative_false_positive": 0,
+  "negative_total": 4,
+  "x_error_px_mean": 0.9867,
+  "x_error_px_p95": 3.4917,
+  "x_error_px_max": 6.3704,
+  "torch_ncnn_found_disagreements": 0,
+  "torch_ncnn_x_delta_px_max": 2e-05,
+  "torch_ncnn_presence_probability_delta_max": 5.74e-06,
+  "torch_ncnn_heatmap_peak_delta_max": 4.8e-07,
+  "ncnn_threads": 2,
+  "ncnn_precision": "fp16"
+}

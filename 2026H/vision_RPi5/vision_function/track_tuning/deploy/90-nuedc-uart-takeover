@@ -1,0 +1,1 @@
+nailong ALL=(root) NOPASSWD: /usr/bin/systemctl start vision-scale-uart.service, /usr/bin/systemctl stop vision-scale-uart.service

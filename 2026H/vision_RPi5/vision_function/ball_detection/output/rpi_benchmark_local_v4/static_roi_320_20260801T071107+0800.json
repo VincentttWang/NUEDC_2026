@@ -1,0 +1,100 @@
+{
+  "kind": "static_yolo_batch1",
+  "platform": {
+    "hostname": "NaiLong",
+    "platform": "Linux-6.18.34+rpt-rpi-2712-aarch64-with-glibc2.41",
+    "machine": "aarch64",
+    "python": "3.13.5",
+    "opencv": "5.0.0",
+    "logical_cpu_count": 4
+  },
+  "torch": "2.13.0+cpu",
+  "ultralytics_model": "vision_function/ball_detection/model/actual_yolo11n_local_v4_ncnn_model",
+  "inference_backend": "ncnn",
+  "model_load_ms": 1.979,
+  "input": "roi",
+  "source_image_count": 1,
+  "reference_image_size": [
+    1280,
+    720
+  ],
+  "source_scale": 2,
+  "source_image_size": [
+    640,
+    360
+  ],
+  "reference_roi_xyxy": [
+    80,
+    252,
+    1360,
+    452
+  ],
+  "roi_xyxy": [
+    40,
+    126,
+    680,
+    226
+  ],
+  "imgsz": 320,
+  "confidence_threshold": 0.25,
+  "warmup_iterations": 30,
+  "measured_iterations": 500,
+  "torch_threads": null,
+  "ncnn_threads": 2,
+  "opencv_threads": 1,
+  "timing_ms": {
+    "predict_wall": {
+      "count": 500,
+      "mean": 30.632,
+      "p50": 30.093,
+      "p90": 34.485,
+      "p95": 36.261,
+      "p99": 44.705,
+      "minimum": 20.808,
+      "maximum": 72.658
+    },
+    "preprocess": {
+      "count": 500,
+      "mean": 1.709,
+      "p50": 1.454,
+      "p90": 2.682,
+      "p95": 3.517,
+      "p99": 5.006,
+      "minimum": 0.734,
+      "maximum": 9.735
+    },
+    "inference": {
+      "count": 500,
+      "mean": 26.621,
+      "p50": 26.143,
+      "p90": 30.395,
+      "p95": 31.841,
+      "p99": 39.894,
+      "minimum": 18.587,
+      "maximum": 67.3
+    },
+    "postprocess": {
+      "count": 500,
+      "mean": 1.869,
+      "p50": 1.554,
+      "p90": 3.367,
+      "p95": 4.198,
+      "p99": 5.089,
+      "minimum": 0.753,
+      "maximum": 5.561
+    }
+  },
+  "equivalent_fps_from_wall_p95": 27.578,
+  "frames_with_detection": 500,
+  "total_detections": 500,
+  "mean_detection_confidence": 0.891113,
+  "thermal_start": {
+    "temperature": "temp=62.0'C",
+    "throttled": "throttled=0x0"
+  },
+  "thermal_end": {
+    "temperature": "temp=63.7'C",
+    "throttled": "throttled=0x0"
+  },
+  "max_rss_kib": 422960
+}

@@ -1,0 +1,12 @@
+{
+  "device": "/dev/ttyAMA0",
+  "baudrate": 115200,
+  "position_sign": -1,
+  "format": "8N1",
+  "flow_control": false,
+  "gpio_tx": 14,
+  "gpio_rx": 15,
+  "overlay": "uart0-pi5",
+  "verified_on": "NaiLong Raspberry Pi 5, 2026-07-30",
+  "note": "/dev/ttyAMA0 is GPIO14/15 UART0; /dev/serial0 -> ttyAMA10 is the separate Pi 5 debug UART and must not be used for the MCU. position_sign=-1 aligns the vision coordinate with the MCU physical direction."
+}

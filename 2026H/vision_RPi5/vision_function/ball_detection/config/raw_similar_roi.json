@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "dataset": "data/raw_similar",
+  "coordinate_space": "undistorted_1280x720",
+  "image_size": {
+    "width": 1280,
+    "height": 720
+  },
+  "roi": {
+    "left": 300,
+    "top": 270,
+    "right": 1150,
+    "bottom": 420,
+    "width": 850,
+    "height": 150
+  },
+  "normalized_roi": {
+    "left": 0.234375,
+    "top": 0.375,
+    "right": 0.8984375,
+    "bottom": 0.5833333333
+  },
+  "expected_ball_radius_px": {
+    "minimum": 14,
+    "maximum": 22
+  },
+  "notes": [
+    "ROI is manually calibrated to cover the complete pipe and ball in all 13 raw_similar images.",
+    "The images are already undistorted browser canvas screenshots.",
+    "Recalibrate this ROI after the camera and pipe are fixed on the final vehicle."
+  ]
+}

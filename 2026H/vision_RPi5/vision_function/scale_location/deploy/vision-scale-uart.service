@@ -1,0 +1,21 @@
+[Unit]
+Description=NUEDC vision scale detection and MCU UART sender
+Wants=network-online.target
+After=network-online.target ustreamer.service
+Requires=ustreamer.service
+
+[Service]
+Type=simple
+User=nailong
+Group=nailong
+SupplementaryGroups=dialout
+WorkingDirectory=/home/nailong/NUEDC_2026_H_VISION
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/nailong/NUEDC_2026_H_VISION/.venv/bin/python -m vision_function.scale_location.runtime --device /dev/ttyAMA0 --conf 0.10 --status-every 30 --debug-preview-dir /dev/shm/nuedc-vision-debug
+Restart=on-failure
+RestartSec=2
+KillSignal=SIGINT
+TimeoutStopSec=10
+
+[Install]
+WantedBy=multi-user.target

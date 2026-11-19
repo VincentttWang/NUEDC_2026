@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "calibration_type": "temporary_assumed_25cm",
+  "status": "temporary_test_only",
+  "coordinate_space": "tube_local_rectified_plane",
+  "image_size": [640, 100],
+  "positive_direction": "image_right",
+  "axis_origin_xy": [286.0, 50.0],
+  "axis_direction_xy": [1.0, 0.0],
+  "anchors": [
+    {"axis_px": -227.0, "scale_cm": -12.5},
+    {"axis_px": 0.0, "scale_cm": 0.0},
+    {"axis_px": 296.0, "scale_cm": 12.5}
+  ],
+  "valid_range_cm": [-12.5, 12.5],
+  "edge_margin_cm": 0.75,
+  "assumptions": {
+    "black_tape_is_true_center": true,
+    "tube_length_cm": 25.0,
+    "projection": "piecewise_linear_left_and_right_of_tape"
+  },
+  "measured_points_local_xy": {
+    "left_tube_end": [59.0, 50.0],
+    "black_tape_center": [286.0, 50.0],
+    "right_tube_end": [582.0, 50.0]
+  },
+  "source": {
+    "method": "median_of_three_empty_frames_then_manual_endpoint_review",
+    "rectification_config": "../../ball_detection/config/tube_local_rectification.json",
+    "rectification_sha256": "c483eeae705f1eaa42ec895dcc6971df73f5bba31f5ac6b6e42b40bf5398ca6d",
+    "images": [
+      {
+        "path": "../../ball_detection/data/raw/boundary/empty/snapshot-2026-07-30T04-08-48-126Z.png",
+        "sha256": "2cc5a1f77f375e569a42cadd039f50c6f7d349db3435f8fd7dd797426e9cf8d0"
+      },
+      {
+        "path": "../../ball_detection/data/raw/boundary/empty/snapshot-2026-07-30T04-08-49-855Z.png",
+        "sha256": "b2a5f36636b88b2c82b00776bd3cedb72bc84b4e715f1084e0b32084bcaf278c"
+      },
+      {
+        "path": "../../ball_detection/data/raw/boundary/empty/snapshot-2026-07-30T04-08-52-113Z.png",
+        "sha256": "4f462d180aa9b5f2ba516bc28af2e7fa087b8d9077ac6f81e7c81cb538cbae3d"
+      }
+    ]
+  },
+  "notes": [
+    "This calibration is intentionally approximate and must not be renamed as the final calibration.",
+    "Replacing this file with a formal multi-mark calibration requires resetting the motion estimator but no UART protocol change."
+  ]
+}

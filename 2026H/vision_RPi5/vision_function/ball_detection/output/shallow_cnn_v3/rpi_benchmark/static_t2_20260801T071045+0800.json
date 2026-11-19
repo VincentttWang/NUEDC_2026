@@ -1,0 +1,82 @@
+{
+  "kind": "shallow_cnn_static",
+  "platform": {
+    "hostname": "NaiLong",
+    "platform": "Linux-6.18.34+rpt-rpi-2712-aarch64-with-glibc2.41",
+    "machine": "aarch64",
+    "python": "3.13.5",
+    "opencv": "5.0.0",
+    "ncnn": "1.0.20260526",
+    "logical_cpu_count": 4
+  },
+  "model": "vision_function/ball_detection/model/shallow_cnn_v3_ncnn_model",
+  "model_bytes": {
+    "param": 3596,
+    "bin": 80044
+  },
+  "model_load_ms": 43.7339,
+  "input": "tmp/latest_benchmark/input/roi/boundary_center_snapshot-2026-07-30T04-08-31-847Z.png",
+  "input_shape_hwc": [
+    100,
+    640,
+    3
+  ],
+  "input_resized": false,
+  "ncnn_threads": 2,
+  "ncnn_precision": "fp16",
+  "opencv_threads": 1,
+  "warmup_iterations": 30,
+  "measured_iterations": 500,
+  "timing_ms": {
+    "inference_only_prepared_chw": {
+      "count": 500,
+      "mean": 3.6704,
+      "p50": 3.6935,
+      "p90": 4.597,
+      "p95": 4.8865,
+      "p99": 5.4149,
+      "minimum": 2.2947,
+      "maximum": 15.7356
+    },
+    "coordinate_decode_only": {
+      "count": 500,
+      "mean": 0.1652,
+      "p50": 0.1352,
+      "p90": 0.281,
+      "p95": 0.3206,
+      "p99": 0.3917,
+      "minimum": 0.0876,
+      "maximum": 0.4348
+    },
+    "bgr_to_rgb_chw_inference_decode": {
+      "count": 500,
+      "mean": 4.7338,
+      "p50": 4.7969,
+      "p90": 5.8,
+      "p95": 6.1773,
+      "p99": 6.6535,
+      "minimum": 3.031,
+      "maximum": 24.0391
+    }
+  },
+  "equivalent_fps_from_complete_p95": 161.883,
+  "last_prediction": {
+    "found": true,
+    "x_local": 293.78139448165894,
+    "presence_probability": 0.9999986886978149,
+    "heatmap_peak": 0.9503188729286194
+  },
+  "services": {
+    "ustreamer.service": "active",
+    "vision-scale-uart.service": "active"
+  },
+  "thermal_start": {
+    "temperature": "temp=59.3'C",
+    "throttled": "throttled=0x0"
+  },
+  "thermal_end": {
+    "temperature": "temp=60.9'C",
+    "throttled": "throttled=0x0"
+  },
+  "max_rss_kib": 73248
+}

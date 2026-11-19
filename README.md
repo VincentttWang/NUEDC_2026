@@ -67,34 +67,48 @@
 
 ### 目录说明
 
+详细架构、双机通信协议与部署指南见 [`2026H/README.md`](2026H/README.md)。
+
 | 目录 / 文件 | 说明 |
 |------|------|
-| `firmware/` | MSPM0G3507 固件工程（分层源码 + IDE 工程） |
-| `hardware/` | 主控板 SCH/PCB、3D 打印模型、水管彩色刻度、摄像头展示图样与参考资料 |
-| `report/` | 设计报告 PDF |
-| `H题_车载平衡滚球运动控制系统.pdf` | 官方赛题 |
-| `README.md` / `.gitignore` | 项目摘要与忽略规则 |
+| [`2026H/firmware_G3507/`](2026H/firmware_G3507/README.md) | MSPM0G3507 逻辑主控固件工程（分层源码 + IDE 工程 + 调试工具与文档） |
+| [`2026H/vision_RPi5/`](2026H/vision_RPi5/README.md) | Raspberry Pi 5 视觉与图传子系统（uStreamer/WebGL 图传、浅层 CNN / YOLO11n NCNN 钢球识别、彩色刻度标定、UART 通信及桌面调试/调参台） |
+| `2026H/hardware/` | 主控板 SCH/PCB、3D 打印模型、水管彩色刻度、摄像头展示图样与参考资料 |
+| `2026H/report/` | 设计报告 PDF |
+| `2026H/H题_车载平衡滚球运动控制系统.pdf` | 官方赛题 |
+| `2026H/README.md` / `.gitignore` | 2026H 项目总览与忽略规则 |
 
 硬件资料：
 
-- `hardware/主控板/`：天猛星小车拓展板 v5 原理图（PDF）、2D PCB 图、3D 模型（SLDPRT）。
-- `hardware/3D打印模型/`：R3X 巡线转接件、摄像头底座连接件、水管底座 / 合页 / 步进电机等连接件。
-- `hardware/水管彩色刻度/`：25cm 摆杆彩色刻度（PDF + 源文件 PSD）。
-- `hardware/参考资料.md`：小车 / 无刷 / 步进电机 / 调试器等模块的资料下载链接。
+- `2026H/hardware/主控板/`：天猛星小车拓展板 v5 原理图（PDF）、2D PCB 图、3D 模型（SLDPRT）。
+- `2026H/hardware/3D打印模型/`：R3X 巡线转接件、摄像头底座连接件、水管底座 / 合页 / 步进电机等连接件。
+- `2026H/hardware/水管彩色刻度/`：25cm 摆杆彩色刻度（PDF + 源文件 PSD）。
+- `2026H/hardware/参考资料.md`：小车 / 无刷 / 步进电机 / 调试器等模块的资料下载链接。
 
-### 固件架构（MSPM0G3507）
+### 固件架构（MSPM0G3507 — `2026H/firmware_G3507/`）
 
-源码采用分层单向依赖结构：`app → core → middleware → bsp`，上层可调用下层公开接口，下层禁止反向包含上层头文件。
+源码采用分层单向依赖结构：`app → middleware → bsp / core`，上层可调用下层公开接口，下层禁止反向包含上层头文件。
 
 | 层 | 职责 |
 |----|------|
-| `app` | 固件入口、中断分发、启动页、任务菜单、任务流程与设备自检 |
-| `core` | 控制算法：PID、运动学、几何、巡线策略、云台视觉跟踪 |
-| `middleware` | 系统组合能力：底盘、云台、巡线状态、轻量 UI、故障处理 |
-| `bsp` | 板级外设驱动：电机、编码器、OLED、按键、CanMV 串口、IMU、步进电机、8 路灰度 |
-| `board` / `project` / `docs` / `tools` | 板级配置与启动资源、IDE 工程、架构/接口/构建文档、调试烧录脚本 |
+| `app` | 固件入口、协作式调度器、菜单树、H2～H6 任务流程、赛道调参与设备自检 |
+| `core` | 纯计算算法：PID、滤波、运动学与角速度积分 |
+| `middleware` | 系统组合能力：滚球平衡、S 曲线规划、底盘、巡线状态、轻量 UI、故障处理 |
+| `bsp` | 板级外设驱动：直流电机、霍尔编码器、OLED、按键、树莓派 UART2、JY61P IMU、步进电机、8 路循线 |
+| `board` / `project` / `docs` / `tools` | 板级配置与启动资源、IDE 工程、架构/接口/标定文档、遥测与分析工具 |
 
-> 当前 2026H 固件源码正处于从仓库历史中的分层源码树重组至 `firmware/` 的过程，尚未完整推送；同源的分层架构与接口文档可参考 `2025E/firmware/`。
+### 视觉与图传架构（Raspberry Pi 5 — `2026H/vision_RPi5/`）
+
+树莓派 5 侧负责 USB 广角摄像头（1280×720 硬件 MJPEG）的低延迟图传、钢球实时定位、状态估计及现场调试：
+
+| 模块 | 职责 |
+|------|------|
+| `raspberry-pi-camera-stream/` | uStreamer 硬件 MJPEG 直通服务 + 浏览器 WebGL 去畸变/识别 ROI 预览与电脑端截图录像 |
+| `vision_function/ball_detection/` | 640×100 水管局部鱼眼校正、浅层 CNN v3 NCNN（默认，全链路 P95 9.41 ms）与 YOLO11n NCNN 回退检测 |
+| `vision_function/scale_location/` | 彩色刻度动态标定 / 静态分段线性标定、常速度 Kalman 滤波、固定 11 字节 UART 状态帧（`0x01`）与 systemd 服务 |
+| `vision_function/debug_ui/` | 树莓派桌面视觉监看调试台（通过 `/dev/shm` 共享内存零侵入监看） |
+| `vision_function/track_tuning/` | 树莓派赛道参数桌面调试台（与 MSPM0 通过双向 UART `0x81`/`0x82` 调试 H2/H5/H6 参数） |
+| `vision_function/calibration/` & `tests/` | OpenCV fisheye 相机标定参数与单元测试套件 |
 
 ## 其他赛题
 

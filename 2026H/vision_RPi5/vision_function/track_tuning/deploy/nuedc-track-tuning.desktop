@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=H题赛道参数调试
+Comment=读取和调整 MSPM0 赛道参数
+Exec=/bin/bash /home/nailong/NUEDC_2026_H_VISION/scripts/start_track_tuning.sh
+Path=/home/nailong/NUEDC_2026_H_VISION
+Terminal=false
+Categories=Utility;
+StartupNotify=true

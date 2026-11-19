@@ -1,0 +1,3 @@
+# NCNN export requires an x86_64 host because this pinned PNNX release has no ARM64 wheel.
+-r requirements.txt
+pnnx==20260526

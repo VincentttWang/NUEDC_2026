@@ -1,0 +1,28 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/
+runs/
+wandb/
+tmp/
+
+# Vision source assets are transferred separately and restored after cloning.
+vision_function/ball_detection/data/raw/
+vision_function/ball_detection/data/raw_similar/
+vision_function/ball_detection/data/raw_new/
+vision_function/ball_detection/model/
+
+# Reproducible datasets and training products.
+vision_function/ball_detection/data/actual_yolo_*/
+vision_function/ball_detection/data/actual_video_frames_*/
+vision_function/ball_detection/output/train_actual/
+vision_function/ball_detection/output/shallow_cnn_*/training/
+vision_function/ball_detection/output/actual_finetune_positive_preview/
+vision_function/ball_detection/output/raw_similar_yolo/
+vision_function/ball_detection/output/**/*.png
+vision_function/ball_detection/output/**/*.jpg
+
+# Runtime reports remain tracked; transient captured images do not.
+vision_function/scale_location/output/*.jpg

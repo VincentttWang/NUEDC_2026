@@ -1,0 +1,30 @@
+schema_version: 1
+seed: 2026
+device: auto
+dataset_root: vision_function/ball_detection/data/actual_yolo_local_v3
+weights_path: vision_function/ball_detection/model/shallow_cnn_v1.pt
+output_dir: vision_function/ball_detection/output/shallow_cnn_v1/training
+
+model:
+  input_size: [640, 100]
+  output_bins: 160
+  channels: [16, 24, 32, 48]
+
+targets:
+  sigma_bins: 1.5
+
+training:
+  epochs: 40
+  batch_size: 32
+  learning_rate: 0.001
+  weight_decay: 0.0005
+  negative_sample_fraction: 0.25
+
+loss:
+  presence_weight: 1.0
+  heatmap_weight: 2.0
+  offset_weight: 1.0
+
+thresholds:
+  presence: 0.5
+  heatmap: 0.25

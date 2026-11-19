@@ -1,0 +1,170 @@
+{
+  "kind": "shallow_cnn_live_camera",
+  "platform": {
+    "hostname": "NaiLong",
+    "platform": "Linux-6.18.34+rpt-rpi-2712-aarch64-with-glibc2.41",
+    "machine": "aarch64",
+    "python": "3.13.5",
+    "opencv": "5.0.0",
+    "ncnn": "1.0.20260526",
+    "logical_cpu_count": 4
+  },
+  "model": "vision_function/ball_detection/model/shallow_cnn_v3_ncnn_model",
+  "source_url": "http://127.0.0.1:8080/snapshot",
+  "source": "snapshot_distinct_frames",
+  "decode_mode": "IMREAD_REDUCED_COLOR_2",
+  "input_frame_shape_hwc": [
+    360,
+    640,
+    3
+  ],
+  "rectified_roi_shape_hwc": [
+    100,
+    640,
+    3
+  ],
+  "model_input_resized": false,
+  "ncnn_threads": 2,
+  "ncnn_precision": "fp16",
+  "opencv_threads": 1,
+  "warmup_iterations": 10,
+  "measured_distinct_frames": 130,
+  "timing_ms": {
+    "acquire_distinct_snapshot": {
+      "count": 130,
+      "mean": 1.1016,
+      "p50": 1.0415,
+      "p90": 1.4702,
+      "p95": 1.5541,
+      "p99": 2.1377,
+      "minimum": 0.5476,
+      "maximum": 4.5128
+    },
+    "frame_age_at_acquire_end": {
+      "count": 130,
+      "mean": 0.6874,
+      "p50": 0.6849,
+      "p90": 1.1001,
+      "p95": 1.2068,
+      "p99": 1.3813,
+      "minimum": -0.0999,
+      "maximum": 1.4548
+    },
+    "jpeg_half_decode": {
+      "count": 130,
+      "mean": 4.6555,
+      "p50": 4.6412,
+      "p90": 4.92,
+      "p95": 5.0347,
+      "p99": 5.3108,
+      "minimum": 4.2981,
+      "maximum": 5.4089
+    },
+    "fisheye_rectify_roi": {
+      "count": 130,
+      "mean": 1.5044,
+      "p50": 1.5243,
+      "p90": 1.7526,
+      "p95": 1.8103,
+      "p99": 1.9595,
+      "minimum": 1.1807,
+      "maximum": 2.0253
+    },
+    "bgr_to_rgb_chw": {
+      "count": 130,
+      "mean": 0.5034,
+      "p50": 0.4746,
+      "p90": 0.6874,
+      "p95": 0.7396,
+      "p99": 0.9705,
+      "minimum": 0.3058,
+      "maximum": 1.0294
+    },
+    "ncnn_inference": {
+      "count": 130,
+      "mean": 4.4836,
+      "p50": 3.9333,
+      "p90": 5.7425,
+      "p95": 7.0112,
+      "p99": 15.111,
+      "minimum": 2.4148,
+      "maximum": 32.5041
+    },
+    "coordinate_decode": {
+      "count": 130,
+      "mean": 0.1773,
+      "p50": 0.1476,
+      "p90": 0.2939,
+      "p95": 0.3439,
+      "p99": 0.4241,
+      "minimum": 0.0972,
+      "maximum": 0.5288
+    },
+    "camera_to_coordinate_control_total": {
+      "count": 130,
+      "mean": 12.4478,
+      "p50": 12.3483,
+      "p90": 13.6024,
+      "p95": 14.6195,
+      "p99": 23.1905,
+      "minimum": 9.6795,
+      "maximum": 39.9372
+    },
+    "frame_timestamp_to_coordinate": {
+      "count": 130,
+      "mean": 12.0314,
+      "p50": 11.8941,
+      "p90": 13.2443,
+      "p95": 14.2649,
+      "p99": 23.0895,
+      "minimum": 9.0892,
+      "maximum": 39.2215
+    }
+  },
+  "equivalent_fps_from_control_p95": 68.402,
+  "snapshot_requests_per_distinct_frame": {
+    "count": 130,
+    "mean": 1.0,
+    "p50": 1.0,
+    "p90": 1.0,
+    "p95": 1.0,
+    "p99": 1.0,
+    "minimum": 1.0,
+    "maximum": 1.0
+  },
+  "input_jpeg_bytes": {
+    "count": 130,
+    "mean": 194569.9077,
+    "p50": 194622.0,
+    "p90": 194900.0,
+    "p95": 194930.0,
+    "p99": 195014.0,
+    "minimum": 193574.0,
+    "maximum": 195052.0
+  },
+  "frames_found": 130,
+  "x_local": {
+    "count": 130,
+    "mean": 398.3576,
+    "p50": 397.726,
+    "p90": 402.1164,
+    "p95": 404.9688,
+    "p99": 405.066,
+    "minimum": 394.1251,
+    "maximum": 405.0866
+  },
+  "services": {
+    "ustreamer.service": "active",
+    "vision-scale-uart.service": "active"
+  },
+  "thermal_start": {
+    "temperature": "temp=57.1'C",
+    "throttled": "throttled=0x0"
+  },
+  "thermal_end": {
+    "temperature": "temp=57.1'C",
+    "throttled": "throttled=0x0"
+  },
+  "max_rss_kib": 76624,
+  "note": "The existing production service was not stopped or modified. Its CPU load is therefore included when it is active."
+}

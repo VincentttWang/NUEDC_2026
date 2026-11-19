@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "dataset": "data/raw",
+  "reference_image_size": {
+    "width": 1280,
+    "height": 720
+  },
+  "fisheye_balance": 0.2,
+  "reference_roi": {
+    "left": 120,
+    "top": 280,
+    "right": 1260,
+    "bottom": 440,
+    "width": 1140,
+    "height": 160
+  },
+  "production_decode_scale": 2,
+  "production_roi": {
+    "left": 60,
+    "top": 140,
+    "right": 630,
+    "bottom": 220,
+    "width": 570,
+    "height": 80
+  },
+  "notes": [
+    "Calibrated from the final static vehicle structure captured on 2026-07-30.",
+    "balance=0 clips part of the rightmost observed ball; balance=0.2 preserves it.",
+    "The ROI covers all observed ball centers and a small static-installation margin.",
+    "Revalidate after collecting vehicle-vibration data."
+  ]
+}

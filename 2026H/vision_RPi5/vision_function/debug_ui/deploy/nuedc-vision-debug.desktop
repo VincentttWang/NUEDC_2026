@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=H题视觉调试台
+Comment=小球与色块实时识别调试
+Exec=/bin/bash /home/nailong/NUEDC_2026_H_VISION/scripts/start_rpi_gui.sh
+Path=/home/nailong/NUEDC_2026_H_VISION
+Terminal=false
+Categories=Development;Utility;
+StartupNotify=true

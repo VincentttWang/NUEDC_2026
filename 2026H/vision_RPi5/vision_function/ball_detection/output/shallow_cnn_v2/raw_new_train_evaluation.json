@@ -1,0 +1,3773 @@
+{
+  "summary": {
+    "positive_detected": 213,
+    "positive_total": 213,
+    "recall": 1.0,
+    "negative_false_positive": 0,
+    "negative_total": 162,
+    "false_positive_rate": 0.0,
+    "x_error_px_mean": 1.4831,
+    "x_error_px_p50": 0.722,
+    "x_error_px_p95": 4.2205,
+    "x_error_px_p99": 12.6836,
+    "x_error_px_max": 16.2447
+  },
+  "images": [
+    {
+      "image": "negative_empty_f000000.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 5e-06,
+      "heatmap_peak": 0.344123,
+      "bin_index": 134,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000006.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 4e-06,
+      "heatmap_peak": 0.330425,
+      "bin_index": 134,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000012.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 5e-06,
+      "heatmap_peak": 0.334985,
+      "bin_index": 134,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000018.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 4e-06,
+      "heatmap_peak": 0.331597,
+      "bin_index": 134,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000024.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 2e-06,
+      "heatmap_peak": 0.422015,
+      "bin_index": 134,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000030.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 2e-06,
+      "heatmap_peak": 0.369769,
+      "bin_index": 134,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000036.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 2e-06,
+      "heatmap_peak": 0.379137,
+      "bin_index": 134,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000042.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 3e-06,
+      "heatmap_peak": 0.347087,
+      "bin_index": 134,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000048.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 3e-06,
+      "heatmap_peak": 0.391932,
+      "bin_index": 134,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000054.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 4e-06,
+      "heatmap_peak": 0.347808,
+      "bin_index": 134,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000060.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 4e-06,
+      "heatmap_peak": 0.380481,
+      "bin_index": 134,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000066.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 1e-05,
+      "heatmap_peak": 0.347109,
+      "bin_index": 13,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000072.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 3.3e-05,
+      "heatmap_peak": 0.254947,
+      "bin_index": 13,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000078.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 8e-06,
+      "heatmap_peak": 0.17535,
+      "bin_index": 80,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000084.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 1.2e-05,
+      "heatmap_peak": 0.222071,
+      "bin_index": 155,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000090.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 1.1e-05,
+      "heatmap_peak": 0.231451,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000096.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 1e-05,
+      "heatmap_peak": 0.241873,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000102.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 1.8e-05,
+      "heatmap_peak": 0.202392,
+      "bin_index": 155,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000108.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 1.1e-05,
+      "heatmap_peak": 0.209454,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000114.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 1.2e-05,
+      "heatmap_peak": 0.209029,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000120.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 1.6e-05,
+      "heatmap_peak": 0.182894,
+      "bin_index": 14,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000126.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 6e-06,
+      "heatmap_peak": 0.332249,
+      "bin_index": 141,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000132.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 1.1e-05,
+      "heatmap_peak": 0.32704,
+      "bin_index": 13,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000138.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 1.1e-05,
+      "heatmap_peak": 0.502191,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000144.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 6.7e-05,
+      "heatmap_peak": 0.424975,
+      "bin_index": 136,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000150.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 2e-06,
+      "heatmap_peak": 0.398451,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000156.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 2.1e-05,
+      "heatmap_peak": 0.224753,
+      "bin_index": 147,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000162.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 6.2e-05,
+      "heatmap_peak": 0.265051,
+      "bin_index": 14,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000168.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 2.2e-05,
+      "heatmap_peak": 0.253413,
+      "bin_index": 14,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000174.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 7e-06,
+      "heatmap_peak": 0.241029,
+      "bin_index": 15,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000180.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 4e-06,
+      "heatmap_peak": 0.281503,
+      "bin_index": 15,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000186.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 5e-06,
+      "heatmap_peak": 0.245013,
+      "bin_index": 15,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000192.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 6e-06,
+      "heatmap_peak": 0.267958,
+      "bin_index": 15,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000198.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 8e-06,
+      "heatmap_peak": 0.290229,
+      "bin_index": 15,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000204.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 8e-06,
+      "heatmap_peak": 0.263922,
+      "bin_index": 15,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000210.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 7e-06,
+      "heatmap_peak": 0.294301,
+      "bin_index": 15,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000216.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 6e-06,
+      "heatmap_peak": 0.258772,
+      "bin_index": 15,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000222.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 6e-06,
+      "heatmap_peak": 0.262855,
+      "bin_index": 15,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000228.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 6e-06,
+      "heatmap_peak": 0.277312,
+      "bin_index": 15,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000234.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 6e-06,
+      "heatmap_peak": 0.274714,
+      "bin_index": 15,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000240.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 0.0001,
+      "heatmap_peak": 0.247282,
+      "bin_index": 14,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000246.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 1.1e-05,
+      "heatmap_peak": 0.22067,
+      "bin_index": 80,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000252.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 8e-06,
+      "heatmap_peak": 0.269196,
+      "bin_index": 14,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000258.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 5e-06,
+      "heatmap_peak": 0.31243,
+      "bin_index": 141,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000264.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 2e-06,
+      "heatmap_peak": 0.362152,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000270.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 3e-06,
+      "heatmap_peak": 0.32838,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000276.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 2e-06,
+      "heatmap_peak": 0.356111,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000282.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 4e-06,
+      "heatmap_peak": 0.347019,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000288.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 3e-06,
+      "heatmap_peak": 0.340248,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000294.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 2e-06,
+      "heatmap_peak": 0.361288,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000300.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 3e-06,
+      "heatmap_peak": 0.354046,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000306.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 1e-05,
+      "heatmap_peak": 0.212884,
+      "bin_index": 80,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000312.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 3.2e-05,
+      "heatmap_peak": 0.274653,
+      "bin_index": 14,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000318.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 1.6e-05,
+      "heatmap_peak": 0.288259,
+      "bin_index": 14,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000324.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 2.4e-05,
+      "heatmap_peak": 0.276564,
+      "bin_index": 14,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000330.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 6e-06,
+      "heatmap_peak": 0.245612,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000336.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 7e-06,
+      "heatmap_peak": 0.504984,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000342.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 6.5e-05,
+      "heatmap_peak": 0.326011,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000348.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 4.1e-05,
+      "heatmap_peak": 0.304131,
+      "bin_index": 135,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000354.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 1.5e-05,
+      "heatmap_peak": 0.454146,
+      "bin_index": 134,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000360.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 4e-06,
+      "heatmap_peak": 0.378389,
+      "bin_index": 134,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000366.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 4e-06,
+      "heatmap_peak": 0.370228,
+      "bin_index": 134,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000372.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 4e-06,
+      "heatmap_peak": 0.325634,
+      "bin_index": 134,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000378.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 2e-06,
+      "heatmap_peak": 0.33088,
+      "bin_index": 134,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000384.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 4e-06,
+      "heatmap_peak": 0.390931,
+      "bin_index": 134,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000390.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 4e-06,
+      "heatmap_peak": 0.377013,
+      "bin_index": 134,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000396.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 4e-06,
+      "heatmap_peak": 0.37058,
+      "bin_index": 134,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000402.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 3e-06,
+      "heatmap_peak": 0.341338,
+      "bin_index": 134,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000408.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 3e-06,
+      "heatmap_peak": 0.377368,
+      "bin_index": 134,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000414.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 3e-06,
+      "heatmap_peak": 0.3776,
+      "bin_index": 134,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000420.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 6e-06,
+      "heatmap_peak": 0.338421,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000426.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 9e-06,
+      "heatmap_peak": 0.277237,
+      "bin_index": 13,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000432.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 1.5e-05,
+      "heatmap_peak": 0.20734,
+      "bin_index": 14,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000438.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 1e-05,
+      "heatmap_peak": 0.203828,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000444.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 9e-06,
+      "heatmap_peak": 0.223898,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000450.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 1e-05,
+      "heatmap_peak": 0.221415,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000456.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 9e-06,
+      "heatmap_peak": 0.232671,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000462.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 1.3e-05,
+      "heatmap_peak": 0.230668,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000468.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 1.6e-05,
+      "heatmap_peak": 0.207145,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000474.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 8e-06,
+      "heatmap_peak": 0.206241,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000480.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 8e-06,
+      "heatmap_peak": 0.259002,
+      "bin_index": 13,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000486.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 2e-06,
+      "heatmap_peak": 0.458497,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000492.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 3.1e-05,
+      "heatmap_peak": 0.458509,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000498.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 2.7e-05,
+      "heatmap_peak": 0.316911,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000504.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 0.0001,
+      "heatmap_peak": 0.476767,
+      "bin_index": 136,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000510.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 1.9e-05,
+      "heatmap_peak": 0.246485,
+      "bin_index": 13,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000516.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 3.7e-05,
+      "heatmap_peak": 0.289243,
+      "bin_index": 14,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000522.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 6.7e-05,
+      "heatmap_peak": 0.227322,
+      "bin_index": 14,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000528.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 0.000105,
+      "heatmap_peak": 0.242894,
+      "bin_index": 14,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000534.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 1.4e-05,
+      "heatmap_peak": 0.241185,
+      "bin_index": 14,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000540.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 7e-06,
+      "heatmap_peak": 0.243732,
+      "bin_index": 15,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000546.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 8e-06,
+      "heatmap_peak": 0.258063,
+      "bin_index": 14,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000552.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 8e-06,
+      "heatmap_peak": 0.267009,
+      "bin_index": 15,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000558.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 6e-06,
+      "heatmap_peak": 0.234633,
+      "bin_index": 14,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000564.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 6e-06,
+      "heatmap_peak": 0.227095,
+      "bin_index": 15,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000570.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 6e-06,
+      "heatmap_peak": 0.273356,
+      "bin_index": 15,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000576.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 1.1e-05,
+      "heatmap_peak": 0.274621,
+      "bin_index": 15,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000582.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 7e-06,
+      "heatmap_peak": 0.256263,
+      "bin_index": 15,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000588.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 6e-06,
+      "heatmap_peak": 0.243548,
+      "bin_index": 15,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000594.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 8e-06,
+      "heatmap_peak": 0.264325,
+      "bin_index": 15,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000600.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 2.4e-05,
+      "heatmap_peak": 0.296503,
+      "bin_index": 14,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000606.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 1.4e-05,
+      "heatmap_peak": 0.23336,
+      "bin_index": 13,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000612.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 9e-06,
+      "heatmap_peak": 0.281772,
+      "bin_index": 13,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000618.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 8e-06,
+      "heatmap_peak": 0.343598,
+      "bin_index": 13,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000624.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 3e-06,
+      "heatmap_peak": 0.337131,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000630.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 4e-06,
+      "heatmap_peak": 0.342063,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000636.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 4e-06,
+      "heatmap_peak": 0.330091,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000642.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 4e-06,
+      "heatmap_peak": 0.328087,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000648.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 4e-06,
+      "heatmap_peak": 0.360135,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000654.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 6e-06,
+      "heatmap_peak": 0.331475,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000660.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 1.3e-05,
+      "heatmap_peak": 0.234424,
+      "bin_index": 13,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000666.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 1.1e-05,
+      "heatmap_peak": 0.188818,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000672.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 2e-05,
+      "heatmap_peak": 0.260081,
+      "bin_index": 148,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000678.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 2.1e-05,
+      "heatmap_peak": 0.261815,
+      "bin_index": 14,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000684.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 2.1e-05,
+      "heatmap_peak": 0.238428,
+      "bin_index": 14,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000690.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 1e-05,
+      "heatmap_peak": 0.256271,
+      "bin_index": 13,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000696.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 1.8e-05,
+      "heatmap_peak": 0.418612,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000702.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 1.6e-05,
+      "heatmap_peak": 0.309778,
+      "bin_index": 135,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000708.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 1.9e-05,
+      "heatmap_peak": 0.414146,
+      "bin_index": 134,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000714.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 5e-06,
+      "heatmap_peak": 0.374918,
+      "bin_index": 134,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000720.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 5e-06,
+      "heatmap_peak": 0.389225,
+      "bin_index": 134,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000726.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 6e-06,
+      "heatmap_peak": 0.387558,
+      "bin_index": 134,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000732.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 5e-06,
+      "heatmap_peak": 0.379049,
+      "bin_index": 134,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000738.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 6e-06,
+      "heatmap_peak": 0.36312,
+      "bin_index": 134,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000744.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 1.6e-05,
+      "heatmap_peak": 0.376369,
+      "bin_index": 134,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000750.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 2e-05,
+      "heatmap_peak": 0.393597,
+      "bin_index": 134,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000756.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 1.4e-05,
+      "heatmap_peak": 0.387346,
+      "bin_index": 134,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000762.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 1.6e-05,
+      "heatmap_peak": 0.382788,
+      "bin_index": 134,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000768.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 1.5e-05,
+      "heatmap_peak": 0.377702,
+      "bin_index": 134,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000774.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 1.1e-05,
+      "heatmap_peak": 0.382485,
+      "bin_index": 134,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000780.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 5.8e-05,
+      "heatmap_peak": 0.354083,
+      "bin_index": 136,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000786.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 6.1e-05,
+      "heatmap_peak": 0.219635,
+      "bin_index": 14,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000792.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 8.6e-05,
+      "heatmap_peak": 0.197728,
+      "bin_index": 145,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000798.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 0.000294,
+      "heatmap_peak": 0.189559,
+      "bin_index": 155,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000804.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 5.8e-05,
+      "heatmap_peak": 0.201434,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000810.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 8e-05,
+      "heatmap_peak": 0.203242,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000816.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 8e-05,
+      "heatmap_peak": 0.193959,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000822.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 5.8e-05,
+      "heatmap_peak": 0.183217,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000828.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 3.9e-05,
+      "heatmap_peak": 0.20057,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000834.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 6.5e-05,
+      "heatmap_peak": 0.209022,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000840.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 2.2e-05,
+      "heatmap_peak": 0.315212,
+      "bin_index": 141,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000846.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 2.7e-05,
+      "heatmap_peak": 0.321223,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000852.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 0.000367,
+      "heatmap_peak": 0.466448,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000858.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 0.000899,
+      "heatmap_peak": 0.387554,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000864.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 0.00014,
+      "heatmap_peak": 0.37317,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000870.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 0.000195,
+      "heatmap_peak": 0.215669,
+      "bin_index": 155,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000876.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 0.000409,
+      "heatmap_peak": 0.246682,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000882.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 0.000896,
+      "heatmap_peak": 0.169878,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000888.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 0.000146,
+      "heatmap_peak": 0.278461,
+      "bin_index": 15,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000894.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 0.000124,
+      "heatmap_peak": 0.39893,
+      "bin_index": 15,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000900.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 5.8e-05,
+      "heatmap_peak": 0.357479,
+      "bin_index": 15,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000906.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 4.9e-05,
+      "heatmap_peak": 0.344153,
+      "bin_index": 15,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000912.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 6.1e-05,
+      "heatmap_peak": 0.394083,
+      "bin_index": 15,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000918.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 5.9e-05,
+      "heatmap_peak": 0.372045,
+      "bin_index": 15,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000924.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 5.8e-05,
+      "heatmap_peak": 0.39619,
+      "bin_index": 15,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000930.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 6.7e-05,
+      "heatmap_peak": 0.397621,
+      "bin_index": 15,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000936.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 4.1e-05,
+      "heatmap_peak": 0.360641,
+      "bin_index": 15,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000942.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 4.8e-05,
+      "heatmap_peak": 0.369568,
+      "bin_index": 15,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000948.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 5.3e-05,
+      "heatmap_peak": 0.406393,
+      "bin_index": 15,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000954.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 4.3e-05,
+      "heatmap_peak": 0.374562,
+      "bin_index": 15,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000960.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 0.000136,
+      "heatmap_peak": 0.218318,
+      "bin_index": 80,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "negative_empty_f000966.png",
+      "has_ground_truth": false,
+      "found": false,
+      "presence_probability": 5.5e-05,
+      "heatmap_peak": 0.210026,
+      "bin_index": 138,
+      "x_local": null,
+      "x_error_px": null
+    },
+    {
+      "image": "positive_ball_f000000.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999999,
+      "heatmap_peak": 0.916298,
+      "bin_index": 91,
+      "x_local": 365.3557,
+      "x_error_px": 0.2592
+    },
+    {
+      "image": "positive_ball_f000006.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 1.0,
+      "heatmap_peak": 0.959882,
+      "bin_index": 69,
+      "x_local": 276.4034,
+      "x_error_px": 0.0185
+    },
+    {
+      "image": "positive_ball_f000012.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 1.0,
+      "heatmap_peak": 0.948825,
+      "bin_index": 46,
+      "x_local": 187.5768,
+      "x_error_px": 0.4963
+    },
+    {
+      "image": "positive_ball_f000018.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 1.0,
+      "heatmap_peak": 0.963414,
+      "bin_index": 26,
+      "x_local": 106.8069,
+      "x_error_px": 1.2216
+    },
+    {
+      "image": "positive_ball_f000024.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999948,
+      "heatmap_peak": 0.836184,
+      "bin_index": 17,
+      "x_local": 68.531,
+      "x_error_px": 0.4042
+    },
+    {
+      "image": "positive_ball_f000030.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999998,
+      "heatmap_peak": 0.900739,
+      "bin_index": 20,
+      "x_local": 80.8479,
+      "x_error_px": 0.753
+    },
+    {
+      "image": "positive_ball_f000036.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999997,
+      "heatmap_peak": 0.918408,
+      "bin_index": 37,
+      "x_local": 151.2887,
+      "x_error_px": 1.2512
+    },
+    {
+      "image": "positive_ball_f000042.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999997,
+      "heatmap_peak": 0.928978,
+      "bin_index": 68,
+      "x_local": 272.6837,
+      "x_error_px": 2.3015
+    },
+    {
+      "image": "positive_ball_f000048.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999995,
+      "heatmap_peak": 0.878492,
+      "bin_index": 106,
+      "x_local": 426.9512,
+      "x_error_px": 0.6512
+    },
+    {
+      "image": "positive_ball_f000054.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999998,
+      "heatmap_peak": 0.884899,
+      "bin_index": 125,
+      "x_local": 502.0349,
+      "x_error_px": 0.3139
+    },
+    {
+      "image": "positive_ball_f000060.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999997,
+      "heatmap_peak": 0.858695,
+      "bin_index": 117,
+      "x_local": 471.3005,
+      "x_error_px": 0.3822
+    },
+    {
+      "image": "positive_ball_f000066.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999993,
+      "heatmap_peak": 0.866187,
+      "bin_index": 116,
+      "x_local": 465.9447,
+      "x_error_px": 0.5102
+    },
+    {
+      "image": "positive_ball_f000072.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999988,
+      "heatmap_peak": 0.892083,
+      "bin_index": 123,
+      "x_local": 494.0022,
+      "x_error_px": 0.6216
+    },
+    {
+      "image": "positive_ball_f000078.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999949,
+      "heatmap_peak": 0.854716,
+      "bin_index": 130,
+      "x_local": 521.5239,
+      "x_error_px": 2.8502
+    },
+    {
+      "image": "positive_ball_f000084.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.975314,
+      "heatmap_peak": 0.709995,
+      "bin_index": 134,
+      "x_local": 538.4577,
+      "x_error_px": 0.0423
+    },
+    {
+      "image": "positive_ball_f000102.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.99582,
+      "heatmap_peak": 0.792977,
+      "bin_index": 138,
+      "x_local": 553.8713,
+      "x_error_px": 1.3713
+    },
+    {
+      "image": "positive_ball_f000108.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.998659,
+      "heatmap_peak": 0.813463,
+      "bin_index": 141,
+      "x_local": 565.7708,
+      "x_error_px": 0.5771
+    },
+    {
+      "image": "positive_ball_f000120.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999984,
+      "heatmap_peak": 0.848741,
+      "bin_index": 137,
+      "x_local": 550.6861,
+      "x_error_px": 2.7578
+    },
+    {
+      "image": "positive_ball_f000126.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999996,
+      "heatmap_peak": 0.888294,
+      "bin_index": 130,
+      "x_local": 522.7628,
+      "x_error_px": 1.868
+    },
+    {
+      "image": "positive_ball_f000132.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999995,
+      "heatmap_peak": 0.888533,
+      "bin_index": 119,
+      "x_local": 476.8047,
+      "x_error_px": 1.9279
+    },
+    {
+      "image": "positive_ball_f000138.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999999,
+      "heatmap_peak": 0.923374,
+      "bin_index": 105,
+      "x_local": 421.9569,
+      "x_error_px": 0.5431
+    },
+    {
+      "image": "positive_ball_f000144.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999997,
+      "heatmap_peak": 0.971136,
+      "bin_index": 94,
+      "x_local": 379.3235,
+      "x_error_px": 0.6577
+    },
+    {
+      "image": "positive_ball_f000150.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999988,
+      "heatmap_peak": 0.919227,
+      "bin_index": 74,
+      "x_local": 298.052,
+      "x_error_px": 0.2449
+    },
+    {
+      "image": "positive_ball_f000162.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 1.0,
+      "heatmap_peak": 0.963419,
+      "bin_index": 45,
+      "x_local": 183.0398,
+      "x_error_px": 0.0592
+    },
+    {
+      "image": "positive_ball_f000168.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999999,
+      "heatmap_peak": 0.921119,
+      "bin_index": 31,
+      "x_local": 127.189,
+      "x_error_px": 1.6032
+    },
+    {
+      "image": "positive_ball_f000174.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999994,
+      "heatmap_peak": 0.806956,
+      "bin_index": 24,
+      "x_local": 96.8494,
+      "x_error_px": 2.8659
+    },
+    {
+      "image": "positive_ball_f000180.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999999,
+      "heatmap_peak": 0.902246,
+      "bin_index": 24,
+      "x_local": 97.9615,
+      "x_error_px": 0.1815
+    },
+    {
+      "image": "positive_ball_f000186.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 1.0,
+      "heatmap_peak": 0.927407,
+      "bin_index": 36,
+      "x_local": 147.3889,
+      "x_error_px": 1.3514
+    },
+    {
+      "image": "positive_ball_f000192.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999993,
+      "heatmap_peak": 0.886221,
+      "bin_index": 54,
+      "x_local": 219.2612,
+      "x_error_px": 1.4641
+    },
+    {
+      "image": "positive_ball_f000198.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999998,
+      "heatmap_peak": 0.941365,
+      "bin_index": 74,
+      "x_local": 296.6269,
+      "x_error_px": 0.5369
+    },
+    {
+      "image": "positive_ball_f000204.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999997,
+      "heatmap_peak": 0.918477,
+      "bin_index": 85,
+      "x_local": 341.7143,
+      "x_error_px": 0.0428
+    },
+    {
+      "image": "positive_ball_f000210.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.99999,
+      "heatmap_peak": 0.896191,
+      "bin_index": 90,
+      "x_local": 360.7751,
+      "x_error_px": 0.3972
+    },
+    {
+      "image": "positive_ball_f000216.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999997,
+      "heatmap_peak": 0.937529,
+      "bin_index": 86,
+      "x_local": 344.9148,
+      "x_error_px": 0.5852
+    },
+    {
+      "image": "positive_ball_f000222.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999997,
+      "heatmap_peak": 0.965393,
+      "bin_index": 75,
+      "x_local": 301.0247,
+      "x_error_px": 0.0073
+    },
+    {
+      "image": "positive_ball_f000228.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999999,
+      "heatmap_peak": 0.940606,
+      "bin_index": 58,
+      "x_local": 232.36,
+      "x_error_px": 1.4625
+    },
+    {
+      "image": "positive_ball_f000234.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999999,
+      "heatmap_peak": 0.954649,
+      "bin_index": 39,
+      "x_local": 159.3721,
+      "x_error_px": 0.6754
+    },
+    {
+      "image": "positive_ball_f000240.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999992,
+      "heatmap_peak": 0.86523,
+      "bin_index": 19,
+      "x_local": 78.2801,
+      "x_error_px": 2.8829
+    },
+    {
+      "image": "positive_ball_f000246.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999999,
+      "heatmap_peak": 0.861951,
+      "bin_index": 24,
+      "x_local": 98.078,
+      "x_error_px": 3.422
+    },
+    {
+      "image": "positive_ball_f000252.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999999,
+      "heatmap_peak": 0.922438,
+      "bin_index": 24,
+      "x_local": 99.2295,
+      "x_error_px": 0.6933
+    },
+    {
+      "image": "positive_ball_f000258.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999975,
+      "heatmap_peak": 0.78132,
+      "bin_index": 19,
+      "x_local": 78.2343,
+      "x_error_px": 3.9418
+    },
+    {
+      "image": "positive_ball_f000264.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999848,
+      "heatmap_peak": 0.763211,
+      "bin_index": 17,
+      "x_local": 69.4159,
+      "x_error_px": 3.8898
+    },
+    {
+      "image": "positive_ball_f000276.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.998109,
+      "heatmap_peak": 0.72141,
+      "bin_index": 16,
+      "x_local": 65.2075,
+      "x_error_px": 3.1737
+    },
+    {
+      "image": "positive_ball_f000282.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999426,
+      "heatmap_peak": 0.732072,
+      "bin_index": 15,
+      "x_local": 61.1653,
+      "x_error_px": 0.3559
+    },
+    {
+      "image": "positive_ball_f000294.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999995,
+      "heatmap_peak": 0.894837,
+      "bin_index": 20,
+      "x_local": 82.8936,
+      "x_error_px": 0.9586
+    },
+    {
+      "image": "positive_ball_f000300.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999999,
+      "heatmap_peak": 0.919856,
+      "bin_index": 26,
+      "x_local": 106.6063,
+      "x_error_px": 0.9548
+    },
+    {
+      "image": "positive_ball_f000306.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 1.0,
+      "heatmap_peak": 0.940979,
+      "bin_index": 36,
+      "x_local": 147.469,
+      "x_error_px": 0.8631
+    },
+    {
+      "image": "positive_ball_f000312.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999995,
+      "heatmap_peak": 0.830373,
+      "bin_index": 54,
+      "x_local": 216.9666,
+      "x_error_px": 0.258
+    },
+    {
+      "image": "positive_ball_f000324.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999997,
+      "heatmap_peak": 0.923857,
+      "bin_index": 87,
+      "x_local": 349.2993,
+      "x_error_px": 1.7193
+    },
+    {
+      "image": "positive_ball_f000330.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 1.0,
+      "heatmap_peak": 0.92237,
+      "bin_index": 108,
+      "x_local": 432.7583,
+      "x_error_px": 0.3584
+    },
+    {
+      "image": "positive_ball_f000336.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999992,
+      "heatmap_peak": 0.911258,
+      "bin_index": 135,
+      "x_local": 541.7339,
+      "x_error_px": 7.2339
+    },
+    {
+      "image": "positive_ball_f000342.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999999,
+      "heatmap_peak": 0.894208,
+      "bin_index": 130,
+      "x_local": 521.6287,
+      "x_error_px": 1.0042
+    },
+    {
+      "image": "positive_ball_f000348.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999998,
+      "heatmap_peak": 0.900311,
+      "bin_index": 124,
+      "x_local": 498.2958,
+      "x_error_px": 0.4621
+    },
+    {
+      "image": "positive_ball_f000354.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999992,
+      "heatmap_peak": 0.880929,
+      "bin_index": 117,
+      "x_local": 470.2131,
+      "x_error_px": 0.1212
+    },
+    {
+      "image": "positive_ball_f000360.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 1.0,
+      "heatmap_peak": 0.950553,
+      "bin_index": 101,
+      "x_local": 404.6277,
+      "x_error_px": 0.3395
+    },
+    {
+      "image": "positive_ball_f000366.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999996,
+      "heatmap_peak": 0.949701,
+      "bin_index": 75,
+      "x_local": 301.0061,
+      "x_error_px": 0.0264
+    },
+    {
+      "image": "positive_ball_f000372.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999997,
+      "heatmap_peak": 0.855647,
+      "bin_index": 61,
+      "x_local": 246.4697,
+      "x_error_px": 3.2562
+    },
+    {
+      "image": "positive_ball_f000378.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999999,
+      "heatmap_peak": 0.943094,
+      "bin_index": 39,
+      "x_local": 159.0573,
+      "x_error_px": 0.2837
+    },
+    {
+      "image": "positive_ball_f000384.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999997,
+      "heatmap_peak": 0.929805,
+      "bin_index": 21,
+      "x_local": 86.1521,
+      "x_error_px": 0.1197
+    },
+    {
+      "image": "positive_ball_f000390.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999981,
+      "heatmap_peak": 0.817204,
+      "bin_index": 17,
+      "x_local": 68.8527,
+      "x_error_px": 0.1326
+    },
+    {
+      "image": "positive_ball_f000396.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 1.0,
+      "heatmap_peak": 0.961294,
+      "bin_index": 25,
+      "x_local": 102.8342,
+      "x_error_px": 0.0745
+    },
+    {
+      "image": "positive_ball_f000402.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999996,
+      "heatmap_peak": 0.886041,
+      "bin_index": 52,
+      "x_local": 208.5947,
+      "x_error_px": 0.1601
+    },
+    {
+      "image": "positive_ball_f000414.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999995,
+      "heatmap_peak": 0.909181,
+      "bin_index": 112,
+      "x_local": 448.9958,
+      "x_error_px": 0.7343
+    },
+    {
+      "image": "positive_ball_f000420.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.99999,
+      "heatmap_peak": 0.924729,
+      "bin_index": 122,
+      "x_local": 489.4627,
+      "x_error_px": 3.19
+    },
+    {
+      "image": "positive_ball_f000426.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999999,
+      "heatmap_peak": 0.896279,
+      "bin_index": 117,
+      "x_local": 469.2214,
+      "x_error_px": 2.4409
+    },
+    {
+      "image": "positive_ball_f000432.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999994,
+      "heatmap_peak": 0.768471,
+      "bin_index": 119,
+      "x_local": 477.0121,
+      "x_error_px": 0.6084
+    },
+    {
+      "image": "positive_ball_f000438.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.998141,
+      "heatmap_peak": 0.703042,
+      "bin_index": 131,
+      "x_local": 526.2844,
+      "x_error_px": 3.7844
+    },
+    {
+      "image": "positive_ball_f000444.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999479,
+      "heatmap_peak": 0.703704,
+      "bin_index": 130,
+      "x_local": 522.2553,
+      "x_error_px": 16.2447
+    },
+    {
+      "image": "positive_ball_f000462.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999083,
+      "heatmap_peak": 0.793235,
+      "bin_index": 139,
+      "x_local": 558.6364,
+      "x_error_px": 3.1364
+    },
+    {
+      "image": "positive_ball_f000480.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999993,
+      "heatmap_peak": 0.896319,
+      "bin_index": 134,
+      "x_local": 538.2488,
+      "x_error_px": 3.1475
+    },
+    {
+      "image": "positive_ball_f000486.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999998,
+      "heatmap_peak": 0.909323,
+      "bin_index": 124,
+      "x_local": 498.6427,
+      "x_error_px": 1.5192
+    },
+    {
+      "image": "positive_ball_f000492.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 1.0,
+      "heatmap_peak": 0.933606,
+      "bin_index": 111,
+      "x_local": 447.2568,
+      "x_error_px": 0.4946
+    },
+    {
+      "image": "positive_ball_f000498.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999999,
+      "heatmap_peak": 0.939157,
+      "bin_index": 97,
+      "x_local": 391.2183,
+      "x_error_px": 1.2817
+    },
+    {
+      "image": "positive_ball_f000504.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999984,
+      "heatmap_peak": 0.916172,
+      "bin_index": 80,
+      "x_local": 321.978,
+      "x_error_px": 0.625
+    },
+    {
+      "image": "positive_ball_f000510.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999997,
+      "heatmap_peak": 0.917628,
+      "bin_index": 64,
+      "x_local": 256.5514,
+      "x_error_px": 0.5918
+    },
+    {
+      "image": "positive_ball_f000516.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 1.0,
+      "heatmap_peak": 0.948797,
+      "bin_index": 46,
+      "x_local": 186.8881,
+      "x_error_px": 0.0431
+    },
+    {
+      "image": "positive_ball_f000522.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999998,
+      "heatmap_peak": 0.932033,
+      "bin_index": 30,
+      "x_local": 123.3117,
+      "x_error_px": 2.5883
+    },
+    {
+      "image": "positive_ball_f000528.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999995,
+      "heatmap_peak": 0.878037,
+      "bin_index": 22,
+      "x_local": 90.9903,
+      "x_error_px": 0.0499
+    },
+    {
+      "image": "positive_ball_f000540.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999999,
+      "heatmap_peak": 0.913501,
+      "bin_index": 30,
+      "x_local": 122.8555,
+      "x_error_px": 0.8108
+    },
+    {
+      "image": "positive_ball_f000546.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 1.0,
+      "heatmap_peak": 0.948456,
+      "bin_index": 45,
+      "x_local": 181.2958,
+      "x_error_px": 0.2503
+    },
+    {
+      "image": "positive_ball_f000552.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999984,
+      "heatmap_peak": 0.90008,
+      "bin_index": 63,
+      "x_local": 254.6709,
+      "x_error_px": 1.4953
+    },
+    {
+      "image": "positive_ball_f000558.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999978,
+      "heatmap_peak": 0.940395,
+      "bin_index": 77,
+      "x_local": 311.3954,
+      "x_error_px": 0.2328
+    },
+    {
+      "image": "positive_ball_f000564.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999983,
+      "heatmap_peak": 0.943572,
+      "bin_index": 86,
+      "x_local": 346.5263,
+      "x_error_px": 2.3083
+    },
+    {
+      "image": "positive_ball_f000576.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999809,
+      "heatmap_peak": 0.795393,
+      "bin_index": 79,
+      "x_local": 318.6822,
+      "x_error_px": 0.107
+    },
+    {
+      "image": "positive_ball_f000582.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999999,
+      "heatmap_peak": 0.941528,
+      "bin_index": 65,
+      "x_local": 261.0364,
+      "x_error_px": 0.1134
+    },
+    {
+      "image": "positive_ball_f000588.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 1.0,
+      "heatmap_peak": 0.97337,
+      "bin_index": 45,
+      "x_local": 181.238,
+      "x_error_px": 0.163
+    },
+    {
+      "image": "positive_ball_f000600.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999995,
+      "heatmap_peak": 0.834242,
+      "bin_index": 24,
+      "x_local": 97.1243,
+      "x_error_px": 4.0137
+    },
+    {
+      "image": "positive_ball_f000618.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999787,
+      "heatmap_peak": 0.741487,
+      "bin_index": 17,
+      "x_local": 69.2438,
+      "x_error_px": 3.3022
+    },
+    {
+      "image": "positive_ball_f000630.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.997904,
+      "heatmap_peak": 0.72244,
+      "bin_index": 15,
+      "x_local": 61.0473,
+      "x_error_px": 0.0102
+    },
+    {
+      "image": "positive_ball_f000642.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999612,
+      "heatmap_peak": 0.701391,
+      "bin_index": 16,
+      "x_local": 65.3218,
+      "x_error_px": 0.1005
+    },
+    {
+      "image": "positive_ball_f000648.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999986,
+      "heatmap_peak": 0.820685,
+      "bin_index": 19,
+      "x_local": 79.3637,
+      "x_error_px": 1.6981
+    },
+    {
+      "image": "positive_ball_f000654.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999999,
+      "heatmap_peak": 0.966308,
+      "bin_index": 27,
+      "x_local": 110.9201,
+      "x_error_px": 0.4657
+    },
+    {
+      "image": "positive_ball_f000660.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999999,
+      "heatmap_peak": 0.951139,
+      "bin_index": 40,
+      "x_local": 163.5759,
+      "x_error_px": 1.2334
+    },
+    {
+      "image": "positive_ball_f000666.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999995,
+      "heatmap_peak": 0.892545,
+      "bin_index": 56,
+      "x_local": 225.8987,
+      "x_error_px": 0.4371
+    },
+    {
+      "image": "positive_ball_f000678.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999999,
+      "heatmap_peak": 0.884216,
+      "bin_index": 102,
+      "x_local": 408.5902,
+      "x_error_px": 0.2287
+    },
+    {
+      "image": "positive_ball_f000684.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999999,
+      "heatmap_peak": 0.940198,
+      "bin_index": 127,
+      "x_local": 509.18,
+      "x_error_px": 1.3924
+    },
+    {
+      "image": "positive_ball_f000690.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999997,
+      "heatmap_peak": 0.845908,
+      "bin_index": 131,
+      "x_local": 526.269,
+      "x_error_px": 2.769
+    },
+    {
+      "image": "positive_ball_f000696.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999993,
+      "heatmap_peak": 0.88993,
+      "bin_index": 127,
+      "x_local": 509.9579,
+      "x_error_px": 0.1613
+    },
+    {
+      "image": "positive_ball_f000702.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999992,
+      "heatmap_peak": 0.904342,
+      "bin_index": 120,
+      "x_local": 481.8801,
+      "x_error_px": 0.6199
+    },
+    {
+      "image": "positive_ball_f000708.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999998,
+      "heatmap_peak": 0.933113,
+      "bin_index": 104,
+      "x_local": 419.074,
+      "x_error_px": 0.5114
+    },
+    {
+      "image": "positive_ball_f000714.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999999,
+      "heatmap_peak": 0.937901,
+      "bin_index": 87,
+      "x_local": 351.4284,
+      "x_error_px": 0.4399
+    },
+    {
+      "image": "positive_ball_f000720.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999998,
+      "heatmap_peak": 0.962254,
+      "bin_index": 72,
+      "x_local": 291.1631,
+      "x_error_px": 0.2131
+    },
+    {
+      "image": "positive_ball_f000726.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999999,
+      "heatmap_peak": 0.951423,
+      "bin_index": 48,
+      "x_local": 195.3163,
+      "x_error_px": 0.6113
+    },
+    {
+      "image": "positive_ball_f000732.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999996,
+      "heatmap_peak": 0.94503,
+      "bin_index": 39,
+      "x_local": 159.2971,
+      "x_error_px": 0.5764
+    },
+    {
+      "image": "positive_ball_f000738.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 1.0,
+      "heatmap_peak": 0.960653,
+      "bin_index": 99,
+      "x_local": 398.826,
+      "x_error_px": 0.722
+    },
+    {
+      "image": "positive_ball_f000744.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999972,
+      "heatmap_peak": 0.890089,
+      "bin_index": 80,
+      "x_local": 322.5945,
+      "x_error_px": 0.0371
+    },
+    {
+      "image": "positive_ball_f000750.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999998,
+      "heatmap_peak": 0.932575,
+      "bin_index": 58,
+      "x_local": 235.3232,
+      "x_error_px": 1.4229
+    },
+    {
+      "image": "positive_ball_f000756.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 1.0,
+      "heatmap_peak": 0.967436,
+      "bin_index": 35,
+      "x_local": 143.611,
+      "x_error_px": 0.9218
+    },
+    {
+      "image": "positive_ball_f000762.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999996,
+      "heatmap_peak": 0.912761,
+      "bin_index": 20,
+      "x_local": 82.4208,
+      "x_error_px": 0.2403
+    },
+    {
+      "image": "positive_ball_f000768.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999965,
+      "heatmap_peak": 0.78661,
+      "bin_index": 16,
+      "x_local": 66.1307,
+      "x_error_px": 2.2257
+    },
+    {
+      "image": "positive_ball_f000774.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 1.0,
+      "heatmap_peak": 0.969512,
+      "bin_index": 27,
+      "x_local": 110.5365,
+      "x_error_px": 0.0861
+    },
+    {
+      "image": "positive_ball_f000780.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999995,
+      "heatmap_peak": 0.943213,
+      "bin_index": 50,
+      "x_local": 202.668,
+      "x_error_px": 0.7407
+    },
+    {
+      "image": "positive_ball_f000786.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.99997,
+      "heatmap_peak": 0.902092,
+      "bin_index": 80,
+      "x_local": 320.4924,
+      "x_error_px": 2.2739
+    },
+    {
+      "image": "positive_ball_f000792.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999999,
+      "heatmap_peak": 0.944106,
+      "bin_index": 114,
+      "x_local": 457.9081,
+      "x_error_px": 0.7946
+    },
+    {
+      "image": "positive_ball_f000798.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999986,
+      "heatmap_peak": 0.877978,
+      "bin_index": 122,
+      "x_local": 489.0981,
+      "x_error_px": 0.8395
+    },
+    {
+      "image": "positive_ball_f000804.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999997,
+      "heatmap_peak": 0.854285,
+      "bin_index": 117,
+      "x_local": 469.5454,
+      "x_error_px": 2.6806
+    },
+    {
+      "image": "positive_ball_f000816.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999991,
+      "heatmap_peak": 0.819374,
+      "bin_index": 127,
+      "x_local": 509.9183,
+      "x_error_px": 2.2623
+    },
+    {
+      "image": "positive_ball_f000828.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.99837,
+      "heatmap_peak": 0.701616,
+      "bin_index": 134,
+      "x_local": 538.4429,
+      "x_error_px": 0.0571
+    },
+    {
+      "image": "positive_ball_f000834.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.998528,
+      "heatmap_peak": 0.745324,
+      "bin_index": 133,
+      "x_local": 533.145,
+      "x_error_px": 5.645
+    },
+    {
+      "image": "positive_ball_f000840.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.998098,
+      "heatmap_peak": 0.691151,
+      "bin_index": 134,
+      "x_local": 538.1666,
+      "x_error_px": 13.3334
+    },
+    {
+      "image": "positive_ball_f000852.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999509,
+      "heatmap_peak": 0.816888,
+      "bin_index": 141,
+      "x_local": 565.5819,
+      "x_error_px": 7.9181
+    },
+    {
+      "image": "positive_ball_f000858.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999982,
+      "heatmap_peak": 0.889141,
+      "bin_index": 139,
+      "x_local": 558.8237,
+      "x_error_px": 4.3237
+    },
+    {
+      "image": "positive_ball_f000864.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999979,
+      "heatmap_peak": 0.837834,
+      "bin_index": 136,
+      "x_local": 544.8152,
+      "x_error_px": 4.9556
+    },
+    {
+      "image": "positive_ball_f000870.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999998,
+      "heatmap_peak": 0.917424,
+      "bin_index": 126,
+      "x_local": 506.1805,
+      "x_error_px": 1.3195
+    },
+    {
+      "image": "positive_ball_f000876.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999996,
+      "heatmap_peak": 0.852125,
+      "bin_index": 113,
+      "x_local": 454.1411,
+      "x_error_px": 2.6411
+    },
+    {
+      "image": "positive_ball_f000882.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999999,
+      "heatmap_peak": 0.931591,
+      "bin_index": 98,
+      "x_local": 393.9234,
+      "x_error_px": 0.2697
+    },
+    {
+      "image": "positive_ball_f000888.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999995,
+      "heatmap_peak": 0.90575,
+      "bin_index": 82,
+      "x_local": 330.356,
+      "x_error_px": 0.2195
+    },
+    {
+      "image": "positive_ball_f000894.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999999,
+      "heatmap_peak": 0.937075,
+      "bin_index": 69,
+      "x_local": 276.3084,
+      "x_error_px": 0.7211
+    },
+    {
+      "image": "positive_ball_f000900.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999996,
+      "heatmap_peak": 0.868102,
+      "bin_index": 53,
+      "x_local": 213.5185,
+      "x_error_px": 0.3868
+    },
+    {
+      "image": "positive_ball_f000906.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999998,
+      "heatmap_peak": 0.918167,
+      "bin_index": 39,
+      "x_local": 159.5226,
+      "x_error_px": 2.4946
+    },
+    {
+      "image": "positive_ball_f000912.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999998,
+      "heatmap_peak": 0.92728,
+      "bin_index": 29,
+      "x_local": 118.112,
+      "x_error_px": 0.9617
+    },
+    {
+      "image": "positive_ball_f000918.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999994,
+      "heatmap_peak": 0.845158,
+      "bin_index": 22,
+      "x_local": 89.7806,
+      "x_error_px": 0.4001
+    },
+    {
+      "image": "positive_ball_f000930.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 1.0,
+      "heatmap_peak": 0.893565,
+      "bin_index": 26,
+      "x_local": 105.6687,
+      "x_error_px": 1.0863
+    },
+    {
+      "image": "positive_ball_f000936.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999999,
+      "heatmap_peak": 0.924018,
+      "bin_index": 40,
+      "x_local": 162.6845,
+      "x_error_px": 0.5698
+    },
+    {
+      "image": "positive_ball_f000942.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999999,
+      "heatmap_peak": 0.850639,
+      "bin_index": 57,
+      "x_local": 229.4015,
+      "x_error_px": 1.1423
+    },
+    {
+      "image": "positive_ball_f000948.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999992,
+      "heatmap_peak": 0.927674,
+      "bin_index": 75,
+      "x_local": 302.2494,
+      "x_error_px": 0.7902
+    },
+    {
+      "image": "positive_ball_f000954.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999987,
+      "heatmap_peak": 0.923097,
+      "bin_index": 88,
+      "x_local": 355.0966,
+      "x_error_px": 0.4034
+    },
+    {
+      "image": "positive_ball_f000960.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999995,
+      "heatmap_peak": 0.903758,
+      "bin_index": 82,
+      "x_local": 331.199,
+      "x_error_px": 2.301
+    },
+    {
+      "image": "positive_ball_f000966.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 1.0,
+      "heatmap_peak": 0.955602,
+      "bin_index": 66,
+      "x_local": 267.3621,
+      "x_error_px": 0.5355
+    },
+    {
+      "image": "positive_ball_f000972.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 1.0,
+      "heatmap_peak": 0.941807,
+      "bin_index": 47,
+      "x_local": 188.6224,
+      "x_error_px": 0.3189
+    },
+    {
+      "image": "positive_ball_f000978.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999997,
+      "heatmap_peak": 0.893555,
+      "bin_index": 22,
+      "x_local": 91.0691,
+      "x_error_px": 2.2357
+    },
+    {
+      "image": "positive_ball_f000990.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999999,
+      "heatmap_peak": 0.892495,
+      "bin_index": 25,
+      "x_local": 102.4609,
+      "x_error_px": 0.047
+    },
+    {
+      "image": "positive_ball_f000996.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999996,
+      "heatmap_peak": 0.868971,
+      "bin_index": 23,
+      "x_local": 94.755,
+      "x_error_px": 2.4828
+    },
+    {
+      "image": "positive_ball_f001002.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999646,
+      "heatmap_peak": 0.713283,
+      "bin_index": 17,
+      "x_local": 69.2771,
+      "x_error_px": 4.2883
+    },
+    {
+      "image": "positive_ball_f001008.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999749,
+      "heatmap_peak": 0.770224,
+      "bin_index": 17,
+      "x_local": 68.9551,
+      "x_error_px": 2.9599
+    },
+    {
+      "image": "positive_ball_f001020.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999583,
+      "heatmap_peak": 0.722817,
+      "bin_index": 15,
+      "x_local": 61.1247,
+      "x_error_px": 0.7705
+    },
+    {
+      "image": "positive_ball_f001026.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999637,
+      "heatmap_peak": 0.79838,
+      "bin_index": 15,
+      "x_local": 60.9072,
+      "x_error_px": 0.4141
+    },
+    {
+      "image": "positive_ball_f001032.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999962,
+      "heatmap_peak": 0.836208,
+      "bin_index": 19,
+      "x_local": 77.9145,
+      "x_error_px": 0.1021
+    },
+    {
+      "image": "positive_ball_f001038.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999999,
+      "heatmap_peak": 0.939053,
+      "bin_index": 26,
+      "x_local": 106.7095,
+      "x_error_px": 1.3838
+    },
+    {
+      "image": "positive_ball_f001044.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999998,
+      "heatmap_peak": 0.957681,
+      "bin_index": 38,
+      "x_local": 154.8732,
+      "x_error_px": 0.2895
+    },
+    {
+      "image": "positive_ball_f001050.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999995,
+      "heatmap_peak": 0.876428,
+      "bin_index": 56,
+      "x_local": 226.3483,
+      "x_error_px": 0.385
+    },
+    {
+      "image": "positive_ball_f001056.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999965,
+      "heatmap_peak": 0.875145,
+      "bin_index": 76,
+      "x_local": 304.8836,
+      "x_error_px": 1.4461
+    },
+    {
+      "image": "positive_ball_f001062.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 1.0,
+      "heatmap_peak": 0.925873,
+      "bin_index": 98,
+      "x_local": 392.898,
+      "x_error_px": 0.1798
+    },
+    {
+      "image": "positive_ball_f001068.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999998,
+      "heatmap_peak": 0.904839,
+      "bin_index": 124,
+      "x_local": 498.3579,
+      "x_error_px": 0.7667
+    },
+    {
+      "image": "positive_ball_f001074.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999998,
+      "heatmap_peak": 0.811545,
+      "bin_index": 131,
+      "x_local": 525.7766,
+      "x_error_px": 1.4733
+    },
+    {
+      "image": "positive_ball_f001080.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999993,
+      "heatmap_peak": 0.879776,
+      "bin_index": 127,
+      "x_local": 509.7039,
+      "x_error_px": 2.5453
+    },
+    {
+      "image": "positive_ball_f001086.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999994,
+      "heatmap_peak": 0.881572,
+      "bin_index": 121,
+      "x_local": 485.3969,
+      "x_error_px": 1.5546
+    },
+    {
+      "image": "positive_ball_f001092.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999998,
+      "heatmap_peak": 0.936687,
+      "bin_index": 108,
+      "x_local": 433.7577,
+      "x_error_px": 0.0223
+    },
+    {
+      "image": "positive_ball_f001098.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999999,
+      "heatmap_peak": 0.909007,
+      "bin_index": 91,
+      "x_local": 365.5622,
+      "x_error_px": 0.3094
+    },
+    {
+      "image": "positive_ball_f001104.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 1.0,
+      "heatmap_peak": 0.952363,
+      "bin_index": 68,
+      "x_local": 275.4282,
+      "x_error_px": 0.372
+    },
+    {
+      "image": "positive_ball_f001110.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 1.0,
+      "heatmap_peak": 0.963256,
+      "bin_index": 46,
+      "x_local": 187.5885,
+      "x_error_px": 0.3829
+    },
+    {
+      "image": "positive_ball_f001116.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 1.0,
+      "heatmap_peak": 0.973712,
+      "bin_index": 26,
+      "x_local": 106.9938,
+      "x_error_px": 1.2632
+    },
+    {
+      "image": "positive_ball_f001122.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999715,
+      "heatmap_peak": 0.717012,
+      "bin_index": 16,
+      "x_local": 65.176,
+      "x_error_px": 4.1753
+    },
+    {
+      "image": "positive_ball_f001128.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999998,
+      "heatmap_peak": 0.918507,
+      "bin_index": 22,
+      "x_local": 91.3383,
+      "x_error_px": 0.3562
+    },
+    {
+      "image": "positive_ball_f001134.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999996,
+      "heatmap_peak": 0.938693,
+      "bin_index": 38,
+      "x_local": 154.6812,
+      "x_error_px": 0.2841
+    },
+    {
+      "image": "positive_ball_f001140.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999997,
+      "heatmap_peak": 0.931247,
+      "bin_index": 64,
+      "x_local": 256.7249,
+      "x_error_px": 0.0882
+    },
+    {
+      "image": "positive_ball_f001146.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999998,
+      "heatmap_peak": 0.872527,
+      "bin_index": 98,
+      "x_local": 395.376,
+      "x_error_px": 1.7962
+    },
+    {
+      "image": "positive_ball_f001158.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999997,
+      "heatmap_peak": 0.880001,
+      "bin_index": 118,
+      "x_local": 473.0125,
+      "x_error_px": 1.628
+    },
+    {
+      "image": "positive_ball_f001170.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999992,
+      "heatmap_peak": 0.898829,
+      "bin_index": 122,
+      "x_local": 490.2017,
+      "x_error_px": 0.2841
+    },
+    {
+      "image": "positive_ball_f001176.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999254,
+      "heatmap_peak": 0.709861,
+      "bin_index": 130,
+      "x_local": 522.3489,
+      "x_error_px": 16.1511
+    },
+    {
+      "image": "positive_ball_f001200.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.993381,
+      "heatmap_peak": 0.719589,
+      "bin_index": 138,
+      "x_local": 554.4863,
+      "x_error_px": 2.8882
+    },
+    {
+      "image": "positive_ball_f001212.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999919,
+      "heatmap_peak": 0.889001,
+      "bin_index": 141,
+      "x_local": 565.4979,
+      "x_error_px": 6.5949
+    },
+    {
+      "image": "positive_ball_f001224.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999997,
+      "heatmap_peak": 0.875172,
+      "bin_index": 132,
+      "x_local": 529.2455,
+      "x_error_px": 6.7455
+    },
+    {
+      "image": "positive_ball_f001230.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999997,
+      "heatmap_peak": 0.912277,
+      "bin_index": 118,
+      "x_local": 474.03,
+      "x_error_px": 2.47
+    },
+    {
+      "image": "positive_ball_f001236.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999998,
+      "heatmap_peak": 0.922951,
+      "bin_index": 105,
+      "x_local": 420.798,
+      "x_error_px": 0.3824
+    },
+    {
+      "image": "positive_ball_f001242.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999997,
+      "heatmap_peak": 0.924313,
+      "bin_index": 90,
+      "x_local": 360.8826,
+      "x_error_px": 0.2519
+    },
+    {
+      "image": "positive_ball_f001248.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999998,
+      "heatmap_peak": 0.931944,
+      "bin_index": 72,
+      "x_local": 290.5099,
+      "x_error_px": 0.2399
+    },
+    {
+      "image": "positive_ball_f001254.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999993,
+      "heatmap_peak": 0.846718,
+      "bin_index": 55,
+      "x_local": 221.1382,
+      "x_error_px": 0.9748
+    },
+    {
+      "image": "positive_ball_f001260.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 1.0,
+      "heatmap_peak": 0.942725,
+      "bin_index": 37,
+      "x_local": 150.656,
+      "x_error_px": 0.9716
+    },
+    {
+      "image": "positive_ball_f001266.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 1.0,
+      "heatmap_peak": 0.902544,
+      "bin_index": 25,
+      "x_local": 101.2694,
+      "x_error_px": 0.4952
+    },
+    {
+      "image": "positive_ball_f001272.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999979,
+      "heatmap_peak": 0.842147,
+      "bin_index": 20,
+      "x_local": 81.1002,
+      "x_error_px": 2.668
+    },
+    {
+      "image": "positive_ball_f001278.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999996,
+      "heatmap_peak": 0.866238,
+      "bin_index": 22,
+      "x_local": 90.9737,
+      "x_error_px": 0.247
+    },
+    {
+      "image": "positive_ball_f001284.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 1.0,
+      "heatmap_peak": 0.95229,
+      "bin_index": 35,
+      "x_local": 141.4808,
+      "x_error_px": 1.0192
+    },
+    {
+      "image": "positive_ball_f001290.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999997,
+      "heatmap_peak": 0.836,
+      "bin_index": 50,
+      "x_local": 203.0309,
+      "x_error_px": 2.6587
+    },
+    {
+      "image": "positive_ball_f001296.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 1.0,
+      "heatmap_peak": 0.961421,
+      "bin_index": 67,
+      "x_local": 270.8589,
+      "x_error_px": 0.5327
+    },
+    {
+      "image": "positive_ball_f001302.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.99999,
+      "heatmap_peak": 0.896586,
+      "bin_index": 81,
+      "x_local": 324.9218,
+      "x_error_px": 0.9403
+    },
+    {
+      "image": "positive_ball_f001308.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999961,
+      "heatmap_peak": 0.830822,
+      "bin_index": 86,
+      "x_local": 344.9603,
+      "x_error_px": 0.4067
+    },
+    {
+      "image": "positive_ball_f001320.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999998,
+      "heatmap_peak": 0.970391,
+      "bin_index": 74,
+      "x_local": 297.678,
+      "x_error_px": 0.03
+    },
+    {
+      "image": "positive_ball_f001326.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999999,
+      "heatmap_peak": 0.929967,
+      "bin_index": 56,
+      "x_local": 227.265,
+      "x_error_px": 0.235
+    },
+    {
+      "image": "positive_ball_f001332.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 1.0,
+      "heatmap_peak": 0.976641,
+      "bin_index": 35,
+      "x_local": 142.0342,
+      "x_error_px": 2.4658
+    },
+    {
+      "image": "positive_ball_f001338.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999983,
+      "heatmap_peak": 0.80075,
+      "bin_index": 19,
+      "x_local": 78.7505,
+      "x_error_px": 3.2692
+    },
+    {
+      "image": "positive_ball_f001344.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999998,
+      "heatmap_peak": 0.858431,
+      "bin_index": 24,
+      "x_local": 98.7838,
+      "x_error_px": 3.7162
+    },
+    {
+      "image": "positive_ball_f001350.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999997,
+      "heatmap_peak": 0.874992,
+      "bin_index": 24,
+      "x_local": 97.7952,
+      "x_error_px": 0.4343
+    },
+    {
+      "image": "positive_ball_f001356.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999694,
+      "heatmap_peak": 0.690509,
+      "bin_index": 19,
+      "x_local": 78.2098,
+      "x_error_px": 1.0424
+    },
+    {
+      "image": "positive_ball_f001362.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999924,
+      "heatmap_peak": 0.800769,
+      "bin_index": 17,
+      "x_local": 69.7206,
+      "x_error_px": 3.2396
+    },
+    {
+      "image": "positive_ball_f001368.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.995671,
+      "heatmap_peak": 0.685759,
+      "bin_index": 16,
+      "x_local": 64.9254,
+      "x_error_px": 3.5785
+    },
+    {
+      "image": "positive_ball_f001380.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999857,
+      "heatmap_peak": 0.800621,
+      "bin_index": 15,
+      "x_local": 61.0813,
+      "x_error_px": 0.5466
+    },
+    {
+      "image": "positive_ball_f001386.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999989,
+      "heatmap_peak": 0.832687,
+      "bin_index": 17,
+      "x_local": 69.0734,
+      "x_error_px": 0.3105
+    },
+    {
+      "image": "positive_ball_f001392.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999997,
+      "heatmap_peak": 0.897113,
+      "bin_index": 21,
+      "x_local": 87.0621,
+      "x_error_px": 0.874
+    },
+    {
+      "image": "positive_ball_f001398.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999999,
+      "heatmap_peak": 0.905069,
+      "bin_index": 32,
+      "x_local": 129.4532,
+      "x_error_px": 0.7638
+    },
+    {
+      "image": "positive_ball_f001404.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 1.0,
+      "heatmap_peak": 0.918107,
+      "bin_index": 46,
+      "x_local": 185.0659,
+      "x_error_px": 0.2856
+    },
+    {
+      "image": "positive_ball_f001410.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 1.0,
+      "heatmap_peak": 0.93773,
+      "bin_index": 64,
+      "x_local": 256.7726,
+      "x_error_px": 1.0934
+    },
+    {
+      "image": "positive_ball_f001416.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999998,
+      "heatmap_peak": 0.85107,
+      "bin_index": 85,
+      "x_local": 340.8192,
+      "x_error_px": 1.6519
+    },
+    {
+      "image": "positive_ball_f001422.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 1.0,
+      "heatmap_peak": 0.913951,
+      "bin_index": 109,
+      "x_local": 439.0981,
+      "x_error_px": 0.4755
+    },
+    {
+      "image": "positive_ball_f001428.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999915,
+      "heatmap_peak": 0.869757,
+      "bin_index": 137,
+      "x_local": 550.8536,
+      "x_error_px": 0.2368
+    },
+    {
+      "image": "positive_ball_f001434.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 1.0,
+      "heatmap_peak": 0.930178,
+      "bin_index": 130,
+      "x_local": 521.7333,
+      "x_error_px": 1.8833
+    },
+    {
+      "image": "positive_ball_f001440.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999996,
+      "heatmap_peak": 0.862481,
+      "bin_index": 124,
+      "x_local": 498.091,
+      "x_error_px": 2.5261
+    },
+    {
+      "image": "positive_ball_f001446.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999995,
+      "heatmap_peak": 0.902069,
+      "bin_index": 115,
+      "x_local": 462.5148,
+      "x_error_px": 0.2033
+    },
+    {
+      "image": "positive_ball_f001452.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 1.0,
+      "heatmap_peak": 0.946633,
+      "bin_index": 100,
+      "x_local": 400.4757,
+      "x_error_px": 0.4649
+    },
+    {
+      "image": "positive_ball_f001458.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999997,
+      "heatmap_peak": 0.941242,
+      "bin_index": 81,
+      "x_local": 325.4669,
+      "x_error_px": 0.5898
+    },
+    {
+      "image": "positive_ball_f001464.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999999,
+      "heatmap_peak": 0.916729,
+      "bin_index": 57,
+      "x_local": 229.6935,
+      "x_error_px": 0.8504
+    },
+    {
+      "image": "positive_ball_f001470.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 1.0,
+      "heatmap_peak": 0.963888,
+      "bin_index": 36,
+      "x_local": 146.5989,
+      "x_error_px": 0.708
+    },
+    {
+      "image": "positive_ball_f001476.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999997,
+      "heatmap_peak": 0.916834,
+      "bin_index": 20,
+      "x_local": 82.8613,
+      "x_error_px": 0.2973
+    },
+    {
+      "image": "positive_ball_f001482.png",
+      "has_ground_truth": true,
+      "found": true,
+      "presence_probability": 0.999967,
+      "heatmap_peak": 0.803076,
+      "bin_index": 17,
+      "x_local": 68.7447,
+      "x_error_px": 0.483
+    }
+  ],
+  "weights": "vision_function\\ball_detection\\model\\shallow_cnn_v2.pt",
+  "data": "vision_function\\ball_detection\\data\\actual_video_frames_raw_new",
+  "split": "all",
+  "epoch": 27,
+  "presence_threshold": 0.5,
+  "heatmap_threshold": 0.25
+}

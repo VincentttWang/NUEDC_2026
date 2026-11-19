@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "status": "final_sloped_ruler_samples_2026-07-31",
+  "coordinate_space": "tube_local_rectified_plane",
+  "image_size": [
+    640,
+    100
+  ],
+  "roi_xywh": [
+    20,
+    62,
+    600,
+    30
+  ],
+  "roi_source": {
+    "directory": "vision_function/scale_location/calibration_assets/color_ruler",
+    "sample_image_size": [
+      1280,
+      200
+    ],
+    "sample_roi_xywh": [
+      80,
+      120,
+      1120,
+      70
+    ],
+    "production_scale": 0.5,
+    "reference_sample_count": 5,
+    "regression_directory": "vision_function/scale_location/data/\u8ddd\u79bb\u8bef\u8bc6\u522b",
+    "regression_sample_count": 4
+  },
+  "detect_every_n_frames": 2,
+  "max_geometry_age_ms": 120.0,
+  "lightness_weight": 0.08,
+  "minimum_column_fraction": 0.3,
+  "maximum_unknown_gap_px": 8,
+  "maximum_recoverable_narrow_runs": 1,
+  "minimum_run_width_px": 6,
+  "maximum_spacing_cv": 0.12,
+  "minimum_width_ratio": 0.55,
+  "maximum_width_ratio": 1.45,
+  "nominal_spacing_px": 22.0,
+  "maximum_zero_run_width_px": 36,
+  "zero_center_x_range_px": [
+    250,
+    370
+  ],
+  "minimum_cm": -11,
+  "maximum_cm": 11,
+  "zero_color": "magenta",
+  "odd_color": "yellow",
+  "even_color": "green",
+  "edge_margin_cm": 0.75,
+  "oriented_roi_enabled": true,
+  "oriented_angle_threshold_degrees": 1.0,
+  "oriented_strip_height_px": 30,
+  "colors": {
+    "yellow": {
+      "design_rgb": [
+        210,
+        215,
+        111
+      ],
+      "max_distance": 22.0
+    },
+    "green": {
+      "design_rgb": [
+        140,
+        182,
+        124
+      ],
+      "max_distance": 22.0
+    },
+    "magenta": {
+      "design_rgb": [
+        190,
+        107,
+        160
+      ],
+      "max_distance": 22.0
+    }
+  },
+  "fitting": {
+    "method": "median_lab_inside_validated_marker_runs",
+    "validation": "five reference images plus four shifted/sloped regression images",
+    "validated_samples": [
+      "tube-roi-2026-07-31T10-43-52-300Z.png",
+      "tube-roi-2026-07-31T10-43-57-600Z.png",
+      "tube-roi-2026-07-31T10-44-00-291Z.png",
+      "tube-roi-2026-07-31T10-44-18-124Z.png",
+      "tube-roi-2026-07-31T10-44-24-700Z.png",
+      "tube-roi-2026-07-31T12-14-10-024Z.png",
+      "tube-roi-2026-07-31T12-14-21-424Z.png",
+      "tube-roi-2026-07-31T12-14-47-875Z.png",
+      "tube-roi-2026-07-31T12-15-08-273Z.png"
+    ],
+    "video_validation": {
+      "source": "tube-roi-2026-07-31T13-04-38-325Z.webm",
+      "decoded_frames": 239,
+      "excluded_initial_occluded_frames": 30,
+      "tested_frames": 209,
+      "direct_valid_frames": 209,
+      "tracked_valid_frames": 209,
+      "gap_repaired_frames": 8,
+      "neighbour_reconstructed_frames": 1,
+      "rejected_tracking_detections": 0
+    }
+  },
+  "note": "The wider 600x30 fixed ROI covers all observed marker endpoints with horizontal margin while excluding empty vertical rows; minimum_column_fraction=0.30 preserves the previous nine-pixel column vote. At robust axis angles of at least one degree, it initializes or backs up a nearest-neighbour oriented 640x30 strip. Isolated bleached marker gaps are merged or reconstructed only between reliable neighbours."
+}
